@@ -1,0 +1,171 @@
+/* 
+  Localizable.strings (简体中文)
+  PackageTraker
+*/
+
+// Tab Bar
+"tab.packages" = "包裹";
+"tab.history" = "历史";
+"tab.settings" = "设置";
+
+// Home
+"home.title" = "我的包裹";
+"home.pending" = "待取";
+"home.delivered30" = "近 30 天已取";
+
+// Package Status
+"status.pending" = "待发货";
+"status.shipped" = "已发货";
+"status.inTransit" = "配送中";
+"status.arrivedAtStore" = "已到货";
+"status.delivered" = "已取货";
+"status.returned" = "已退回";
+
+// Sort Options
+"sort.addedDate" = "加入顺序";
+"sort.orderDate" = "订单成立";
+"sort.pendingFirst" = "待取货";
+
+// Add Package
+"add.title" = "新增包裹";
+"add.trackingNumber" = "物流单号";
+"add.trackingNumberPlaceholder" = "输入单号";
+"add.supportedCarriers" = "支持 7-11、全家、OK超商、虾皮店到店";
+"add.selectCarrier" = "选择物流商";
+"add.ocrButton" = "截图识别";
+"add.productName" = "品名";
+"add.productNamePlaceholder" = "例如：蓝牙耳机";
+"add.platform" = "购买平台";
+"add.platformPlaceholder" = "选择或输入平台";
+"add.pickupLocation" = "取货地点";
+"add.pickupLocationPlaceholder" = "店铺名称或地址";
+"add.paymentMethod" = "付款方式";
+"add.selectPaymentMethod" = "选择付款方式";
+"add.amount" = "金额";
+"add.amountPlaceholder" = "0";
+"add.notes" = "备注";
+"add.notesPlaceholder" = "输入备注...";
+"add.button" = "新增";
+"add.cancel" = "取消";
+
+// Payment Method
+"payment.prepaid" = "已付款";
+"payment.cod" = "货到付款";
+"payment.free" = "免运/赠品";
+
+// Edit Package
+"edit.title" = "编辑包裹";
+"edit.save" = "完成";
+"edit.packageInfo" = "包裹信息";
+
+// Package Detail
+"detail.title" = "包裹详情";
+"detail.edit" = "编辑";
+"detail.orderInfo" = "订单信息";
+"detail.timeline" = "物流历程";
+"detail.noTimeline" = "暂无物流信息";
+"detail.trackingNumber" = "单号";
+"detail.carrier" = "物流商";
+"detail.platform" = "购买平台";
+"detail.paymentMethod" = "付款方式";
+"detail.amount" = "金额";
+"detail.notes" = "备注";
+"detail.pickupLocation" = "取货地点";
+"detail.pickupDeadline" = "取货期限";
+"detail.deadline" = "期限";
+"detail.serviceType" = "服务类型";
+"detail.delete" = "删除包裹";
+"detail.deleteConfirm" = "确定要删除此包裹？";
+
+// History
+"history.title" = "历史记录";
+"history.empty" = "暂无历史记录";
+"history.emptyDesc" = "已取货的包裹会显示在这里";
+"history.viewAll" = "查看全部";
+
+// Settings
+"settings.title" = "设置";
+"settings.about" = "关于";
+"settings.developer" = "开发者";
+"settings.rateApp" = "给予评分";
+"settings.reportIssue" = "反馈问题";
+"settings.privacyPolicy" = "隐私政策";
+"settings.general" = "通用";
+"settings.themeColor" = "主题颜色";
+"settings.language" = "语言";
+"settings.notifications" = "通知";
+"settings.pushNotification" = "推送通知";
+"settings.arrivalNotification" = "到货通知";
+"settings.pickupReminder" = "取货提醒";
+"settings.notificationHint" = "开启通知以即时收到包裹状态更新";
+"settings.dataManagement" = "数据管理";
+"settings.refreshInterval" = "更新频率";
+"settings.clearData" = "清除所有数据";
+"settings.clearDataConfirm" = "确定要清除所有数据吗？";
+"settings.clearDataMessage" = "这将删除所有包裹追踪记录。此操作无法恢复。";
+
+// Refresh Interval
+"interval.15min" = "15 分钟";
+"interval.30min" = "30 分钟";
+"interval.1hour" = "1 小时";
+"interval.2hours" = "2 小时";
+"interval.4hours" = "4 小时";
+"interval.manual" = "手动";
+
+// Splash
+"splash.loading" = "正在寻找您的包裹";
+
+// Common
+"common.edit" = "编辑";
+"common.delete" = "删除";
+"common.cancel" = "取消";
+"common.confirm" = "确定";
+"common.save" = "保存";
+"common.done" = "完成";
+"common.clear" = "清除";
+"common.update" = "更新";
+
+// Error
+"error.duplicateTitle" = "单号已存在";
+"error.duplicateMessage" = "此单号已新增过，请输入其他单号";
+"error.updateTitle" = "更新包裹信息";
+"error.updateMessage" = "此单号已存在，是否要更新包裹信息？";
+"error.queryFailed" = "查询失败";
+"error.imageLoadFailed" = "图片加载失败";
+"error.ocrFailed" = "识别失败";
+
+// Empty State
+"empty.title" = "还没有包裹";
+"empty.description" = "点击右上角的 + 新增包裹";
+"empty.addButton" = "新增第一个包裹";
+
+// Language
+"language.traditionalChinese" = "繁體中文";
+"language.simplifiedChinese" = "简体中文";
+"language.english" = "English";
+
+// Carriers
+"carrier.shopee" = "虾皮店到店";
+"carrier.familyMart" = "全家便利商店";
+"carrier.sevenEleven" = "7-ELEVEN";
+"carrier.okMart" = "OK超商";
+"carrier.hiLife" = "莱尔富";
+"carrier.tcat" = "黑猫宅急便";
+"carrier.hct" = "新竹物流";
+"carrier.ecan" = "宅配通";
+"carrier.postTW" = "中华邮政";
+"carrier.sfExpress" = "顺丰速运";
+"carrier.other" = "其他";
+
+// Theme
+"theme.title" = "主题颜色";
+"theme.preview" = "主页渐变效果";
+"theme.pickupCode" = "取件码";
+"theme.coffeeBrown" = "咖啡棕";
+"theme.forestGreen" = "森林绿";
+"theme.oceanBlue" = "深海蓝";
+"theme.lavender" = "薰衣草";
+"theme.babyBlue" = "宝宝蓝";
+"theme.eggshellWhite" = "蛋壳白";
+"theme.sakuraPink" = "樱花粉";
+"theme.sunsetOrange" = "落日橙";

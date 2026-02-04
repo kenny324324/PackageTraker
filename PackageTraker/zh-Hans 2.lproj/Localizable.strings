@@ -1,0 +1,61 @@
+/* 
+  Localizable.strings (简体中文)
+  PackageTraker
+*/
+
+// Tab Bar
+"tab.packages" = "包裹";
+"tab.history" = "历史";
+"tab.settings" = "设置";
+
+// Home
+"home.title" = "我的包裹";
+"home.pending" = "待取";
+"home.delivered" = "近 30 天已取";
+
+// Package Status
+"status.pending" = "待发货";
+"status.shipped" = "已发货";
+"status.inTransit" = "配送中";
+"status.arrivedAtStore" = "已到货";
+"status.delivered" = "已取货";
+"status.returned" = "已退回";
+
+// Add Package
+"add.title" = "新增包裹";
+"add.trackingNumber" = "物流单号";
+"add.selectCarrier" = "选择物流商";
+"add.productName" = "品名";
+"add.platform" = "购买平台";
+"add.pickupLocation" = "取货地点";
+"add.paymentMethod" = "付款方式";
+"add.amount" = "金额";
+"add.notes" = "备注";
+"add.button" = "新增";
+"add.cancel" = "取消";
+
+// Settings
+"settings.title" = "设置";
+"settings.about" = "关于";
+"settings.developer" = "开发者";
+"settings.rateApp" = "给予评分";
+"settings.reportIssue" = "反馈问题";
+"settings.privacyPolicy" = "隐私政策";
+"settings.general" = "通用";
+"settings.language" = "语言";
+"settings.notifications" = "通知";
+"settings.pushNotification" = "推送通知";
+"settings.arrivalNotification" = "到货通知";
+"settings.pickupReminder" = "取货提醒";
+"settings.dataManagement" = "数据管理";
+"settings.clearData" = "清除所有数据";
+
+// Splash
+"splash.loading" = "正在寻找您的包裹";
+
+// Common
+"common.edit" = "编辑";
+"common.delete" = "删除";
+"common.cancel" = "取消";
+"common.confirm" = "确定";
+"common.save" = "保存";

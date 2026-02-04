@@ -1,0 +1,171 @@
+/* 
+  Localizable.strings (English)
+  PackageTraker
+*/
+
+// Tab Bar
+"tab.packages" = "Packages";
+"tab.history" = "History";
+"tab.settings" = "Settings";
+
+// Home
+"home.title" = "My Packages";
+"home.pending" = "Pending";
+"home.delivered30" = "Last 30 Days";
+
+// Package Status
+"status.pending" = "Pending";
+"status.shipped" = "Shipped";
+"status.inTransit" = "In Transit";
+"status.arrivedAtStore" = "Arrived";
+"status.delivered" = "Picked Up";
+"status.returned" = "Returned";
+
+// Sort Options
+"sort.addedDate" = "Date Added";
+"sort.orderDate" = "Order Date";
+"sort.pendingFirst" = "Pending";
+
+// Add Package
+"add.title" = "Add Package";
+"add.trackingNumber" = "Tracking Number";
+"add.trackingNumberPlaceholder" = "Enter tracking number";
+"add.supportedCarriers" = "Supports 7-11, FamilyMart, OK Mart, Shopee";
+"add.selectCarrier" = "Select Carrier";
+"add.ocrButton" = "Scan Image";
+"add.productName" = "Product Name";
+"add.productNamePlaceholder" = "e.g. Bluetooth Earbuds";
+"add.platform" = "Platform";
+"add.platformPlaceholder" = "Select or enter platform";
+"add.pickupLocation" = "Pickup Location";
+"add.pickupLocationPlaceholder" = "Store name or address";
+"add.paymentMethod" = "Payment Method";
+"add.selectPaymentMethod" = "Select payment method";
+"add.amount" = "Amount";
+"add.amountPlaceholder" = "0";
+"add.notes" = "Notes";
+"add.notesPlaceholder" = "Enter notes...";
+"add.button" = "Add";
+"add.cancel" = "Cancel";
+
+// Payment Method
+"payment.prepaid" = "Prepaid";
+"payment.cod" = "Cash on Delivery";
+"payment.free" = "Free/Gift";
+
+// Edit Package
+"edit.title" = "Edit Package";
+"edit.save" = "Done";
+"edit.packageInfo" = "Package Info";
+
+// Package Detail
+"detail.title" = "Package Details";
+"detail.edit" = "Edit";
+"detail.orderInfo" = "Order Info";
+"detail.timeline" = "Tracking History";
+"detail.noTimeline" = "No tracking info";
+"detail.trackingNumber" = "Tracking #";
+"detail.carrier" = "Carrier";
+"detail.platform" = "Platform";
+"detail.paymentMethod" = "Payment";
+"detail.amount" = "Amount";
+"detail.notes" = "Notes";
+"detail.pickupLocation" = "Pickup Location";
+"detail.pickupDeadline" = "Pickup Deadline";
+"detail.deadline" = "Due";
+"detail.serviceType" = "Service Type";
+"detail.delete" = "Delete Package";
+"detail.deleteConfirm" = "Delete this package?";
+
+// History
+"history.title" = "History";
+"history.empty" = "No History";
+"history.emptyDesc" = "Picked up packages will appear here";
+"history.viewAll" = "View All";
+
+// Settings
+"settings.title" = "Settings";
+"settings.about" = "About";
+"settings.developer" = "Developer";
+"settings.rateApp" = "Rate App";
+"settings.reportIssue" = "Report an Issue";
+"settings.privacyPolicy" = "Privacy Policy";
+"settings.general" = "General";
+"settings.themeColor" = "Theme Color";
+"settings.language" = "Language";
+"settings.notifications" = "Notifications";
+"settings.pushNotification" = "Push Notifications";
+"settings.arrivalNotification" = "Arrival Notification";
+"settings.pickupReminder" = "Pickup Reminder";
+"settings.notificationHint" = "Enable to receive package status updates";
+"settings.dataManagement" = "Data Management";
+"settings.refreshInterval" = "Refresh Interval";
+"settings.clearData" = "Clear All Data";
+"settings.clearDataConfirm" = "Clear all data?";
+"settings.clearDataMessage" = "This will delete all package tracking records. This action cannot be undone.";
+
+// Refresh Interval
+"interval.15min" = "15 min";
+"interval.30min" = "30 min";
+"interval.1hour" = "1 hour";
+"interval.2hours" = "2 hours";
+"interval.4hours" = "4 hours";
+"interval.manual" = "Manual";
+
+// Splash
+"splash.loading" = "Finding your packages";
+
+// Common
+"common.edit" = "Edit";
+"common.delete" = "Delete";
+"common.cancel" = "Cancel";
+"common.confirm" = "Confirm";
+"common.save" = "Save";
+"common.done" = "Done";
+"common.clear" = "Clear";
+"common.update" = "Update";
+
+// Error
+"error.duplicateTitle" = "Duplicate";
+"error.duplicateMessage" = "This tracking number already exists";
+"error.updateTitle" = "Update Package";
+"error.updateMessage" = "This tracking number exists. Update package info?";
+"error.queryFailed" = "Query Failed";
+"error.imageLoadFailed" = "Image Load Failed";
+"error.ocrFailed" = "Recognition Failed";
+
+// Empty State
+"empty.title" = "No Packages";
+"empty.description" = "Tap + to add a package";
+"empty.addButton" = "Add First Package";
+
+// Language
+"language.traditionalChinese" = "繁體中文";
+"language.simplifiedChinese" = "简体中文";
+"language.english" = "English";
+
+// Carriers
+"carrier.shopee" = "Shopee";
+"carrier.familyMart" = "FamilyMart";
+"carrier.sevenEleven" = "7-ELEVEN";
+"carrier.okMart" = "OK Mart";
+"carrier.hiLife" = "Hi-Life";
+"carrier.tcat" = "T-Cat";
+"carrier.hct" = "HCT";
+"carrier.ecan" = "e-Can";
+"carrier.postTW" = "Chunghwa Post";
+"carrier.sfExpress" = "SF Express";
+"carrier.other" = "Other";
+
+// Theme
+"theme.title" = "Theme Color";
+"theme.preview" = "Homepage Gradient";
+"theme.pickupCode" = "Pickup Code";
+"theme.coffeeBrown" = "Coffee Brown";
+"theme.forestGreen" = "Forest Green";
+"theme.oceanBlue" = "Ocean Blue";
+"theme.lavender" = "Lavender";
+"theme.babyBlue" = "Baby Blue";
+"theme.eggshellWhite" = "Eggshell White";
+"theme.sakuraPink" = "Sakura Pink";
+"theme.sunsetOrange" = "Sunset Orange";

@@ -1,0 +1,56 @@
+# Xcode
+*.xcodeproj/project.xcworkspace/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+xcuserdata/
+*.xccheckout
+*.moved-aside
+*.xcuserstate
+*.xcscmblueprint
+*.xcuserdatad
+
+# Build
+build/
+DerivedData/
+*.build/
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Dependencies
+Pods/
+Carthage/Build/
+.build/
+.swiftpm/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Thumbnails
+Thumbs.db
+
+# IDE
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Sensitive files
+*.env
+*.local
+Secrets.swift
+
+# Backend
+backend/node_modules/
+backend/.env

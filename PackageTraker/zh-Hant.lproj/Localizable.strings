@@ -1,0 +1,171 @@
+/* 
+  Localizable.strings (繁體中文)
+  PackageTraker
+*/
+
+// Tab Bar
+"tab.packages" = "包裹";
+"tab.history" = "歷史";
+"tab.settings" = "設定";
+
+// Home
+"home.title" = "我的包裹";
+"home.pending" = "待取";
+"home.delivered30" = "近 30 天已取";
+
+// Package Status
+"status.pending" = "待出貨";
+"status.shipped" = "已出貨";
+"status.inTransit" = "配送中";
+"status.arrivedAtStore" = "已到貨";
+"status.delivered" = "已取貨";
+"status.returned" = "已退回";
+
+// Sort Options
+"sort.addedDate" = "加入順序";
+"sort.orderDate" = "訂單成立";
+"sort.pendingFirst" = "待取貨";
+
+// Add Package
+"add.title" = "新增包裹";
+"add.trackingNumber" = "物流單號";
+"add.trackingNumberPlaceholder" = "輸入單號";
+"add.supportedCarriers" = "支援 7-11、全家、OK超商、蝦皮店到店";
+"add.selectCarrier" = "選擇物流商";
+"add.ocrButton" = "截圖辨識";
+"add.productName" = "品名";
+"add.productNamePlaceholder" = "例如：藍牙耳機";
+"add.platform" = "購買平台";
+"add.platformPlaceholder" = "選擇或輸入平台";
+"add.pickupLocation" = "取貨地點";
+"add.pickupLocationPlaceholder" = "店舖名稱或是地址";
+"add.paymentMethod" = "付款方式";
+"add.selectPaymentMethod" = "選擇付款方式";
+"add.amount" = "金額";
+"add.amountPlaceholder" = "0";
+"add.notes" = "備註";
+"add.notesPlaceholder" = "輸入備註...";
+"add.button" = "新增";
+"add.cancel" = "取消";
+
+// Payment Method
+"payment.prepaid" = "已付款";
+"payment.cod" = "貨到付款";
+"payment.free" = "免運/贈品";
+
+// Edit Package
+"edit.title" = "編輯包裹";
+"edit.save" = "完成";
+"edit.packageInfo" = "包裹資訊";
+
+// Package Detail
+"detail.title" = "包裹詳情";
+"detail.edit" = "編輯";
+"detail.orderInfo" = "訂單資訊";
+"detail.timeline" = "物流歷程";
+"detail.noTimeline" = "暫無物流資訊";
+"detail.trackingNumber" = "單號";
+"detail.carrier" = "物流商";
+"detail.platform" = "購買平台";
+"detail.paymentMethod" = "付款方式";
+"detail.amount" = "金額";
+"detail.notes" = "備註";
+"detail.pickupLocation" = "取貨地點";
+"detail.pickupDeadline" = "取貨期限";
+"detail.deadline" = "期限";
+"detail.serviceType" = "服務類型";
+"detail.delete" = "刪除包裹";
+"detail.deleteConfirm" = "確定要刪除此包裹？";
+
+// History
+"history.title" = "歷史紀錄";
+"history.empty" = "暫無歷史紀錄";
+"history.emptyDesc" = "已取貨的包裹會顯示在這裡";
+"history.viewAll" = "查看全部";
+
+// Settings
+"settings.title" = "設定";
+"settings.about" = "關於";
+"settings.developer" = "開發者";
+"settings.rateApp" = "給予評分";
+"settings.reportIssue" = "回報問題";
+"settings.privacyPolicy" = "隱私政策";
+"settings.general" = "一般";
+"settings.themeColor" = "主題顏色";
+"settings.language" = "語言";
+"settings.notifications" = "通知";
+"settings.pushNotification" = "推播通知";
+"settings.arrivalNotification" = "到貨通知";
+"settings.pickupReminder" = "取貨提醒";
+"settings.notificationHint" = "開啟通知以即時收到包裹狀態更新";
+"settings.dataManagement" = "資料管理";
+"settings.refreshInterval" = "更新頻率";
+"settings.clearData" = "清除所有資料";
+"settings.clearDataConfirm" = "確定要清除所有資料嗎？";
+"settings.clearDataMessage" = "這將刪除所有包裹追蹤記錄。此操作無法復原。";
+
+// Refresh Interval
+"interval.15min" = "15 分鐘";
+"interval.30min" = "30 分鐘";
+"interval.1hour" = "1 小時";
+"interval.2hours" = "2 小時";
+"interval.4hours" = "4 小時";
+"interval.manual" = "手動";
+
+// Splash
+"splash.loading" = "正在尋找您的包裹";
+
+// Common
+"common.edit" = "編輯";
+"common.delete" = "刪除";
+"common.cancel" = "取消";
+"common.confirm" = "確定";
+"common.save" = "儲存";
+"common.done" = "完成";
+"common.clear" = "清除";
+"common.update" = "更新";
+
+// Error
+"error.duplicateTitle" = "單號已存在";
+"error.duplicateMessage" = "此單號已新增過，請輸入其他單號";
+"error.updateTitle" = "更新包裹資訊";
+"error.updateMessage" = "此單號已存在，是否要更新包裹資訊？";
+"error.queryFailed" = "查詢失敗";
+"error.imageLoadFailed" = "圖片載入失敗";
+"error.ocrFailed" = "辨識失敗";
+
+// Empty State
+"empty.title" = "還沒有包裹";
+"empty.description" = "點擊右上角的 + 新增包裹";
+"empty.addButton" = "新增第一個包裹";
+
+// Language
+"language.traditionalChinese" = "繁體中文";
+"language.simplifiedChinese" = "简体中文";
+"language.english" = "English";
+
+// Carriers
+"carrier.shopee" = "蝦皮店到店";
+"carrier.familyMart" = "全家便利商店";
+"carrier.sevenEleven" = "7-ELEVEN";
+"carrier.okMart" = "OK超商";
+"carrier.hiLife" = "萊爾富";
+"carrier.tcat" = "黑貓宅急便";
+"carrier.hct" = "新竹物流";
+"carrier.ecan" = "宅配通";
+"carrier.postTW" = "中華郵政";
+"carrier.sfExpress" = "順豐速運";
+"carrier.other" = "其他";
+
+// Theme
+"theme.title" = "主題顏色";
+"theme.preview" = "主頁漸變效果";
+"theme.pickupCode" = "取件碼";
+"theme.coffeeBrown" = "咖啡棕";
+"theme.forestGreen" = "森林綠";
+"theme.oceanBlue" = "深海藍";
+"theme.lavender" = "薰衣草";
+"theme.babyBlue" = "寶寶藍";
+"theme.eggshellWhite" = "蛋殼白";
+"theme.sakuraPink" = "櫻花粉";
+"theme.sunsetOrange" = "落日橙";

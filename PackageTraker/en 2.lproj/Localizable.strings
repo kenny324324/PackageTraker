@@ -1,0 +1,61 @@
+/* 
+  Localizable.strings (English)
+  PackageTraker
+*/
+
+// Tab Bar
+"tab.packages" = "Packages";
+"tab.history" = "History";
+"tab.settings" = "Settings";
+
+// Home
+"home.title" = "My Packages";
+"home.pending" = "Pending";
+"home.delivered" = "Delivered (30 days)";
+
+// Package Status
+"status.pending" = "Pending";
+"status.shipped" = "Shipped";
+"status.inTransit" = "In Transit";
+"status.arrivedAtStore" = "Arrived";
+"status.delivered" = "Picked Up";
+"status.returned" = "Returned";
+
+// Add Package
+"add.title" = "Add Package";
+"add.trackingNumber" = "Tracking Number";
+"add.selectCarrier" = "Select Carrier";
+"add.productName" = "Product Name";
+"add.platform" = "Platform";
+"add.pickupLocation" = "Pickup Location";
+"add.paymentMethod" = "Payment Method";
+"add.amount" = "Amount";
+"add.notes" = "Notes";
+"add.button" = "Add";
+"add.cancel" = "Cancel";
+
+// Settings
+"settings.title" = "Settings";
+"settings.about" = "About";
+"settings.developer" = "Developer";
+"settings.rateApp" = "Rate App";
+"settings.reportIssue" = "Report an Issue";
+"settings.privacyPolicy" = "Privacy Policy";
+"settings.general" = "General";
+"settings.language" = "Language";
+"settings.notifications" = "Notifications";
+"settings.pushNotification" = "Push Notifications";
+"settings.arrivalNotification" = "Arrival Notification";
+"settings.pickupReminder" = "Pickup Reminder";
+"settings.dataManagement" = "Data Management";
+"settings.clearData" = "Clear All Data";
+
+// Splash
+"splash.loading" = "Finding your packages";
+
+// Common
+"common.edit" = "Edit";
+"common.delete" = "Delete";
+"common.cancel" = "Cancel";
+"common.confirm" = "Confirm";
+"common.save" = "Save";

@@ -1,0 +1,494 @@
+import SwiftUI
+import SwiftData
+
+/// 包裹清單主頁
+struct PackageListView: View {
+    @Environment(\.modelContext) private var modelContext
+    @ObservedObject private var themeManager = ThemeManager.shared
+
+    @Query(filter: #Predicate<Package> { !$0.isArchived },
+           sort: \Package.lastUpdated, order: .reverse)
+    private var packages: [Package]
+
+    @Query private var linkedAccounts: [LinkedEmailAccount]
+
+    @State private var showAddPackage = false
+    @State private var selectedPackage: Package?
+    @State private var isRefreshing = false
+    @State private var emailSyncStatus: String?
+    
+    // 編輯和刪除
+    @State private var packageToEdit: Package?
+    @State private var packageToDelete: Package?
+    @State private var showDeleteConfirmation = false
+    
+    // Hero 動畫用的 Namespace
+    @Namespace private var heroNamespace
+
+    private let trackingManager = TrackingManager()
+    private let gmailAuthManager = GmailAuthManager.shared
+
+    /// 30 天前的日期
+    private var thirtyDaysAgo: Date {
+        Calendar.current.date(byAdding: .day, value: -30, to: Date()) ?? Date()
+    }
+
+    /// 過濾後的包裹（最後狀態距今超過 30 天的不顯示）
+    private var filteredPackages: [Package] {
+        packages.filter { package in
+            // 使用最後狀態的時間（最新事件的時間）判斷
+            if let latestEventTime = package.latestEventTimestamp {
+                // 距今超過 30 天就不顯示
+                return latestEventTime > thirtyDaysAgo
+            }
+            // 沒有事件的包裹，使用 lastUpdated
+            return package.lastUpdated > thirtyDaysAgo
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if filteredPackages.isEmpty {
+                    EmptyPackageListView(onAddPackage: { showAddPackage = true })
+                } else {
+                    packageListContent
+                }
+            }
+            .adaptiveGradientBackground()
+            .navigationTitle(String(localized: "home.title"))
+            .toolbarTitleDisplayMode(.inlineLarge)
+            .toolbarBackground(.hidden, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    addButton
+                }
+            }
+            .sheet(isPresented: $showAddPackage) {
+                AddPackageView()
+            }
+            .sheet(item: $packageToEdit) { package in
+                EditPackageSheet(package: package)
+            }
+            .confirmationDialog(String(localized: "detail.deleteConfirm"), isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
+                Button(String(localized: "common.delete"), role: .destructive) {
+                    if let package = packageToDelete {
+                        deletePackage(package)
+                    }
+                }
+                Button(String(localized: "common.cancel"), role: .cancel) {
+                    packageToDelete = nil
+                }
+            }
+            .navigationDestination(item: $selectedPackage) { package in
+                PackageDetailView(package: package, namespace: heroNamespace)
+                    .navigationTransition(.zoom(sourceID: package.id, in: heroNamespace))
+            }
+        }
+        .toolbar(selectedPackage == nil ? .visible : .hidden, for: .tabBar)
+        .animation(.easeInOut(duration: 0.3), value: selectedPackage)
+        .preferredColorScheme(.dark)
+    }
+    
+    private func deletePackage(_ package: Package) {
+        modelContext.delete(package)
+        try? modelContext.save()
+        packageToDelete = nil
+    }
+
+    // MARK: - Views
+
+    private var packageListContent: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                // 郵件同步狀態提示（功能暫時停用）
+                if FeatureFlags.emailAutoImportEnabled, let status = emailSyncStatus {
+                    emailSyncStatusBanner(status)
+                        .padding(.horizontal)
+                }
+
+                // 統計摘要
+                StatsSummaryView(
+                    pendingCount: pendingPackages.count,
+                    deliveredThisMonth: deliveredThisMonthCount
+                )
+                .padding(.horizontal)
+
+                // 按物流商分組顯示（水平滾動列表自己處理 padding）
+                ForEach(groupedByCarrier.keys.sorted(), id: \.self) { carrierName in
+                    if let carrierPackages = groupedByCarrier[carrierName] {
+                        PackageSectionView(
+                            title: carrierName,
+                            packages: carrierPackages,
+                            namespace: heroNamespace,
+                            onPackageTap: { package in
+                                selectedPackage = package
+                            },
+                            onPackageEdit: { package in
+                                packageToEdit = package
+                            },
+                            onPackageDelete: { package in
+                                packageToDelete = package
+                                showDeleteConfirmation = true
+                            }
+                        )
+                    }
+                }
+            }
+            .padding(.bottom)
+        }
+        .refreshable {
+            // 使用獨立的 Task 來避免被 refreshable 取消
+            await withCheckedContinuation { continuation in
+                Task {
+                    await refreshAllPackages()
+                    continuation.resume()
+                }
+            }
+        }
+    }
+
+    private func emailSyncStatusBanner(_ status: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "envelope.badge.fill")
+                .foregroundStyle(.green)
+
+            Text(status)
+                .font(.caption)
+
+            Spacer()
+
+            Button {
+                emailSyncStatus = nil
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(12)
+        .background(Color.secondaryCardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+
+    // MARK: - Computed Properties
+
+    private var pendingPackages: [Package] {
+        filteredPackages.filter { $0.status.isPendingPickup }
+    }
+
+    private var deliveredThisMonthCount: Int {
+        filteredPackages.filter { $0.status == .delivered }.count
+    }
+
+    /// 按物流商分組
+    private var groupedByCarrier: [String: [Package]] {
+        Dictionary(grouping: filteredPackages) { package in
+            package.carrier.displayName
+        }
+    }
+
+    // MARK: - Actions
+
+    private func refreshAllPackages() async {
+        // 1. 先同步郵件中的新包裹（如果已連結 Gmail）
+        // 注意：此功能暫時停用，由 FeatureFlags 控制
+        if FeatureFlags.emailAutoImportEnabled && gmailAuthManager.isSignedIn {
+            await syncEmailPackages()
+        }
+
+        // 2. 刷新首頁顯示的包裹（最多同時 3 個並行）
+        let packagesToRefresh = filteredPackages
+        print("📦 準備刷新 \(packagesToRefresh.count) 個包裹")
+        
+        // 使用 TaskGroup 並行刷新，但限制同時執行數量
+        let maxConcurrent = 3
+        var completedCount = 0
+        
+        await withTaskGroup(of: Void.self) { group in
+            for (index, package) in packagesToRefresh.enumerated() {
+                // 等待直到並行數量低於限制
+                if index >= maxConcurrent {
+                    await group.next()
+                }
+                
+                group.addTask {
+                    await self.refreshPackage(package)
+                }
+            }
+            
+            // 等待所有任務完成
+            for await _ in group {
+                completedCount += 1
+                print("[\(completedCount)/\(packagesToRefresh.count)] 完成")
+            }
+        }
+        
+        try? modelContext.save()
+        print("✅ 刷新完成")
+    }
+
+    private func syncEmailPackages() async {
+        let gmailService = GmailService()
+        let emailParser = TaiwaneseEmailParser.shared
+        let trackingService = ParcelTwService()
+
+        do {
+            // 取得物流相關郵件
+            let messages = try await gmailService.fetchTrackingEmails(maxResults: 30)
+            print("[PackageSync] 📧 取得 \(messages.count) 封郵件")
+
+            // 解析郵件（只取得單號，不判斷狀態）
+            let results = emailParser.parseEmails(messages)
+            print("[PackageSync] 📦 成功解析 \(results.count) 個包裹")
+
+            // 去重：同一個單號只處理一次（保留最新的郵件）
+            var uniqueResults: [String: ParsedEmailResult] = [:]
+            for result in results {
+                let key = result.trackingNumber
+                if let existing = uniqueResults[key] {
+                    // 保留日期較新的
+                    if result.emailDate > existing.emailDate {
+                        uniqueResults[key] = result
+                    }
+                } else {
+                    uniqueResults[key] = result
+                }
+            }
+            print("[PackageSync] 🔄 去重後剩餘 \(uniqueResults.count) 個包裹")
+            for (_, result) in uniqueResults {
+                print("[PackageSync]   - \(result.carrier.displayName): \(result.trackingNumber) (來源: \(result.source))")
+            }
+
+            // 處理每個單號：API 查詢成功才新增
+            var newPackagesCount = 0
+
+            for (_, result) in uniqueResults {
+                let trackingNumber = result.trackingNumber
+
+                // 檢查是否已存在
+                let existingPackage = packages.first { $0.trackingNumber == trackingNumber }
+
+                if existingPackage == nil {
+                    // 新單號：先查詢 API，成功才新增
+                    let apiResult = await verifyAndCreatePackage(
+                        result: result,
+                        using: trackingService
+                    )
+
+                    if apiResult {
+                        newPackagesCount += 1
+                        print("[PackageSync] ✅ 新增並驗證成功: \(trackingNumber)")
+                    } else {
+                        print("[PackageSync] ❌ API 驗證失敗，不新增: \(trackingNumber)")
+                    }
+                } else if let existing = existingPackage {
+                    // 更新現有包裹的取件碼（如果有新的）
+                    if let pickupCode = result.pickupCode, existing.pickupCode == nil {
+                        existing.pickupCode = pickupCode
+                    }
+                    if let pickupLocation = result.pickupLocation, existing.pickupLocation == nil {
+                        existing.pickupLocation = pickupLocation
+                    }
+                }
+            }
+
+            // 更新 LinkedEmailAccount 的同步狀態
+            if let account = linkedAccounts.first {
+                let summary = newPackagesCount > 0
+                    ? "新增 \(newPackagesCount) 個包裹"
+                    : "沒有新包裹"
+                account.updateSyncStatus(summary: summary)
+
+                // 記錄已同步的郵件 ID
+                for message in messages {
+                    account.markMessageAsSynced(message.id)
+                }
+            }
+
+            // 顯示同步結果
+            if newPackagesCount > 0 {
+                emailSyncStatus = "從郵件中新增了 \(newPackagesCount) 個包裹"
+
+                // 3 秒後自動隱藏
+                Task {
+                    try? await Task.sleep(nanoseconds: 3_000_000_000)
+                    await MainActor.run {
+                        emailSyncStatus = nil
+                    }
+                }
+            }
+
+            try? modelContext.save()
+
+        } catch {
+            print("郵件同步失敗：\(error.localizedDescription)")
+        }
+    }
+
+    /// 透過 API 驗證單號，成功才建立包裹
+    private func verifyAndCreatePackage(
+        result: ParsedEmailResult,
+        using trackingService: ParcelTwService
+    ) async -> Bool {
+        let trackingNumber = result.trackingNumber
+        let carrier = result.carrier
+
+        // 檢查是否支援此物流商
+        guard trackingService.supportedCarriers.contains(carrier) else {
+            print("[PackageSync] ⏭️ 不支援的物流商: \(carrier.displayName)，直接新增（待手動確認）")
+            // 不支援的物流商，還是新增包裹，但狀態為 pending
+            let newPackage = Package(
+                trackingNumber: trackingNumber,
+                carrier: carrier,
+                customName: result.orderDescription
+            )
+            newPackage.pickupCode = result.pickupCode
+            newPackage.pickupLocation = result.pickupLocation
+            newPackage.createdAt = result.emailDate
+            modelContext.insert(newPackage)
+            return true
+        }
+
+        print("[PackageSync] 🔍 API 驗證: \(trackingNumber)")
+        do {
+            let apiResult = try await trackingService.track(
+                number: trackingNumber,
+                carrier: carrier
+            )
+
+            // API 查詢成功，建立包裹
+            let newPackage = Package(
+                trackingNumber: trackingNumber,
+                carrier: carrier,
+                customName: result.orderDescription,
+                status: apiResult.currentStatus
+            )
+            newPackage.pickupCode = result.pickupCode
+            newPackage.pickupLocation = result.pickupLocation
+            newPackage.createdAt = result.emailDate
+            newPackage.lastUpdated = Date()
+            newPackage.latestDescription = apiResult.events.first?.description
+
+            // 添加追蹤事件
+            for eventDTO in apiResult.events {
+                let event = TrackingEvent(
+                    timestamp: eventDTO.timestamp,
+                    status: eventDTO.status,
+                    description: eventDTO.description,
+                    location: eventDTO.location
+                )
+                newPackage.events.append(event)
+            }
+
+            modelContext.insert(newPackage)
+            try? modelContext.save()
+            print("[PackageSync] ✅ API 驗證成功: \(trackingNumber) -> \(apiResult.currentStatus.displayName)")
+            return true
+
+        } catch {
+            // API 查詢失敗，不新增包裹
+            print("[PackageSync] ❌ API 驗證失敗: \(trackingNumber) - \(error.localizedDescription)")
+            return false
+        }
+    }
+
+    private func refreshPackage(_ package: Package) async {
+        // 已完成的包裹不再刷新
+        guard !package.status.isCompleted else {
+            print("⏭️ 跳過已完成的包裹: \(package.trackingNumber)")
+            return
+        }
+        
+        // 只刷新支援 API 的物流商（7-11、全家、OK、蝦皮）
+        let supportedCarriers: [Carrier] = [.sevenEleven, .familyMart, .okMart, .shopee]
+        guard supportedCarriers.contains(package.carrier) else {
+            print("⏭️ 跳過不支援自動刷新的物流商: \(package.carrier.displayName)")
+            return
+        }
+        
+        do {
+            let result = try await trackingManager.track(
+                number: package.trackingNumber,
+                carrier: package.carrier
+            )
+
+            // 更新包裹狀態
+            package.status = result.currentStatus
+            package.lastUpdated = Date()
+
+            // 更新最新描述
+            if let latestEvent = result.events.first {
+                package.latestDescription = latestEvent.description
+
+                // 更新取貨地點（如果有新的）
+                if let location = latestEvent.location, !location.isEmpty {
+                    package.pickupLocation = location
+                }
+            }
+            
+            // 更新額外資訊（7-11、全家）
+            if let storeName = result.storeName {
+                package.storeName = storeName
+            }
+            if let serviceType = result.serviceType {
+                package.serviceType = serviceType
+            }
+            if let pickupDeadline = result.pickupDeadline {
+                package.pickupDeadline = pickupDeadline
+            }
+
+            // 更新事件列表
+            package.events.removeAll()
+            for eventDTO in result.events {
+                let event = TrackingEvent(
+                    timestamp: eventDTO.timestamp,
+                    status: eventDTO.status,
+                    description: eventDTO.description,
+                    location: eventDTO.location
+                )
+                event.package = package
+                package.events.append(event)
+            }
+            
+            print("✅ 刷新成功: \(package.trackingNumber)")
+        } catch {
+            // 刷新失敗時靜默處理，不影響其他包裹的刷新
+            print("❌ 刷新包裹 \(package.trackingNumber) 失敗: \(error.localizedDescription)")
+        }
+    }
+
+    private var addButton: some View {
+        Button(action: { showAddPackage = true }) {
+            Image(systemName: "plus")
+                .foregroundStyle(.white)
+        }
+    }
+}
+
+// MARK: - Empty State
+
+struct EmptyPackageListView: View {
+    var onAddPackage: () -> Void
+
+    var body: some View {
+        ContentUnavailableView {
+            Label(String(localized: "empty.title"), systemImage: "shippingbox")
+        } description: {
+            Text(String(localized: "empty.description"))
+        } actions: {
+            Button(String(localized: "empty.addButton")) {
+                onAddPackage()
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(.appAccent)
+        }
+    }
+}
+
+// MARK: - Previews
+
+#Preview {
+    PackageListView()
+        .modelContainer(for: [Package.self, TrackingEvent.self, LinkedEmailAccount.self], inMemory: true)
+}
