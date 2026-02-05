@@ -29,10 +29,10 @@ struct EmailLinkingSheet: View {
 
                 // 標題與說明
                 VStack(spacing: 12) {
-                    Text("連結您的 Email")
+                    Text(String(localized: "email.linkTitle"))
                         .font(.title2.bold())
 
-                    Text("連結 Gmail 帳號後，App 將自動從郵件中擷取物流追蹤資訊，幫您自動新增包裹。")
+                    Text(String(localized: "email.linkDescription"))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -43,20 +43,20 @@ struct EmailLinkingSheet: View {
                 VStack(alignment: .leading, spacing: 16) {
                     permissionRow(
                         icon: "eye",
-                        title: "僅讀取郵件",
-                        description: "App 只會讀取郵件內容，不會修改或刪除"
+                        title: String(localized: "email.permissionReadOnly"),
+                        description: String(localized: "email.permissionReadOnlyDesc")
                     )
 
                     permissionRow(
                         icon: "lock.shield",
-                        title: "安全儲存",
-                        description: "登入憑證使用 iOS Keychain 安全儲存"
+                        title: String(localized: "email.permissionSecure"),
+                        description: String(localized: "email.permissionSecureDesc")
                     )
 
                     permissionRow(
                         icon: "trash.slash",
-                        title: "隨時解除",
-                        description: "您可以隨時在設定中解除連結"
+                        title: String(localized: "email.permissionRevoke"),
+                        description: String(localized: "email.permissionRevokeDesc")
                     )
                 }
                 .padding(.horizontal, 24)
@@ -75,7 +75,7 @@ struct EmailLinkingSheet: View {
                             Image(systemName: "g.circle.fill")
                                 .font(.title2)
 
-                            Text("使用 Google 帳號登入")
+                            Text(String(localized: "email.signInWithGoogle"))
                                 .font(.headline)
                         }
                         .foregroundStyle(.white)
@@ -92,21 +92,21 @@ struct EmailLinkingSheet: View {
                         HStack(spacing: 8) {
                             ProgressView()
                                 .scaleEffect(0.8)
-                            Text("正在登入...")
+                            Text(String(localized: "email.signingIn"))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
                     }
 
                     // 隱私說明
-                    Text("點擊登入即表示您同意我們存取您的郵件")
+                    Text(String(localized: "email.consentMessage"))
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                 }
                 .padding(.horizontal, 24)
                 .padding(.bottom, 24)
             }
-            .navigationTitle("連結 Email")
+            .navigationTitle(String(localized: "email.navigationTitle"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -116,7 +116,7 @@ struct EmailLinkingSheet: View {
                     .foregroundStyle(.white)
                 }
             }
-            .alert("登入失敗", isPresented: $showError) {
+            .alert("登入未完成", isPresented: $showError) {
                 Button("確定", role: .cancel) {}
             } message: {
                 Text(errorMessage)

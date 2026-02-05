@@ -202,3 +202,40 @@
 "theme.eggshellWhite" = "蛋殼白";
 "theme.sakuraPink" = "櫻花粉";
 "theme.sunsetOrange" = "落日橙";
+
+// OCR
+"ocr.title" = "辨識結果";
+"ocr.tapToSelect" = "點擊選取單號";
+"ocr.possiblyCarrier" = "可能是 %@";
+"ocr.manualSelection" = "未能自動辨識到物流單號，請從以下文字中選取";
+
+// Platform Picker
+"platform.title" = "選擇購買平台";
+"platform.searchPlaceholder" = "搜尋或輸入平台名稱";
+"platform.use" = "使用「%@」";
+"platform.custom" = "自訂";
+
+// Section
+"section.empty" = "暫無包裹";
+
+// Email Linking
+"email.linkTitle" = "連結您的 Email";
+"email.linkDescription" = "連結 Gmail 帳號後，App 將自動從郵件中擷取物流追蹤資訊，幫您自動新增包裹。";
+"email.navigationTitle" = "連結 Email";
+"email.permissionReadOnly" = "僅讀取郵件";
+"email.permissionReadOnlyDesc" = "App 只會讀取郵件內容，不會修改或刪除";
+"email.permissionSecure" = "安全儲存";
+"email.permissionSecureDesc" = "登入憑證使用 iOS Keychain 安全儲存";
+"email.permissionRevoke" = "隨時解除";
+"email.permissionRevokeDesc" = "您可以隨時在設定中解除連結";
+"email.signInWithGoogle" = "使用 Google 帳號登入";
+"email.signingIn" = "正在登入...";
+"email.consentMessage" = "點擊登入即表示您同意我們存取您的郵件";
+"email.linkedSince" = "已連結 %@";
+"email.lastSync" = "最後同步";
+"email.neverSynced" = "從未同步";
+"email.syncResults" = "同步結果";
+"email.unlinkWarning" = "解除連結後，將不再從此郵件帳號同步物流資訊。";
+
+// Detail - Additional
+"detail.pickupCode" = "取件碼";

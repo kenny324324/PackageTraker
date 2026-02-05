@@ -127,7 +127,7 @@ struct PackageDetailView: View {
             // 取件碼（大字體）
             if let pickupCode = package.pickupCode {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("取件碼")
+                    Text(String(localized: "detail.pickupCode"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Text(pickupCode)
@@ -378,8 +378,8 @@ struct PackageDetailView: View {
     private func refreshPackage() async {
         guard !isRefreshing else { return }
         
-        // 已完成的包裹不再刷新
-        guard !package.status.isCompleted else {
+        // 已完成且有事件的包裹不再刷新（無事件表示第一次需要抓）
+        guard !package.status.isCompleted || package.events.isEmpty else {
             print("⏭️ 跳過已完成的包裹: \(package.trackingNumber)")
             return
         }
@@ -388,37 +388,22 @@ struct PackageDetailView: View {
         print("🔄 開始刷新包裹: \(package.trackingNumber)")
         
         do {
-            let result = try await trackingManager.track(
-                number: package.trackingNumber,
-                carrier: package.carrier
-            )
+            let result = try await trackingManager.track(package: package)
 
-            // 更新包裹狀態
             package.status = result.currentStatus
             package.lastUpdated = Date()
 
-            // 更新最新描述
             if let latestEvent = result.events.first {
                 package.latestDescription = latestEvent.description
-
-                // 更新取貨地點（如果有新的）
                 if let location = latestEvent.location, !location.isEmpty {
                     package.pickupLocation = location
                 }
             }
-            
-            // 更新額外資訊
-            if let storeName = result.storeName {
-                package.storeName = storeName
-            }
-            if let serviceType = result.serviceType {
-                package.serviceType = serviceType
-            }
-            if let pickupDeadline = result.pickupDeadline {
-                package.pickupDeadline = pickupDeadline
-            }
 
-            // 更新事件列表
+            if let storeName = result.storeName { package.storeName = storeName }
+            if let serviceType = result.serviceType { package.serviceType = serviceType }
+            if let pickupDeadline = result.pickupDeadline { package.pickupDeadline = pickupDeadline }
+
             package.events.removeAll()
             for eventDTO in result.events {
                 let event = TrackingEvent(

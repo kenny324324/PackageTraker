@@ -202,3 +202,47 @@
 "theme.eggshellWhite" = "Eggshell White";
 "theme.sakuraPink" = "Sakura Pink";
 "theme.sunsetOrange" = "Sunset Orange";
+
+// OCR
+"ocr.title" = "Recognition Result";
+"ocr.tapToSelect" = "Tap to select tracking number";
+"ocr.possiblyCarrier" = "Possibly %@";
+"ocr.manualSelection" = "Unable to automatically recognize tracking number. Please select from the text below";
+
+// Platform Picker
+"platform.title" = "Select Platform";
+"platform.searchPlaceholder" = "Search or enter platform name";
+"platform.use" = "Use \"%@\"";
+"platform.custom" = "Custom";
+
+// Section
+"section.empty" = "No packages";
+
+// Email Linking
+"email.linkTitle" = "Link Your Email";
+"email.linkDescription" = "Link your Gmail account to automatically extract tracking info from emails and add packages for you.";
+"email.navigationTitle" = "Link Email";
+"email.permissionReadOnly" = "Read Only";
+"email.permissionReadOnlyDesc" = "App only reads email content, never modifies or deletes";
+"email.permissionSecure" = "Secure Storage";
+"email.permissionSecureDesc" = "Login credentials are securely stored using iOS Keychain";
+"email.permissionRevoke" = "Revoke Anytime";
+"email.permissionRevokeDesc" = "You can unlink at any time in Settings";
+"email.signInWithGoogle" = "Sign in with Google";
+"email.signingIn" = "Signing in...";
+"email.consentMessage" = "By signing in, you agree to let us access your emails";
+"email.linkedSince" = "Linked %@";
+"email.unknown" = "Unknown";
+"email.syncStatus" = "Sync Status";
+"email.lastSync" = "Last Sync";
+"email.neverSynced" = "Never synced";
+"email.syncResults" = "Sync Results";
+"email.autoSync" = "Auto Sync";
+"email.syncNow" = "Sync Now";
+"email.unlink" = "Unlink";
+"email.settingsTitle" = "Email Settings";
+"email.unlinkConfirm" = "Are you sure you want to unlink?";
+"email.unlinkWarning" = "After unlinking, tracking info will no longer be synced from this email account.";
+
+// Detail - Additional
+"detail.pickupCode" = "Pickup Code";

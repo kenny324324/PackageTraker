@@ -120,7 +120,7 @@ struct PackageSectionView: View {
                 Image(systemName: "shippingbox")
                     .font(.largeTitle)
                     .foregroundStyle(.tertiary)
-                Text("暫無包裹")
+                Text(String(localized: "section.empty"))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }

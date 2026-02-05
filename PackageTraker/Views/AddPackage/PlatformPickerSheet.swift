@@ -24,11 +24,11 @@ struct PlatformPickerSheet: View {
                 platformList
             }
             .adaptiveBackground()
-            .navigationTitle("選擇購買平台")
+            .navigationTitle(String(localized: "platform.title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("取消") {
+                    Button(String(localized: "common.cancel")) {
                         dismiss()
                     }
                     .foregroundStyle(.white)
@@ -44,8 +44,8 @@ struct PlatformPickerSheet: View {
         HStack {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(.secondary)
-            
-            TextField("搜尋或輸入平台名稱", text: $searchText)
+
+            TextField(String(localized: "platform.searchPlaceholder"), text: $searchText)
                 .textFieldStyle(.plain)
             
             if !searchText.isEmpty {
@@ -94,13 +94,13 @@ struct PlatformPickerSheet: View {
             HStack {
                 Image(systemName: "plus.circle.fill")
                     .foregroundStyle(.green)
-                
-                Text("使用「\(searchText)」")
+
+                Text(String(format: String(localized: "platform.use"), searchText))
                     .foregroundStyle(.primary)
-                
+
                 Spacer()
-                
-                Text("自訂")
+
+                Text(String(localized: "platform.custom"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

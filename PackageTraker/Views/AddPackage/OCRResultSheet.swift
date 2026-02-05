@@ -32,11 +32,11 @@ struct OCRResultSheet: View {
                 }
             }
             .adaptiveBackground()
-            .navigationTitle("辨識結果")
+            .navigationTitle(String(localized: "ocr.title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("取消") {
+                    Button(String(localized: "common.cancel")) {
                         dismiss()
                     }
                     .foregroundStyle(.white)
@@ -55,7 +55,7 @@ struct OCRResultSheet: View {
     private var candidatesList: some View {
         ScrollView {
             VStack(spacing: 12) {
-                Text("點擊選取單號")
+                Text(String(localized: "ocr.tapToSelect"))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -100,7 +100,7 @@ struct OCRResultSheet: View {
                     
                     // 建議物流商
                     if let carrier = candidate.suggestedCarrier {
-                        Text("可能是 \(carrier.displayName)")
+                        Text(String(format: String(localized: "ocr.possiblyCarrier"), carrier.displayName))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -127,7 +127,7 @@ struct OCRResultSheet: View {
     private var allTextsView: some View {
         VStack(spacing: 0) {
             // 說明文字
-            Text("未能自動辨識到物流單號，請從以下文字中選取")
+            Text(String(localized: "ocr.manualSelection"))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
