@@ -46,7 +46,12 @@
 "add.notes" = "備註";
 "add.notesPlaceholder" = "輸入備註...";
 "add.button" = "新增";
+"add.continue" = "繼續";
+"add.packageInfo" = "包裹資訊";
 "add.cancel" = "取消";
+// Query Page
+"query.searching" = "正在尋找這件包裹";
+"query.found" = "找到這件包裹！";
 
 // Payment Method
 "payment.prepaid" = "已付款";
@@ -130,9 +135,10 @@
 "error.duplicateMessage" = "此單號已新增過，請輸入其他單號";
 "error.updateTitle" = "更新包裹資訊";
 "error.updateMessage" = "此單號已存在，是否要更新包裹資訊？";
-"error.queryFailed" = "查詢失敗";
-"error.imageLoadFailed" = "圖片載入失敗";
-"error.ocrFailed" = "辨識失敗";
+"error.queryFailed" = "查詢未完成";
+"error.noHistory" = "查無此訂單的物流記錄，請確認物流商是否正確";
+"error.imageLoadFailed" = "圖片讀取異常";
+"error.ocrFailed" = "文字辨識異常";
 
 // Empty State
 "empty.title" = "還沒有包裹";
@@ -143,6 +149,13 @@
 "language.traditionalChinese" = "繁體中文";
 "language.simplifiedChinese" = "简体中文";
 "language.english" = "English";
+
+// Carrier Categories
+"carrierCategory.convenienceStore" = "超商取貨";
+"carrierCategory.domestic" = "國內宅配";
+"carrierCategory.ecommerce" = "電商物流";
+"carrierCategory.international" = "國際快遞";
+"carrierCategory.other" = "其他";
 
 // Carriers
 "carrier.shopee" = "蝦皮店到店";
@@ -155,7 +168,24 @@
 "carrier.ecan" = "宅配通";
 "carrier.postTW" = "中華郵政";
 "carrier.sfExpress" = "順豐速運";
+"carrier.kerry" = "嘉里大榮物流";
+"carrier.taiwanExpress" = "台灣快遞";
+"carrier.customs" = "關務署（海關）";
 "carrier.other" = "其他";
+
+// Track.TW
+"trackTw.apiConnection" = "Track.TW API";
+"trackTw.connected" = "已連線";
+"trackTw.notConnected" = "未連線";
+"trackTw.setupHint" = "設定 API Token 以啟用自動追蹤";
+"trackTw.setup" = "設定 Track.TW";
+"trackTw.setupDescription" = "輸入您的 Track.TW API Token 以啟用包裹自動追蹤功能。您可以在 Track.TW 網站申請免費的 API Token。";
+"trackTw.tokenPlaceholder" = "貼上您的 API Token";
+"trackTw.validate" = "驗證並儲存";
+"trackTw.getToken" = "前往 Track.TW 申請 Token";
+"trackTw.disconnect" = "中斷連線";
+"trackTw.disconnectConfirm" = "確定要中斷 Track.TW 連線嗎？";
+"trackTw.accountInfo" = "帳號資訊";
 
 // Theme
 "theme.title" = "主題顏色";

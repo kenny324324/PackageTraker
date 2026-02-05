@@ -46,7 +46,12 @@
 "add.notes" = "Notes";
 "add.notesPlaceholder" = "Enter notes...";
 "add.button" = "Add";
+"add.continue" = "Continue";
+"add.packageInfo" = "Package Info";
 "add.cancel" = "Cancel";
+// Query Page
+"query.searching" = "Searching for your package";
+"query.found" = "Package found!";
 
 // Payment Method
 "payment.prepaid" = "Prepaid";
@@ -130,9 +135,10 @@
 "error.duplicateMessage" = "This tracking number already exists";
 "error.updateTitle" = "Update Package";
 "error.updateMessage" = "This tracking number exists. Update package info?";
-"error.queryFailed" = "Query Failed";
-"error.imageLoadFailed" = "Image Load Failed";
-"error.ocrFailed" = "Recognition Failed";
+"error.queryFailed" = "Query Incomplete";
+"error.noHistory" = "No tracking history found. Please check if the carrier is correct.";
+"error.imageLoadFailed" = "Image Not Available";
+"error.ocrFailed" = "Text Recognition Issue";
 
 // Empty State
 "empty.title" = "No Packages";
@@ -143,6 +149,13 @@
 "language.traditionalChinese" = "繁體中文";
 "language.simplifiedChinese" = "简体中文";
 "language.english" = "English";
+
+// Carrier Categories
+"carrierCategory.convenienceStore" = "Convenience Store";
+"carrierCategory.domestic" = "Domestic Delivery";
+"carrierCategory.ecommerce" = "E-commerce";
+"carrierCategory.international" = "International";
+"carrierCategory.other" = "Other";
 
 // Carriers
 "carrier.shopee" = "Shopee";
@@ -155,7 +168,24 @@
 "carrier.ecan" = "e-Can";
 "carrier.postTW" = "Chunghwa Post";
 "carrier.sfExpress" = "SF Express";
+"carrier.kerry" = "Kerry TJ Logistics";
+"carrier.taiwanExpress" = "Taiwan Express";
+"carrier.customs" = "Customs";
 "carrier.other" = "Other";
+
+// Track.TW
+"trackTw.apiConnection" = "Track.TW API";
+"trackTw.connected" = "Connected";
+"trackTw.notConnected" = "Not Connected";
+"trackTw.setupHint" = "Set up API Token to enable auto-tracking";
+"trackTw.setup" = "Set Up Track.TW";
+"trackTw.setupDescription" = "Enter your Track.TW API Token to enable automatic package tracking. You can apply for a free API Token on the Track.TW website.";
+"trackTw.tokenPlaceholder" = "Paste your API Token";
+"trackTw.validate" = "Validate & Save";
+"trackTw.getToken" = "Get Token from Track.TW";
+"trackTw.disconnect" = "Disconnect";
+"trackTw.disconnectConfirm" = "Disconnect from Track.TW?";
+"trackTw.accountInfo" = "Account Info";
 
 // Theme
 "theme.title" = "Theme Color";

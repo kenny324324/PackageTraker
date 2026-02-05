@@ -46,7 +46,12 @@
 "add.notes" = "备注";
 "add.notesPlaceholder" = "输入备注...";
 "add.button" = "新增";
+"add.continue" = "继续";
+"add.packageInfo" = "包裹信息";
 "add.cancel" = "取消";
+// Query Page
+"query.searching" = "正在寻找这件包裹";
+"query.found" = "找到这件包裹！";
 
 // Payment Method
 "payment.prepaid" = "已付款";
@@ -130,9 +135,10 @@
 "error.duplicateMessage" = "此单号已新增过，请输入其他单号";
 "error.updateTitle" = "更新包裹信息";
 "error.updateMessage" = "此单号已存在，是否要更新包裹信息？";
-"error.queryFailed" = "查询失败";
-"error.imageLoadFailed" = "图片加载失败";
-"error.ocrFailed" = "识别失败";
+"error.queryFailed" = "查询未完成";
+"error.noHistory" = "查无此订单的物流记录，请确认物流商是否正确";
+"error.imageLoadFailed" = "图片读取异常";
+"error.ocrFailed" = "文字识别异常";
 
 // Empty State
 "empty.title" = "还没有包裹";
@@ -143,6 +149,13 @@
 "language.traditionalChinese" = "繁體中文";
 "language.simplifiedChinese" = "简体中文";
 "language.english" = "English";
+
+// Carrier Categories
+"carrierCategory.convenienceStore" = "超商取货";
+"carrierCategory.domestic" = "国内宅配";
+"carrierCategory.ecommerce" = "电商物流";
+"carrierCategory.international" = "国际快递";
+"carrierCategory.other" = "其他";
 
 // Carriers
 "carrier.shopee" = "虾皮店到店";
@@ -155,7 +168,24 @@
 "carrier.ecan" = "宅配通";
 "carrier.postTW" = "中华邮政";
 "carrier.sfExpress" = "顺丰速运";
+"carrier.kerry" = "嘉里大荣物流";
+"carrier.taiwanExpress" = "台湾快递";
+"carrier.customs" = "关务署（海关）";
 "carrier.other" = "其他";
+
+// Track.TW
+"trackTw.apiConnection" = "Track.TW API";
+"trackTw.connected" = "已连线";
+"trackTw.notConnected" = "未连线";
+"trackTw.setupHint" = "设置 API Token 以启用自动追踪";
+"trackTw.setup" = "设置 Track.TW";
+"trackTw.setupDescription" = "输入您的 Track.TW API Token 以启用包裹自动追踪功能。您可以在 Track.TW 网站申请免费的 API Token。";
+"trackTw.tokenPlaceholder" = "粘贴您的 API Token";
+"trackTw.validate" = "验证并保存";
+"trackTw.getToken" = "前往 Track.TW 申请 Token";
+"trackTw.disconnect" = "断开连线";
+"trackTw.disconnectConfirm" = "确定要断开 Track.TW 连线吗？";
+"trackTw.accountInfo" = "账号信息";
 
 // Theme
 "theme.title" = "主题颜色";
