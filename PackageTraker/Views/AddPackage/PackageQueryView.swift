@@ -71,7 +71,14 @@ struct PackageQueryView: View {
         .navigationTitle("")
         .navigationBarBackButtonHidden(true)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarVisibility(.hidden, for: .navigationBar)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Color.clear.frame(width: 44, height: 44)
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                Color.clear.frame(width: 44, height: 44)
+            }
+        }
         .navigationDestination(isPresented: $showStep2) {
             if let result = trackingResult,
                let relationId = fetchedRelationId {
