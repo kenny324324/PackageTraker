@@ -68,9 +68,9 @@ struct PackageQueryView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .adaptiveBackground()
+        .navigationTitle("")
         .navigationBarBackButtonHidden(true)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.hidden, for: .navigationBar)
         .navigationDestination(isPresented: $showStep2) {
             if let result = trackingResult,
                let relationId = fetchedRelationId {
