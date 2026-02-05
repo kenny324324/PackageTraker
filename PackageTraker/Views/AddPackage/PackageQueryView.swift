@@ -23,6 +23,7 @@ struct PackageQueryView: View {
     // 錯誤處理
     @State private var showError = false
     @State private var errorMessage = ""
+    @State private var showCancelAlert = false
 
     private let trackingManager = TrackingManager()
 
@@ -73,10 +74,23 @@ struct PackageQueryView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                Color.clear.frame(width: 44, height: 44)
+                Button {
+                    showCancelAlert = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left")
+                        Text(String(localized: "add.title"))
+                    }
+                }
+                .foregroundStyle(.white)
             }
             ToolbarItem(placement: .topBarTrailing) {
-                Color.clear.frame(width: 44, height: 44)
+                Button(String(localized: "add.button")) {
+                    // 不執行任何動作，這是視覺過渡用的
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.appAccent)
+                .disabled(true)
             }
         }
         .navigationDestination(isPresented: $showStep2) {
@@ -98,6 +112,14 @@ struct PackageQueryView: View {
             }
         } message: {
             Text(errorMessage)
+        }
+        .alert(String(localized: "query.cancelTitle"), isPresented: $showCancelAlert) {
+            Button(String(localized: "common.cancel"), role: .cancel) { }
+            Button(String(localized: "query.cancelConfirm"), role: .destructive) {
+                dismiss()
+            }
+        } message: {
+            Text(String(localized: "query.cancelMessage"))
         }
         .task {
             await performQuery()

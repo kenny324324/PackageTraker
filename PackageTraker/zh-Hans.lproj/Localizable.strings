@@ -52,6 +52,9 @@
 // Query Page
 "query.searching" = "正在寻找这件包裹";
 "query.found" = "找到这件包裹！";
+"query.cancelTitle" = "离开查询";
+"query.cancelMessage" = "正在寻找这件包裹，确定要离开吗？";
+"query.cancelConfirm" = "确定离开";
 
 // Payment Method
 "payment.prepaid" = "已付款";

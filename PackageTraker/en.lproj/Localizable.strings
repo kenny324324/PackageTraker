@@ -52,6 +52,9 @@
 // Query Page
 "query.searching" = "Searching for your package";
 "query.found" = "Package found!";
+"query.cancelTitle" = "Leave Query";
+"query.cancelMessage" = "Still searching for your package. Are you sure you want to leave?";
+"query.cancelConfirm" = "Leave";
 
 // Payment Method
 "payment.prepaid" = "Prepaid";
