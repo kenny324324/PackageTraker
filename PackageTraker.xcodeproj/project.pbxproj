@@ -7,6 +7,19 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		314A817A2F34A0C900E3F3C2 /* momo.png in Resources */ = {isa = PBXBuildFile; fileRef = 314A81772F34A0C900E3F3C2 /* momo.png */; };
+		314A817B2F34A0C900E3F3C2 /* DHL.png in Resources */ = {isa = PBXBuildFile; fileRef = 314A81742F34A0C900E3F3C2 /* DHL.png */; };
+		314A817C2F34A0C900E3F3C2 /* FEdex.png in Resources */ = {isa = PBXBuildFile; fileRef = 314A81752F34A0C900E3F3C2 /* FEdex.png */; };
+		314A817D2F34A0C900E3F3C2 /* 中華郵政.png in Resources */ = {isa = PBXBuildFile; fileRef = 314A816D2F34A0C900E3F3C2 /* 中華郵政.png */; };
+		314A817E2F34A0C900E3F3C2 /* 嘉里大榮.png in Resources */ = {isa = PBXBuildFile; fileRef = 314A81722F34A0C900E3F3C2 /* 嘉里大榮.png */; };
+		314A817F2F34A0C900E3F3C2 /* 順豐.png in Resources */ = {isa = PBXBuildFile; fileRef = 314A816F2F34A0C900E3F3C2 /* 順豐.png */; };
+		314A81802F34A0C900E3F3C2 /* 黑貓.png in Resources */ = {isa = PBXBuildFile; fileRef = 314A81702F34A0C900E3F3C2 /* 黑貓.png */; };
+		314A81812F34A0C900E3F3C2 /* Hilife-Logo.png in Resources */ = {isa = PBXBuildFile; fileRef = 314A81762F34A0C900E3F3C2 /* Hilife-Logo.png */; };
+		314A81822F34A0C900E3F3C2 /* UPS.png in Resources */ = {isa = PBXBuildFile; fileRef = 314A81792F34A0C900E3F3C2 /* UPS.png */; };
+		314A81832F34A0C900E3F3C2 /* 關務署.png in Resources */ = {isa = PBXBuildFile; fileRef = 314A81732F34A0C900E3F3C2 /* 關務署.png */; };
+		314A81842F34A0C900E3F3C2 /* PcHome.png in Resources */ = {isa = PBXBuildFile; fileRef = 314A81782F34A0C900E3F3C2 /* PcHome.png */; };
+		314A81852F34A0C900E3F3C2 /* 新竹物流.png in Resources */ = {isa = PBXBuildFile; fileRef = 314A81712F34A0C900E3F3C2 /* 新竹物流.png */; };
+		314A81862F34A0C900E3F3C2 /* 宅配通.png in Resources */ = {isa = PBXBuildFile; fileRef = 314A816E2F34A0C900E3F3C2 /* 宅配通.png */; };
 		3164BEB72F33153F00DD217B /* 7-Eleven-Logo.png in Resources */ = {isa = PBXBuildFile; fileRef = 3164BEB22F33153F00DD217B /* 7-Eleven-Logo.png */; };
 		3164BEB82F33153F00DD217B /* Shopee-Logo.png in Resources */ = {isa = PBXBuildFile; fileRef = 3164BEB52F33153F00DD217B /* Shopee-Logo.png */; };
 		3164BEB92F33153F00DD217B /* Family-Logo.png in Resources */ = {isa = PBXBuildFile; fileRef = 3164BEB32F33153F00DD217B /* Family-Logo.png */; };
@@ -33,6 +46,19 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		314A816D2F34A0C900E3F3C2 /* 中華郵政.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "中華郵政.png"; sourceTree = "<group>"; };
+		314A816E2F34A0C900E3F3C2 /* 宅配通.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "宅配通.png"; sourceTree = "<group>"; };
+		314A816F2F34A0C900E3F3C2 /* 順豐.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "順豐.png"; sourceTree = "<group>"; };
+		314A81702F34A0C900E3F3C2 /* 黑貓.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "黑貓.png"; sourceTree = "<group>"; };
+		314A81712F34A0C900E3F3C2 /* 新竹物流.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "新竹物流.png"; sourceTree = "<group>"; };
+		314A81722F34A0C900E3F3C2 /* 嘉里大榮.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "嘉里大榮.png"; sourceTree = "<group>"; };
+		314A81732F34A0C900E3F3C2 /* 關務署.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "關務署.png"; sourceTree = "<group>"; };
+		314A81742F34A0C900E3F3C2 /* DHL.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = DHL.png; sourceTree = "<group>"; };
+		314A81752F34A0C900E3F3C2 /* FEdex.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = FEdex.png; sourceTree = "<group>"; };
+		314A81762F34A0C900E3F3C2 /* Hilife-Logo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Hilife-Logo.png"; sourceTree = "<group>"; };
+		314A81772F34A0C900E3F3C2 /* momo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = momo.png; sourceTree = "<group>"; };
+		314A81782F34A0C900E3F3C2 /* PcHome.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = PcHome.png; sourceTree = "<group>"; };
+		314A81792F34A0C900E3F3C2 /* UPS.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = UPS.png; sourceTree = "<group>"; };
 		3164BEB22F33153F00DD217B /* 7-Eleven-Logo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "7-Eleven-Logo.png"; sourceTree = "<group>"; };
 		3164BEB32F33153F00DD217B /* Family-Logo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Family-Logo.png"; sourceTree = "<group>"; };
 		3164BEB42F33153F00DD217B /* OKMart-Logo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OKMart-Logo.png"; sourceTree = "<group>"; };
@@ -108,6 +134,19 @@
 		3164BEB62F33153F00DD217B /* Logo */ = {
 			isa = PBXGroup;
 			children = (
+				314A816D2F34A0C900E3F3C2 /* 中華郵政.png */,
+				314A816E2F34A0C900E3F3C2 /* 宅配通.png */,
+				314A816F2F34A0C900E3F3C2 /* 順豐.png */,
+				314A81702F34A0C900E3F3C2 /* 黑貓.png */,
+				314A81712F34A0C900E3F3C2 /* 新竹物流.png */,
+				314A81722F34A0C900E3F3C2 /* 嘉里大榮.png */,
+				314A81732F34A0C900E3F3C2 /* 關務署.png */,
+				314A81742F34A0C900E3F3C2 /* DHL.png */,
+				314A81752F34A0C900E3F3C2 /* FEdex.png */,
+				314A81762F34A0C900E3F3C2 /* Hilife-Logo.png */,
+				314A81772F34A0C900E3F3C2 /* momo.png */,
+				314A81782F34A0C900E3F3C2 /* PcHome.png */,
+				314A81792F34A0C900E3F3C2 /* UPS.png */,
 				3164BEB22F33153F00DD217B /* 7-Eleven-Logo.png */,
 				3164BEB32F33153F00DD217B /* Family-Logo.png */,
 				3164BEB42F33153F00DD217B /* OKMart-Logo.png */,
@@ -243,9 +282,6 @@
 				Base,
 				"zh-Hant",
 				"zh-Hans",
-				"zh-Hant 2",
-				"zh-Hans 2",
-				"en 2",
 			);
 			mainGroup = 31F66DD02F309B9D0068C3FB;
 			minimizedProjectReferenceProxies = 1;
@@ -271,6 +307,19 @@
 			files = (
 				3164BEB72F33153F00DD217B /* 7-Eleven-Logo.png in Resources */,
 				3164BEB82F33153F00DD217B /* Shopee-Logo.png in Resources */,
+				314A817A2F34A0C900E3F3C2 /* momo.png in Resources */,
+				314A817B2F34A0C900E3F3C2 /* DHL.png in Resources */,
+				314A817C2F34A0C900E3F3C2 /* FEdex.png in Resources */,
+				314A817D2F34A0C900E3F3C2 /* 中華郵政.png in Resources */,
+				314A817E2F34A0C900E3F3C2 /* 嘉里大榮.png in Resources */,
+				314A817F2F34A0C900E3F3C2 /* 順豐.png in Resources */,
+				314A81802F34A0C900E3F3C2 /* 黑貓.png in Resources */,
+				314A81812F34A0C900E3F3C2 /* Hilife-Logo.png in Resources */,
+				314A81822F34A0C900E3F3C2 /* UPS.png in Resources */,
+				314A81832F34A0C900E3F3C2 /* 關務署.png in Resources */,
+				314A81842F34A0C900E3F3C2 /* PcHome.png in Resources */,
+				314A81852F34A0C900E3F3C2 /* 新竹物流.png in Resources */,
+				314A81862F34A0C900E3F3C2 /* 宅配通.png in Resources */,
 				3164BEC62F333B6F00DD217B /* box.png in Resources */,
 				3164BEB92F33153F00DD217B /* Family-Logo.png in Resources */,
 				3164BEBA2F33153F00DD217B /* OKMart-Logo.png in Resources */,

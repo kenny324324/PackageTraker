@@ -27,6 +27,7 @@ final class Package {
     var purchasePlatform: String?       // 購買平台
     var notes: String?                  // 備註
     var userPickupLocation: String?     // 使用者自訂的取貨地點
+    var trackTwRelationId: String?      // Track.TW user-package-relation UUID
 
     /// 追蹤事件列表
     @Relationship(deleteRule: .cascade, inverse: \TrackingEvent.package)

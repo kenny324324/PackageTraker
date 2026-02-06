@@ -10,7 +10,7 @@
 
 // Home
 "home.title" = "My Packages";
-"home.pending" = "Pending";
+"home.pending" = "Pending Pickup";
 "home.delivered30" = "Last 30 Days";
 
 // Package Status
@@ -24,7 +24,7 @@
 // Sort Options
 "sort.addedDate" = "Date Added";
 "sort.orderDate" = "Order Date";
-"sort.pendingFirst" = "Pending";
+"sort.pendingFirst" = "Pending Pickup";
 
 // Add Package
 "add.title" = "Add Package";
@@ -128,6 +128,8 @@
 "common.delete" = "Delete";
 "common.cancel" = "Cancel";
 "common.confirm" = "Confirm";
+"common.ok" = "OK";
+"common.settings" = "Go to Settings";
 "common.save" = "Save";
 "common.done" = "Done";
 "common.clear" = "Clear";
@@ -246,3 +248,29 @@
 
 // Detail - Additional
 "detail.pickupCode" = "Pickup Code";
+
+// App Configuration
+"app.name" = "Pickup";
+"app.developer" = "Kenny";
+"app.versionPrefix" = "Version";
+
+// Settings Enhancements
+"settings.languageHint" = "Language settings require system preferences";
+"settings.notificationPermissionDenied" = "Notification permission denied";
+"settings.notificationPermissionDeniedMessage" = "Please go to Settings > Pickup > Notifications to enable notifications";
+"settings.clearDataSuccess" = "All data cleared";
+"settings.clearDataFailed" = "Failed to clear data";
+
+// Notifications
+"notification.arrival.title" = "Package Arrived";
+"notification.arrival.body" = "%@ has arrived at %@, please pick up soon";
+"notification.pickup.title" = "Pickup Reminder";
+"notification.pickup.body" = "You have %d packages waiting for pickup!";
+"notification.defaultLocation" = "pickup location";
+
+// Email Feedback & Privacy
+"email.feedbackSubject" = "[%@] Feedback";
+"email.privacyInquiry" = "[%@] Privacy Inquiry";
+"email.systemInfo" = "System Information";
+"email.cannotOpenTitle" = "Cannot Open Mail";
+"email.cannotOpenMessage" = "Please make sure Mail app is installed, or send email to";

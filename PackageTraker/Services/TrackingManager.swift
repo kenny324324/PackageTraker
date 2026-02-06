@@ -3,12 +3,9 @@ import SwiftUI
 import Combine
 
 /// 追蹤管理器
-/// 負責協調所有追蹤服務
+/// 使用 Track.TW API 追蹤所有包裹
 @MainActor
 final class TrackingManager: ObservableObject {
-
-    /// 追蹤服務列表
-    private var services: [TrackingServiceProtocol] = []
 
     /// 是否正在載入
     @Published var isLoading = false
@@ -16,65 +13,54 @@ final class TrackingManager: ObservableObject {
     /// 最後一次錯誤
     @Published var lastError: TrackingError?
 
-    private let trackTwScraper = TrackTwScraper()
-    private let parcelTwService = ParcelTwService()
+    private let apiService = TrackTwAPIService()
 
-    init() {
-        // 服務列表（用於 isAutoTrackingSupported 等檢查）
-        self.services = [
-            trackTwScraper,
-            parcelTwService
-        ]
+    /// 追蹤單一包裹（傳入 Package 物件，自動載入 relation ID 快取）
+    func track(package: Package) async throws -> TrackingResult {
+        // 記錄舊狀態
+        let oldStatus = package.status
+
+        // 載入已儲存的 relation ID，避免重複 import
+        if let relationId = package.trackTwRelationId {
+            apiService.setRelationId(relationId, for: package.trackingNumber)
+        }
+
+        let result = try await track(number: package.trackingNumber, carrier: package.carrier)
+
+        // 偵測狀態變化，觸發通知
+        if oldStatus != result.currentStatus {
+            await NotificationManager.shared.handleStatusChange(
+                package: package,
+                oldStatus: oldStatus,
+                newStatus: result.currentStatus
+            )
+        }
+
+        return result
     }
 
     /// 追蹤單一包裹
-    /// - Parameters:
-    ///   - number: 物流單號
-    ///   - carrier: 物流商
-    /// - Returns: 追蹤結果
     func track(number: String, carrier: Carrier) async throws -> TrackingResult {
-        isLoading = true
-        lastError = nil
-
-        defer { isLoading = false }
-
-        // 使用 ParcelTwService（API 穩定）
-        // 注意：track.tw 需要驗證碼，TrackTwScraper 無法直接解析
-        if parcelTwService.supportedCarriers.contains(carrier) {
-            do {
-                return try await parcelTwService.track(number: number, carrier: carrier)
-            } catch let error as TrackingError {
-                lastError = error
-                throw error
-            } catch {
-                let trackingError = TrackingError.networkError(underlying: error)
-                lastError = trackingError
-                throw trackingError
-            }
+        guard carrier.trackTwUUID != nil else {
+            throw TrackingError.unsupportedCarrier(carrier)
         }
 
-        // 其他物流商使用 TrackTwScraper（萊爾富等）
-        if trackTwScraper.supportedCarriers.contains(carrier) {
-            do {
-                return try await trackTwScraper.track(number: number, carrier: carrier)
-            } catch let error as TrackingError {
-                lastError = error
-                throw error
-            } catch {
-                let trackingError = TrackingError.networkError(underlying: error)
-                lastError = trackingError
-                throw trackingError
-            }
+        do {
+            return try await apiService.track(number: number, carrier: carrier)
+        } catch let error as TrackingError {
+            throw error
+        } catch {
+            throw TrackingError.networkError(underlying: error)
         }
+    }
 
-        // 如果沒有對應的服務，回傳「待處理」狀態
-        return TrackingResult(
-            trackingNumber: number,
-            carrier: carrier,
-            currentStatus: .pending,
-            events: [],
-            rawResponse: nil
-        )
+    /// 只匯入包裹（驗證單號 + 取得 relation ID），不查詢追蹤
+    /// 用於新增包裹時，加速回應
+    func importPackage(number: String, carrier: Carrier) async throws -> String {
+        guard carrier.trackTwUUID != nil else {
+            throw TrackingError.unsupportedCarrier(carrier)
+        }
+        return try await apiService.importOnly(number: number, carrier: carrier)
     }
 
     /// 批次更新所有包裹
@@ -89,6 +75,11 @@ final class TrackingManager: ObservableObject {
         // 使用 TaskGroup 並行處理
         await withTaskGroup(of: (UUID, Result<TrackingResult, Error>).self) { group in
             for package in packages where !package.isArchived {
+                // 載入已知的 relation ID 到快取
+                if let relationId = package.trackTwRelationId {
+                    apiService.setRelationId(relationId, for: package.trackingNumber)
+                }
+
                 group.addTask {
                     do {
                         let result = try await self.track(
@@ -112,12 +103,11 @@ final class TrackingManager: ObservableObject {
 
     /// 檢查物流商是否支援自動追蹤
     func isAutoTrackingSupported(for carrier: Carrier) -> Bool {
-        services.contains { $0.supportedCarriers.contains(carrier) }
+        carrier.trackTwUUID != nil
     }
 
     /// 取得物流商的外部追蹤連結
     func getExternalTrackingURL(trackingNumber: String, carrier: Carrier) -> URL? {
-        // 各物流商的官方追蹤頁面
         let urlString: String? = switch carrier {
         case .tcat:
             "https://www.t-cat.com.tw/inquire/trace.aspx?no=\(trackingNumber)"
@@ -130,7 +120,7 @@ final class TrackingManager: ObservableObject {
         case .postTW:
             "https://postserv.post.gov.tw/pstmail/main_mail.html"
         case .shopee:
-            "shopee://order"  // Deep Link
+            "shopee://order"
         default:
             carrier.trackTwUUID.map { "https://track.tw/carrier/\($0)/\(trackingNumber)" }
         }

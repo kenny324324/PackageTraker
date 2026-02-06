@@ -56,4 +56,44 @@ enum TrackingStatus: String, CaseIterable, Identifiable, Codable {
     var isCompleted: Bool {
         self == .delivered || self == .returned
     }
+
+    // MARK: - Track.TW Mapping
+
+    /// 從 Track.TW 的 checkpoint_status + 狀態描述文字對應到 TrackingStatus
+    static func fromTrackTw(checkpointStatus: String, statusDescription: String) -> TrackingStatus {
+        switch checkpointStatus {
+        case "delivered":
+            return .delivered
+        case "exception":
+            if statusDescription.contains("退回") || statusDescription.contains("退貨") {
+                return .returned
+            }
+            return .returned
+        case "pending":
+            return .pending
+        case "transit":
+            return mapTransitSubStatus(statusDescription)
+        default:
+            return .pending
+        }
+    }
+
+    /// 根據中文描述細分 transit 狀態
+    private static func mapTransitSubStatus(_ description: String) -> TrackingStatus {
+        if description.contains("到店") || description.contains("待取") ||
+           description.contains("可取貨") || description.contains("配達") ||
+           description.contains("已到達") {
+            return .arrivedAtStore
+        }
+        if description.contains("配送中") || description.contains("運送中") ||
+           description.contains("轉運") || description.contains("理貨") ||
+           description.contains("抵達") {
+            return .inTransit
+        }
+        if description.contains("寄件") || description.contains("出貨") ||
+           description.contains("已收件") || description.contains("賣家") {
+            return .shipped
+        }
+        return .inTransit
+    }
 }

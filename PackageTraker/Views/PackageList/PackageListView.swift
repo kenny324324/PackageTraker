@@ -64,7 +64,12 @@ struct PackageListView: View {
                     addButton
                 }
             }
-            .sheet(isPresented: $showAddPackage) {
+            .sheet(isPresented: $showAddPackage, onDismiss: {
+                // 新增完畢後，自動刷新所有 pending 且無事件的包裹
+                Task {
+                    await refreshPendingPackages()
+                }
+            }) {
                 AddPackageView()
             }
             .sheet(item: $packageToEdit) { package in
@@ -231,7 +236,7 @@ struct PackageListView: View {
     private func syncEmailPackages() async {
         let gmailService = GmailService()
         let emailParser = TaiwaneseEmailParser.shared
-        let trackingService = ParcelTwService()
+        let trackingService = TrackTwAPIService()
 
         do {
             // 取得物流相關郵件
@@ -329,7 +334,7 @@ struct PackageListView: View {
     /// 透過 API 驗證單號，成功才建立包裹
     private func verifyAndCreatePackage(
         result: ParsedEmailResult,
-        using trackingService: ParcelTwService
+        using trackingService: TrackTwAPIService
     ) async -> Bool {
         let trackingNumber = result.trackingNumber
         let carrier = result.carrier
@@ -394,67 +399,65 @@ struct PackageListView: View {
     }
 
     private func refreshPackage(_ package: Package) async {
-        // 已完成的包裹不再刷新
-        guard !package.status.isCompleted else {
+        // 已完成且有事件的包裹不再刷新（無事件表示第一次需要抓）
+        guard !package.status.isCompleted || package.events.isEmpty else {
             print("⏭️ 跳過已完成的包裹: \(package.trackingNumber)")
             return
         }
         
-        // 只刷新支援 API 的物流商（7-11、全家、OK、蝦皮）
-        let supportedCarriers: [Carrier] = [.sevenEleven, .familyMart, .okMart, .shopee]
-        guard supportedCarriers.contains(package.carrier) else {
+        // 只刷新支援 Track.TW API 的物流商
+        guard trackingManager.isAutoTrackingSupported(for: package.carrier) else {
             print("⏭️ 跳過不支援自動刷新的物流商: \(package.carrier.displayName)")
             return
         }
         
         do {
-            let result = try await trackingManager.track(
-                number: package.trackingNumber,
-                carrier: package.carrier
-            )
-
-            // 更新包裹狀態
-            package.status = result.currentStatus
-            package.lastUpdated = Date()
-
-            // 更新最新描述
-            if let latestEvent = result.events.first {
-                package.latestDescription = latestEvent.description
-
-                // 更新取貨地點（如果有新的）
-                if let location = latestEvent.location, !location.isEmpty {
-                    package.pickupLocation = location
-                }
-            }
-            
-            // 更新額外資訊（7-11、全家）
-            if let storeName = result.storeName {
-                package.storeName = storeName
-            }
-            if let serviceType = result.serviceType {
-                package.serviceType = serviceType
-            }
-            if let pickupDeadline = result.pickupDeadline {
-                package.pickupDeadline = pickupDeadline
-            }
-
-            // 更新事件列表
-            package.events.removeAll()
-            for eventDTO in result.events {
-                let event = TrackingEvent(
-                    timestamp: eventDTO.timestamp,
-                    status: eventDTO.status,
-                    description: eventDTO.description,
-                    location: eventDTO.location
-                )
-                event.package = package
-                package.events.append(event)
-            }
-            
+            let result = try await trackingManager.track(package: package)
+            applyTrackingResult(result, to: package)
             print("✅ 刷新成功: \(package.trackingNumber)")
         } catch {
-            // 刷新失敗時靜默處理，不影響其他包裹的刷新
             print("❌ 刷新包裹 \(package.trackingNumber) 失敗: \(error.localizedDescription)")
+        }
+    }
+
+    /// 自動刷新剛新增的 pending 包裹（無事件的）
+    private func refreshPendingPackages() async {
+        let pending = packages.filter { $0.status == .pending && $0.events.isEmpty }
+        guard !pending.isEmpty else { return }
+
+        print("🔄 自動刷新 \(pending.count) 個新增包裹")
+        for package in pending {
+            await refreshPackage(package)
+        }
+        try? modelContext.save()
+    }
+
+    /// 將 API 追蹤結果寫入 Package model
+    private func applyTrackingResult(_ result: TrackingResult, to package: Package) {
+        package.status = result.currentStatus
+        package.lastUpdated = Date()
+
+        if let latestEvent = result.events.first {
+            package.latestDescription = latestEvent.description
+            if let location = latestEvent.location, !location.isEmpty {
+                package.pickupLocation = location
+            }
+        }
+
+        if let storeName = result.storeName { package.storeName = storeName }
+        if let serviceType = result.serviceType { package.serviceType = serviceType }
+        if let pickupDeadline = result.pickupDeadline { package.pickupDeadline = pickupDeadline }
+
+        package.events.removeAll()
+        for eventDTO in result.events {
+            let event = TrackingEvent(
+                timestamp: eventDTO.timestamp,
+                status: eventDTO.status,
+                description: eventDTO.description,
+                location: eventDTO.location
+            )
+            event.package = package
+            package.events.append(event)
         }
     }
 

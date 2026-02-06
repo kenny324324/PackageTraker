@@ -35,5 +35,7 @@
 		<string>fetch</string>
 		<string>processing</string>
 	</array>
+	<key>NSUserNotificationsUsageDescription</key>
+	<string>我們需要通知權限來提醒您包裹到貨和取貨</string>
 </dict>
 </plist>

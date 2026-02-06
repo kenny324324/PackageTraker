@@ -292,9 +292,9 @@ enum OCRError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidImage:
-            return "無法處理此圖片"
+            return "圖片格式不支援，請換一張圖片試試"
         case .recognitionFailed(let message):
-            return "文字辨識失敗：\(message)"
+            return "文字辨識異常：\(message)"
         }
     }
 }

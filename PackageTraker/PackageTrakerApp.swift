@@ -8,6 +8,7 @@
 import SwiftUI
 import SwiftData
 import BackgroundTasks
+import UserNotifications
 
 @main
 struct PackageTrakerApp: App {
@@ -19,6 +20,9 @@ struct PackageTrakerApp: App {
     @State private var showSplash = true
 
     init() {
+        // 設置通知中心代理
+        UNUserNotificationCenter.current().delegate = NotificationDelegate.shared
+
         // 註冊背景任務（郵件同步功能暫時停用）
         if FeatureFlags.emailAutoImportEnabled {
             registerBackgroundTasks()
@@ -139,5 +143,22 @@ struct PackageTrakerApp: App {
 extension PackageTrakerApp {
     private func scheduleEmailSyncTask() {
         Self.scheduleEmailSyncTask()
+    }
+}
+
+// MARK: - Notification Delegate
+
+/// 通知代理：處理前景通知顯示
+class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
+    static let shared = NotificationDelegate()
+
+    /// 在前景顯示通知
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        // 在前景也顯示通知
+        completionHandler([.banner, .sound])
     }
 }

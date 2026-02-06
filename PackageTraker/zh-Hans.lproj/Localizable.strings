@@ -128,6 +128,8 @@
 "common.delete" = "删除";
 "common.cancel" = "取消";
 "common.confirm" = "确定";
+"common.ok" = "确定";
+"common.settings" = "前往设置";
 "common.save" = "保存";
 "common.done" = "完成";
 "common.clear" = "清除";
@@ -239,3 +241,29 @@
 
 // Detail - Additional
 "detail.pickupCode" = "取件码";
+
+// App Configuration
+"app.name" = "取货吧";
+"app.developer" = "Kenny";
+"app.versionPrefix" = "版本";
+
+// Settings Enhancements
+"settings.languageHint" = "语言设置需至系统设置修改";
+"settings.notificationPermissionDenied" = "通知权限已关闭";
+"settings.notificationPermissionDeniedMessage" = "请前往「设置 > 取货吧 > 通知」开启通知权限";
+"settings.clearDataSuccess" = "已清除所有资料";
+"settings.clearDataFailed" = "清除资料失败";
+
+// Notifications
+"notification.arrival.title" = "包裹已到货";
+"notification.arrival.body" = "%@ 已到达 %@，请尽快取货";
+"notification.pickup.title" = "取货提醒";
+"notification.pickup.body" = "您有 %d 个包裹待取，别忘了去领取哦！";
+"notification.defaultLocation" = "取货地点";
+
+// Email Feedback & Privacy
+"email.feedbackSubject" = "[%@] 问题回报";
+"email.privacyInquiry" = "[%@] 隐私政策询问";
+"email.systemInfo" = "系统资讯";
+"email.cannotOpenTitle" = "无法开启邮件";
+"email.cannotOpenMessage" = "请确认已安装邮件 App，或直接发送邮件至";
