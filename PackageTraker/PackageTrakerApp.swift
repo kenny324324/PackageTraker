@@ -11,6 +11,7 @@ import BackgroundTasks
 import UserNotifications
 import FirebaseCore
 import FirebaseAuth
+import FirebaseMessaging
 
 /// App 啟動流程狀態
 enum AppFlow: Equatable {
@@ -21,6 +22,9 @@ enum AppFlow: Equatable {
 
 @main
 struct PackageTrakerApp: App {
+
+    // APNs Token 轉發給 FCM
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     // 背景任務識別碼
     static let emailSyncTaskIdentifier = "com.packagetraker.emailsync"
@@ -43,6 +47,9 @@ struct PackageTrakerApp: App {
 
         // 設置通知中心代理
         UNUserNotificationCenter.current().delegate = NotificationDelegate.shared
+
+        // 初始化 FCM 推播服務（設定 Messaging delegate）
+        _ = FirebasePushService.shared
 
         // 根據初始認證狀態決定流程
         // Auth.auth().currentUser 在 configure() 後可同步取得
@@ -102,11 +109,17 @@ struct PackageTrakerApp: App {
             .animation(.easeOut(duration: 0.4), value: appFlow) // 驅動覆蓋層的淡入淡出轉場
             .preferredColorScheme(.dark)
             .onChange(of: authService.isAuthenticated) { oldValue, newValue in
-                // 只處理登出（登入由 SignInView 內部處理）
+                // 登出處理（登入由 SignInView 內部處理）
                 if oldValue && !newValue {
                     withAnimation(.easeOut(duration: 0.4)) {
                         selectedTab = 0 // 重置 tab
                         appFlow = .signIn
+                    }
+                }
+                // 登入成功：註冊 FCM 推播
+                if !oldValue && newValue {
+                    Task {
+                        await FirebasePushService.shared.registerForPushNotifications()
                     }
                 }
             }
@@ -204,6 +217,25 @@ struct PackageTrakerApp: App {
 extension PackageTrakerApp {
     private func scheduleEmailSyncTask() {
         Self.scheduleEmailSyncTask()
+    }
+}
+
+// MARK: - App Delegate (APNs Token)
+
+/// 處理 APNs Device Token，轉發給 Firebase Messaging
+class AppDelegate: NSObject, UIApplicationDelegate {
+    func application(
+        _ application: UIApplication,
+        didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
+    ) {
+        Messaging.messaging().apnsToken = deviceToken
+    }
+
+    func application(
+        _ application: UIApplication,
+        didFailToRegisterForRemoteNotificationsWithError error: Error
+    ) {
+        print("[APNs] Registration failed: \(error.localizedDescription)")
     }
 }
 

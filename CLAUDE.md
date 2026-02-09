@@ -401,7 +401,7 @@ Full implementation plan in `File/後端推播系統實施計劃.md`. The system
 | Phase | Description | Status |
 |-------|-------------|--------|
 | **Phase 1** | Firebase setup + Apple Sign In | **Completed** (2026-02-09) |
-| **Phase 2** | Firestore data sync + FCM token | Not started |
+| **Phase 2** | Firestore data sync + FCM token | **Completed** (2026-02-09) |
 | **Phase 3** | Cloud Functions backend | Not started |
 | **Phase 4** | Deep Link + UI polish | Not started |
 
@@ -433,23 +433,61 @@ Full implementation plan in `File/後端推播系統實施計劃.md`. The system
 - `auth.error.title`, `auth.error.invalidCredential`
 - `settings.account`, `settings.appleId`, `settings.signOut`, `settings.signOut.confirmTitle`, `settings.signOut.confirmMessage`
 
-### Phase 2 TODO (Next)
+### Phase 2 Completed Work
 
-Files to create:
-- `Services/Firebase/FirebaseSyncService.swift` - Firestore bidirectional sync
-- `Services/Firebase/FirebasePushService.swift` - FCM token management
-- `Services/Firebase/FirebaseModels.swift` - Firestore model mapping
+**Design decisions (differs from original plan):**
+- **Upload-only sync** (not bidirectional): SwiftData is source of truth, Firestore is cloud mirror
+- **Fire-and-forget**: Sync operations don't block UI, failures only logged
+- **Soft delete**: `isDeleted: true` + `deletedAt` timestamp instead of removing documents
+- **Non-blocking startup**: Initial sync and FCM registration run in background `Task { }`
+- **No FirebaseModels.swift**: Conversion done directly in FirebaseSyncService
 
-Files to modify:
-- `PackageTrakerApp.swift` - FCM registration, initial sync on login
+**New files created:**
+- `Services/Firebase/FirebaseSyncService.swift` - Firestore upload sync (syncPackage, deletePackage as soft-delete, syncAllPackages)
+- `Services/Firebase/FirebasePushService.swift` - FCM token lifecycle (register, upload, clear, MessagingDelegate)
+
+**Modified files:**
+- `PackageTrakerApp.swift` - Added AppDelegate for APNs token forwarding, FCM init, sign-in FCM registration
+- `Views/SplashView.swift` - Non-blocking initial sync + FCM registration on cold start
+- `Views/Auth/SignInView.swift` - Non-blocking initial sync after sign-in
 - `Services/PackageRefreshService.swift` - Sync to Firestore after refresh
-- `Views/AddPackage/AddPackageView.swift` - Sync new packages to Firestore
+- `Views/AddPackage/PackageInfoView.swift` - Sync on add/update package
+- `Views/PackageDetail/EditPackageSheet.swift` - Sync on edit
+- `Views/PackageDetail/PackageDetailView.swift` - Soft-delete on delete
+- `Views/PackageList/PackageListView.swift` - Soft-delete on swipe delete
+- `Views/Settings/SettingsView.swift` - Clear FCM token on sign-out, sync delete on clear data
+
+**Firebase Console setup:**
+- Firestore Database: Standard edition, asia-east1 (Taiwan)
+- Security Rules: `allow read, write: if request.auth != null && request.auth.uid == userId`
+
+**Firestore data structure:**
+```
+/users/{uid}
+  ├── appleId, email, createdAt, lastActive, fcmToken
+  ├── notificationSettings { enabled, arrivalNotification, pickupReminder }
+  └── /packages/{packageId}
+        ├── trackingNumber, carrier, status, isArchived
+        ├── isDeleted?, deletedAt? (soft delete)
+        ├── customName?, pickupCode?, pickupLocation?, storeName?, ...
+        └── /events/{eventId} { timestamp, status, description, location? }
+```
+
+### Phase 3 TODO (Next)
+
+Files to create (backend):
+- `functions/src/index.ts` - Functions entry point
+- `functions/src/scheduler.ts` - 15-minute tracking poll
+- `functions/src/triggers.ts` - Firestore status change trigger → FCM push
+- `functions/src/services/trackTwApi.ts` - Track.TW API client
+- `functions/src/services/pushNotification.ts` - FCM push service
+- `functions/src/utils/statusMapper.ts` - Status mapping
 
 ### Known Issues / TODOs
 
 - `SignInView.openPrivacyPolicy()` uses placeholder URL (Apple EULA instead of custom privacy policy)
-- FCM token registration not yet implemented (Phase 2)
-- No Firestore data sync yet (Phase 2)
+- Phase 3 Cloud Functions not yet implemented
+- Firestore security rules may need tightening for events subcollection after Phase 3
 
 ## Removed Legacy Services (2026-02-05)
 

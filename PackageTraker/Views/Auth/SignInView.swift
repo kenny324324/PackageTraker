@@ -8,6 +8,7 @@
 import SwiftUI
 import SwiftData
 import AuthenticationServices
+import FirebaseAuth
 
 /// 登入畫面：使用 Apple Sign In 登入
 struct SignInView: View {
@@ -206,6 +207,9 @@ struct SignInView: View {
         }
         // 進度由 .onChange(of: refreshService.batchProgress) 驅動
 
+        // 階段 2.5: 首次登入 Firestore 同步（背景執行，不阻塞啟動）
+        Task { await performInitialSyncIfNeeded() }
+
         // 階段 3: 完成
         await animateProgress(to: 1.0)
 
@@ -215,6 +219,18 @@ struct SignInView: View {
         await MainActor.run {
             onLoadingComplete()
         }
+    }
+
+    private func performInitialSyncIfNeeded() async {
+        guard let uid = FirebaseAuthService.shared.currentUser?.uid else { return }
+        let key = "hasPerformedInitialSync_\(uid)"
+        guard !UserDefaults.standard.bool(forKey: key) else { return }
+
+        let descriptor = FetchDescriptor<Package>()
+        guard let allPackages = try? modelContext.fetch(descriptor) else { return }
+
+        await FirebaseSyncService.shared.syncAllPackages(allPackages)
+        UserDefaults.standard.set(true, forKey: key)
     }
 
     private func animateProgress(to value: Double) async {

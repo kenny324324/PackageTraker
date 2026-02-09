@@ -283,6 +283,9 @@ struct PackageInfoView: View {
         modelContext.insert(package)
         try? modelContext.save()
 
+        // 同步到 Firestore
+        FirebaseSyncService.shared.syncPackage(package)
+
         onComplete()
     }
 
@@ -297,6 +300,10 @@ struct PackageInfoView: View {
         if !userPickupLocation.isEmpty { package.userPickupLocation = userPickupLocation }
 
         try? modelContext.save()
+
+        // 同步到 Firestore
+        FirebaseSyncService.shared.syncPackage(package)
+
         onComplete()
     }
 

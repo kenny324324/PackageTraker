@@ -52,6 +52,8 @@ final class PackageRefreshService {
             guard !Task.isCancelled else { return false }
             applyTrackingResult(result, to: package)
             try? context.save()
+            // 同步到 Firestore
+            FirebaseSyncService.shared.syncPackage(package)
             return true
         } catch is CancellationError {
             // timeout 取消是正常行為，不印錯誤

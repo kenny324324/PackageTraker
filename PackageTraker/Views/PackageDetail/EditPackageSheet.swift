@@ -250,6 +250,9 @@ struct EditPackageSheet: View {
         package.amount = Double(amountText)
         package.notes = notes.isEmpty ? nil : notes
         package.userPickupLocation = userPickupLocation.isEmpty ? nil : userPickupLocation
+
+        // 同步到 Firestore
+        FirebaseSyncService.shared.syncPackage(package)
     }
     
     private func hideKeyboard() {

@@ -369,8 +369,11 @@ struct PackageDetailView: View {
     }
 
     private func deletePackage() {
+        let packageId = package.id
         modelContext.delete(package)
         try? modelContext.save()
+        // 從 Firestore 刪除
+        FirebaseSyncService.shared.deletePackage(packageId)
         dismiss()
     }
 

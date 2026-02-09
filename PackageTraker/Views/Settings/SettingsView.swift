@@ -652,6 +652,10 @@ struct SettingsView: View {
             // 1. 刪除所有包裹（cascade 會自動刪除 TrackingEvent）
             let packageDescriptor = FetchDescriptor<Package>()
             let allPackages = try modelContext.fetch(packageDescriptor)
+
+            // 擷取 ID 用於 Firestore 刪除
+            let packageIds = allPackages.map { $0.id }
+
             for package in allPackages {
                 modelContext.delete(package)
             }
@@ -663,15 +667,25 @@ struct SettingsView: View {
 
             try modelContext.save()
 
-            // 3. Gmail 登出
+            // 3. 從 Firestore 刪除所有包裹
+            for id in packageIds {
+                FirebaseSyncService.shared.deletePackage(id)
+            }
+
+            // 4. 重置初次同步標記（下次登入時重新同步）
+            if let uid = authService.currentUser?.uid {
+                UserDefaults.standard.removeObject(forKey: "hasPerformedInitialSync_\(uid)")
+            }
+
+            // 5. Gmail 登出
             gmailAuthManager.signOut()
 
-            // 4. 取消所有通知
+            // 6. 取消所有通知
             NotificationService.shared.cancelAllNotifications()
 
-            // 5. 不清除用戶偏好（保留 refreshInterval, selectedTheme, 通知設定）
+            // 7. 不清除用戶偏好（保留 refreshInterval, selectedTheme, 通知設定）
 
-            // 6. 顯示成功訊息
+            // 8. 顯示成功訊息
             showClearDataSuccess = true
 
         } catch {
@@ -689,6 +703,11 @@ struct SettingsView: View {
     }
 
     private func signOut() {
+        // 清除 FCM Token（在 signOut 前，還能取得 userId）
+        Task {
+            await FirebasePushService.shared.clearToken()
+        }
+
         do {
             try authService.signOut()
         } catch {

@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import FirebaseAuth
 
 /// 啟動畫面（箱子掉落動畫 + 進度條載入）
 struct SplashView: View {
@@ -152,6 +153,9 @@ struct SplashView: View {
     }
 
     private func loadData() async {
+        // 冷啟動時重新註冊 FCM 推播（背景執行）
+        Task { await FirebasePushService.shared.registerForPushNotifications() }
+
         // 階段 1: SwiftData 預載
         await animateProgress(to: 0.3)
         let activePackages = await preloadPackageData()
@@ -169,6 +173,9 @@ struct SplashView: View {
         }
         // 進度由 .onChange(of: refreshService.batchProgress) 驅動
 
+        // 階段 2.5: 首次登入 Firestore 同步（背景執行，不阻塞啟動）
+        Task { await performInitialSyncIfNeeded() }
+
         // 階段 3: 完成
         await animateProgress(to: 1.0)
 
@@ -178,6 +185,18 @@ struct SplashView: View {
         await MainActor.run {
             onLoadingComplete()
         }
+    }
+
+    private func performInitialSyncIfNeeded() async {
+        guard let uid = FirebaseAuthService.shared.currentUser?.uid else { return }
+        let key = "hasPerformedInitialSync_\(uid)"
+        guard !UserDefaults.standard.bool(forKey: key) else { return }
+
+        let descriptor = FetchDescriptor<Package>()
+        guard let allPackages = try? modelContext.fetch(descriptor) else { return }
+
+        await FirebaseSyncService.shared.syncAllPackages(allPackages)
+        UserDefaults.standard.set(true, forKey: key)
     }
 
     private func animateProgress(to value: Double) async {
