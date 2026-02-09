@@ -90,7 +90,7 @@ final class FirebaseAuthService: NSObject, ObservableObject {
 
     // MARK: - Firestore 用戶資料
 
-    /// 首次登入時建立用戶 profile
+    /// 首次登入時建立用戶 profile，或補齊缺少的欄位
     private func createUserProfileIfNeeded(user: User, credential: ASAuthorizationAppleIDCredential) async {
         let db = Firestore.firestore()
         let userRef = db.collection("users").document(user.uid)
@@ -98,10 +98,21 @@ final class FirebaseAuthService: NSObject, ObservableObject {
         // 檢查是否已存在
         let userDoc = try? await userRef.getDocument()
         if userDoc?.exists == true {
-            // 更新 lastActive
-            try? await userRef.updateData([
+            // 文件已存在：更新 lastActive，並補齊可能缺少的 notificationSettings
+            var updateData: [String: Any] = [
                 "lastActive": FieldValue.serverTimestamp()
-            ])
+            ]
+
+            let data = userDoc?.data()
+            if data?["notificationSettings"] == nil {
+                updateData["notificationSettings"] = [
+                    "enabled": true,
+                    "arrivalNotification": true,
+                    "pickupReminder": true
+                ]
+            }
+
+            try? await userRef.updateData(updateData)
             return
         }
 

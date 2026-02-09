@@ -54,3 +54,7 @@ Secrets.swift
 # Backend
 backend/node_modules/
 backend/.env
+
+# Cloud Functions
+functions/node_modules/
+functions/lib/

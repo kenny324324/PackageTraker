@@ -402,7 +402,7 @@ Full implementation plan in `File/後端推播系統實施計劃.md`. The system
 |-------|-------------|--------|
 | **Phase 1** | Firebase setup + Apple Sign In | **Completed** (2026-02-09) |
 | **Phase 2** | Firestore data sync + FCM token | **Completed** (2026-02-09) |
-| **Phase 3** | Cloud Functions backend | Not started |
+| **Phase 3** | Cloud Functions backend | **Completed** (2026-02-09) |
 | **Phase 4** | Deep Link + UI polish | Not started |
 
 ### Phase 1 Completed Work
@@ -473,21 +473,32 @@ Full implementation plan in `File/後端推播系統實施計劃.md`. The system
         └── /events/{eventId} { timestamp, status, description, location? }
 ```
 
-### Phase 3 TODO (Next)
+### Phase 3 Completed Work
 
-Files to create (backend):
-- `functions/src/index.ts` - Functions entry point
-- `functions/src/scheduler.ts` - 15-minute tracking poll
-- `functions/src/triggers.ts` - Firestore status change trigger → FCM push
-- `functions/src/services/trackTwApi.ts` - Track.TW API client
-- `functions/src/services/pushNotification.ts` - FCM push service
-- `functions/src/utils/statusMapper.ts` - Status mapping
+**New files created (backend, Cloud Functions v2):**
+- `firebase.json` - Firebase project configuration
+- `.firebaserc` - Project link (packagetraker-e80b0)
+- `functions/package.json` - Node.js dependencies (axios, firebase-admin, firebase-functions)
+- `functions/tsconfig.json` - TypeScript configuration
+- `functions/src/index.ts` - Entry point: initializeApp + export 2 functions
+- `functions/src/scheduler.ts` - 15-minute tracking poll (`onSchedule`, asia-east1, 512MiB)
+- `functions/src/triggers.ts` - Firestore status change → FCM push (`onDocumentUpdated`)
+- `functions/src/services/trackTwApi.ts` - Track.TW API HTTP client (axios)
+- `functions/src/services/pushNotification.ts` - FCM push via firebase-admin messaging
+- `functions/src/utils/statusMapper.ts` - Status mapping (mirrors iOS `TrackingStatus.fromTrackTw()`)
+
+**Modified files (iOS bug fix):**
+- `PackageTraker/Services/Firebase/FirebaseAuthService.swift` - Fixed `notificationSettings` not being created when user doc already exists (race condition with FCM token upload)
+
+**Deployment:**
+- Region: asia-east1, Runtime: Node.js 20
+- Token stored via Firebase Secret Manager (`TRACKW_TOKEN`)
 
 ### Known Issues / TODOs
 
 - `SignInView.openPrivacyPolicy()` uses placeholder URL (Apple EULA instead of custom privacy policy)
-- Phase 3 Cloud Functions not yet implemented
-- Firestore security rules may need tightening for events subcollection after Phase 3
+- Firestore security rules may need tightening for events subcollection
+- Push notification text is Chinese-only; needs localization (zh-Hant/zh-Hans/en) and richer content (pickup code, deadline)
 
 ## Removed Legacy Services (2026-02-05)
 
