@@ -13,9 +13,8 @@ final class TrackTwAPIService: TrackingServiceProtocol {
 
     private let apiClient = TrackTwAPIClient.shared
 
-    /// relation ID 快取：trackingNumber -> relationId
-    /// 避免每次 refresh 都重新 import
-    private var relationIdCache: [String: String] = [:]
+    /// relation ID 快取（避免每次 refresh 都重新 import）
+    private let relationIdCache = RelationIdCache()
 
     var supportedCarriers: [Carrier] {
         Carrier.allCases.filter { $0.trackTwUUID != nil }
@@ -33,7 +32,9 @@ final class TrackTwAPIService: TrackingServiceProtocol {
         let tracking = try await apiClient.getTracking(relationId: relationId)
 
         // Step 3: 轉換為 TrackingResult
-        return convertToTrackingResult(tracking, carrier: carrier)
+        var result = convertToTrackingResult(tracking, carrier: carrier)
+        result.relationId = relationId
+        return result
     }
 
     /// 只匯入包裹（不查詢追蹤），回傳 relation ID
@@ -51,7 +52,7 @@ final class TrackTwAPIService: TrackingServiceProtocol {
     /// 取得或建立 relation ID
     private func getRelationId(trackingNumber: String, carrierId: String) async throws -> String {
         // 優先使用快取
-        if let cached = relationIdCache[trackingNumber] {
+        if let cached = await relationIdCache.get(trackingNumber) {
             return cached
         }
 
@@ -66,14 +67,14 @@ final class TrackTwAPIService: TrackingServiceProtocol {
         }
 
         // 快取 relation ID
-        relationIdCache[trackingNumber] = relationId
+        await relationIdCache.set(relationId, for: trackingNumber)
 
         return relationId
     }
 
     /// 設定已知的 relation ID（從 Package model 載入時用）
-    func setRelationId(_ relationId: String, for trackingNumber: String) {
-        relationIdCache[trackingNumber] = relationId
+    func setRelationId(_ relationId: String, for trackingNumber: String) async {
+        await relationIdCache.set(relationId, for: trackingNumber)
     }
 
     // MARK: - Response Conversion
@@ -118,7 +119,8 @@ final class TrackTwAPIService: TrackingServiceProtocol {
             carrier: carrier,
             currentStatus: currentStatus,
             events: events,
-            rawResponse: nil
+            rawResponse: nil,
+            relationId: nil
         )
         result.storeName = storeName
 
@@ -138,5 +140,19 @@ final class TrackTwAPIService: TrackingServiceProtocol {
             return nil
         }
         return String(status[range])
+    }
+}
+
+// MARK: - Relation ID Cache
+
+private actor RelationIdCache {
+    private var storage: [String: String] = [:]
+
+    func get(_ trackingNumber: String) -> String? {
+        storage[trackingNumber]
+    }
+
+    func set(_ relationId: String, for trackingNumber: String) {
+        storage[trackingNumber] = relationId
     }
 }

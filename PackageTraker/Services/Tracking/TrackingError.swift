@@ -15,23 +15,32 @@ enum TrackingError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .unsupportedCarrier(let carrier):
-            return "目前尚未支援 \(carrier.displayName)"
+            return String(
+                format: String(localized: "error.unsupportedCarrier"),
+                carrier.displayName
+            )
         case .networkError:
-            return "網路連線異常，請檢查網路後再試"
+            return String(localized: "error.networkError")
         case .parsingError(let msg):
-            return "資料格式有誤：\(msg)"
+            return String(
+                format: String(localized: "error.parsingError"),
+                msg
+            )
         case .trackingNumberNotFound:
-            return "查無此單號"
+            return String(localized: "error.trackingNumberNotFound")
         case .invalidResponse:
-            return "物流商回應異常"
+            return String(localized: "error.invalidResponse")
         case .rateLimited:
-            return "查詢過於頻繁，請稍後再試"
+            return String(localized: "error.rateLimited")
         case .invalidTrackingNumber:
-            return "單號格式不正確"
+            return String(localized: "error.invalidTrackingNumber")
         case .unauthorized:
-            return "API Token 已過期或需要重新設定"
+            return String(localized: "error.unauthorized")
         case .serverError(let message):
-            return "伺服器異常：\(message)"
+            return String(
+                format: String(localized: "error.serverError"),
+                message
+            )
         }
     }
 }

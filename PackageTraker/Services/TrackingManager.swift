@@ -22,7 +22,7 @@ final class TrackingManager: ObservableObject {
 
         // 載入已儲存的 relation ID，避免重複 import
         if let relationId = package.trackTwRelationId {
-            apiService.setRelationId(relationId, for: package.trackingNumber)
+            await apiService.setRelationId(relationId, for: package.trackingNumber)
         }
 
         let result = try await track(number: package.trackingNumber, carrier: package.carrier)
@@ -77,7 +77,7 @@ final class TrackingManager: ObservableObject {
             for package in packages where !package.isArchived {
                 // 載入已知的 relation ID 到快取
                 if let relationId = package.trackTwRelationId {
-                    apiService.setRelationId(relationId, for: package.trackingNumber)
+                    await apiService.setRelationId(relationId, for: package.trackingNumber)
                 }
 
                 group.addTask {

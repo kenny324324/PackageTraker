@@ -163,13 +163,7 @@ struct PackageListView: View {
             .padding(.bottom)
         }
         .refreshable {
-            // 使用獨立的 Task 來避免被 refreshable 取消
-            await withCheckedContinuation { continuation in
-                Task {
-                    await refreshAllPackages()
-                    continuation.resume()
-                }
-            }
+            await refreshAllPackages()
         }
     }
 
@@ -373,6 +367,7 @@ struct PackageListView: View {
                 customName: result.orderDescription,
                 status: apiResult.currentStatus
             )
+            newPackage.trackTwRelationId = apiResult.relationId
             newPackage.pickupCode = result.pickupCode
             newPackage.pickupLocation = result.pickupLocation
             newPackage.createdAt = result.emailDate

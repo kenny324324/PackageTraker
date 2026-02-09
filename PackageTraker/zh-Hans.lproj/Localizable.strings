@@ -153,6 +153,15 @@
 "error.noHistory" = "查无此订单的物流记录，请确认物流商是否正确";
 "error.imageLoadFailed" = "图片读取异常";
 "error.ocrFailed" = "文字识别异常";
+"error.unsupportedCarrier" = "目前尚未支持 %@";
+"error.networkError" = "网络连接异常，请检查网络后重试";
+"error.parsingError" = "数据格式有误：%@";
+"error.trackingNumberNotFound" = "查无此单号";
+"error.invalidResponse" = "物流商回应异常";
+"error.rateLimited" = "查询过于频繁，请稍后再试";
+"error.invalidTrackingNumber" = "单号格式不正确";
+"error.unauthorized" = "API Token 已过期或需要重新设置";
+"error.serverError" = "服务器异常：%@";
 
 // Empty State
 "empty.title" = "还没有包裹";
@@ -243,9 +252,15 @@
 "email.signingIn" = "正在登录...";
 "email.consentMessage" = "点击登录即表示您同意我们访问您的邮件";
 "email.linkedSince" = "已链接 %@";
+"email.syncStatus" = "同步状态";
 "email.lastSync" = "最后同步";
 "email.neverSynced" = "从未同步";
 "email.syncResults" = "同步结果";
+"email.autoSync" = "自动同步";
+"email.syncNow" = "立即同步";
+"email.unlink" = "解除链接";
+"email.settingsTitle" = "Email 设置";
+"email.unlinkConfirm" = "确定要解除链接吗？";
 "email.unlinkWarning" = "解除链接后，将不再从此邮件账号同步物流信息。";
 
 // Detail - Additional

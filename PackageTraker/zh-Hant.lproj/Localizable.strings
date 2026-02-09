@@ -153,6 +153,15 @@
 "error.noHistory" = "查無此訂單的物流記錄，請確認物流商是否正確";
 "error.imageLoadFailed" = "圖片讀取異常";
 "error.ocrFailed" = "文字辨識異常";
+"error.unsupportedCarrier" = "目前尚未支援 %@";
+"error.networkError" = "網路連線異常，請檢查網路後再試";
+"error.parsingError" = "資料格式有誤：%@";
+"error.trackingNumberNotFound" = "查無此單號";
+"error.invalidResponse" = "物流商回應異常";
+"error.rateLimited" = "查詢過於頻繁，請稍後再試";
+"error.invalidTrackingNumber" = "單號格式不正確";
+"error.unauthorized" = "API Token 已過期或需要重新設定";
+"error.serverError" = "伺服器異常：%@";
 
 // Empty State
 "empty.title" = "還沒有包裹";
@@ -243,9 +252,15 @@
 "email.signingIn" = "正在登入...";
 "email.consentMessage" = "點擊登入即表示您同意我們存取您的郵件";
 "email.linkedSince" = "已連結 %@";
+"email.syncStatus" = "同步狀態";
 "email.lastSync" = "最後同步";
 "email.neverSynced" = "從未同步";
 "email.syncResults" = "同步結果";
+"email.autoSync" = "自動同步";
+"email.syncNow" = "立即同步";
+"email.unlink" = "解除連結";
+"email.settingsTitle" = "Email 設定";
+"email.unlinkConfirm" = "確定要解除連結嗎？";
 "email.unlinkWarning" = "解除連結後，將不再從此郵件帳號同步物流資訊。";
 
 // Detail - Additional

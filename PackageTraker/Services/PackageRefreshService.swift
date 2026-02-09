@@ -20,7 +20,7 @@ final class PackageRefreshService {
     private let trackingManager = TrackingManager()
 
     /// 正在刷新中的單號（防止同一包裹重複呼叫 API）
-    private var refreshingNumbers: Set<String> = []
+    private let refreshingNumbers = RefreshingNumbersStore()
 
     // MARK: - 單一包裹刷新
 
@@ -42,11 +42,9 @@ final class PackageRefreshService {
         }
 
         // 防止同一包裹同時刷新
-        guard !refreshingNumbers.contains(package.trackingNumber) else {
-            return false
-        }
-        refreshingNumbers.insert(package.trackingNumber)
-        defer { refreshingNumbers.remove(package.trackingNumber) }
+        let didStart = await refreshingNumbers.begin(package.trackingNumber)
+        guard didStart else { return false }
+        defer { Task { await refreshingNumbers.end(package.trackingNumber) } }
 
         do {
             let result = try await trackingManager.track(package: package)
@@ -91,23 +89,35 @@ final class PackageRefreshService {
 
         await withTaskGroup(of: Void.self) { group in
             var completedCount = 0
+            var inFlight = 0
 
-            for (index, package) in packagesToRefresh.enumerated() {
-                if index >= maxConcurrent {
-                    await group.next()
-                    completedCount += 1
-                    batchProgress = Double(completedCount) / Double(total)
+            for package in packagesToRefresh {
+                guard !Task.isCancelled else { break }
+
+                if inFlight >= maxConcurrent {
+                    if await group.next() != nil {
+                        completedCount += 1
+                        batchProgress = Double(completedCount) / Double(total)
+                        inFlight -= 1
+                    } else {
+                        break
+                    }
                 }
 
+                inFlight += 1
                 group.addTask {
                     _ = await self.refreshPackage(package, in: context)
                 }
             }
 
-            // 等待剩餘任務
-            for await _ in group {
-                completedCount += 1
-                batchProgress = Double(completedCount) / Double(total)
+            while inFlight > 0 {
+                if await group.next() != nil {
+                    completedCount += 1
+                    batchProgress = Double(completedCount) / Double(total)
+                    inFlight -= 1
+                } else {
+                    break
+                }
             }
         }
 
@@ -125,21 +135,29 @@ final class PackageRefreshService {
         timeout: TimeInterval = 10.0,
         maxConcurrent: Int = 3
     ) async {
-        await withTaskGroup(of: Void.self) { group in
+        let refreshTask = Task {
+            await self.refreshAll(packages, in: context, maxConcurrent: maxConcurrent)
+        }
+
+        let didTimeout = await withTaskGroup(of: Bool.self) { group in
             group.addTask {
-                await self.refreshAll(packages, in: context, maxConcurrent: maxConcurrent)
+                await refreshTask.value
+                return false
             }
             group.addTask {
                 try? await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
+                return true
             }
-            // 先完成的那個結束後，取消另一個
-            await group.next()
+
+            let firstResult = await group.next() ?? false
             group.cancelAll()
+            return firstResult
         }
 
-        batchProgress = 1.0
-        isBatchRefreshing = false
-        lastBatchRefreshDate = Date()
+        if didTimeout {
+            refreshTask.cancel()
+            _ = await refreshTask.result
+        }
     }
 
     // MARK: - 過期檢查
@@ -167,8 +185,11 @@ final class PackageRefreshService {
         if let serviceType = result.serviceType { package.serviceType = serviceType }
         if let pickupDeadline = result.pickupDeadline { package.pickupDeadline = pickupDeadline }
 
-        package.events.removeAll()
-        for eventDTO in result.events {
+        if let relationId = result.relationId, package.trackTwRelationId != relationId {
+            package.trackTwRelationId = relationId
+        }
+
+        let newEvents = result.events.map { eventDTO in
             let event = TrackingEvent(
                 timestamp: eventDTO.timestamp,
                 status: eventDTO.status,
@@ -176,7 +197,24 @@ final class PackageRefreshService {
                 location: eventDTO.location
             )
             event.package = package
-            package.events.append(event)
+            return event
         }
+        package.events = newEvents
+    }
+}
+
+// MARK: - Refreshing Numbers Store
+
+private actor RefreshingNumbersStore {
+    private var storage: Set<String> = []
+
+    func begin(_ trackingNumber: String) -> Bool {
+        guard !storage.contains(trackingNumber) else { return false }
+        storage.insert(trackingNumber)
+        return true
+    }
+
+    func end(_ trackingNumber: String) {
+        storage.remove(trackingNumber)
     }
 }

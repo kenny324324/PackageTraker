@@ -7,6 +7,7 @@ struct TrackingResult {
     let currentStatus: TrackingStatus
     let events: [TrackingEventDTO]
     let rawResponse: String?  // 保留原始 HTML/JSON 供 debug
+    var relationId: String?   // Track.TW relation ID（用於快取與重用）
     
     // 額外資訊（7-11、全家等）
     var storeName: String?       // 取件門市名稱

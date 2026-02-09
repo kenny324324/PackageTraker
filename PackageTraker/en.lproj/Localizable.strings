@@ -153,6 +153,15 @@
 "error.noHistory" = "No tracking history found. Please check if the carrier is correct.";
 "error.imageLoadFailed" = "Image Not Available";
 "error.ocrFailed" = "Text Recognition Issue";
+"error.unsupportedCarrier" = "Currently not supported: %@";
+"error.networkError" = "Network connection error. Please check your connection and try again.";
+"error.parsingError" = "Data format error: %@";
+"error.trackingNumberNotFound" = "Tracking number not found";
+"error.invalidResponse" = "Carrier response error";
+"error.rateLimited" = "Too many requests. Please try again later.";
+"error.invalidTrackingNumber" = "Invalid tracking number format";
+"error.unauthorized" = "API Token expired or needs to be reconfigured";
+"error.serverError" = "Server error: %@";
 
 // Empty State
 "empty.title" = "No Packages";
