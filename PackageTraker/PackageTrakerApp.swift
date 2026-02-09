@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import Combine
 import BackgroundTasks
 import UserNotifications
 import FirebaseCore
@@ -37,6 +38,9 @@ struct PackageTrakerApp: App {
 
     // Tab 選擇（進入主畫面時重設為首頁）
     @State private var selectedTab = 0
+
+    // Deep Link：推播點擊後待導航的包裹 ID
+    @State private var pendingPackageId: UUID?
 
     // Firebase 認證服務
     @StateObject private var authService = FirebaseAuthService.shared
@@ -69,10 +73,15 @@ struct PackageTrakerApp: App {
         WindowGroup {
             ZStack {
                 // 主畫面始終存在底層（已完成佈局，避免 TabView/NavigationStack 插入時的內部動畫）
-                MainTabView(selectedTab: $selectedTab)
+                MainTabView(selectedTab: $selectedTab, pendingPackageId: $pendingPackageId)
                     .environment(refreshService)
                     .onOpenURL { url in
                         handleIncomingURL(url)
+                    }
+                    .onReceive(NotificationCenter.default.publisher(for: .didTapPackageNotification)) { notification in
+                        guard let packageId = notification.userInfo?["packageId"] as? UUID else { return }
+                        selectedTab = 0
+                        pendingPackageId = packageId
                     }
                     .allowsHitTesting(appFlow == .main)
 
@@ -241,7 +250,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 
 // MARK: - Notification Delegate
 
-/// 通知代理：處理前景通知顯示
+/// 通知代理：處理前景通知顯示與點擊跳轉
 class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
     static let shared = NotificationDelegate()
 
@@ -254,4 +263,31 @@ class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
         // 在前景也顯示通知
         completionHandler([.banner, .sound])
     }
+
+    /// 點擊通知後跳轉到對應包裹
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
+        let userInfo = response.notification.request.content.userInfo
+
+        if let packageIdString = userInfo["packageId"] as? String,
+           let packageId = UUID(uuidString: packageIdString) {
+            NotificationCenter.default.post(
+                name: .didTapPackageNotification,
+                object: nil,
+                userInfo: ["packageId": packageId]
+            )
+        }
+
+        completionHandler()
+    }
+}
+
+// MARK: - Notification Names
+
+extension Notification.Name {
+    /// 推播通知被點擊，需跳轉到包裹詳情
+    static let didTapPackageNotification = Notification.Name("didTapPackageNotification")
 }

@@ -3,6 +3,8 @@ import SwiftData
 
 /// 包裹清單主頁
 struct PackageListView: View {
+    @Binding var pendingPackageId: UUID?
+
     @Environment(\.modelContext) private var modelContext
     @Environment(PackageRefreshService.self) private var refreshService
     @ObservedObject private var themeManager = ThemeManager.shared
@@ -106,6 +108,13 @@ struct PackageListView: View {
             .navigationDestination(item: $selectedPackage) { package in
                 PackageDetailView(package: package, namespace: heroNamespace)
                     .navigationTransition(.zoom(sourceID: package.id, in: heroNamespace))
+            }
+            .onChange(of: pendingPackageId) { _, newValue in
+                guard let targetId = newValue else { return }
+                if let package = packages.first(where: { $0.id == targetId }) {
+                    selectedPackage = package
+                }
+                pendingPackageId = nil
             }
         }
         .toolbar(selectedPackage == nil ? .visible : .hidden, for: .tabBar)
@@ -442,7 +451,7 @@ struct EmptyPackageListView: View {
 // MARK: - Previews
 
 #Preview {
-    PackageListView()
+    PackageListView(pendingPackageId: .constant(nil))
         .modelContainer(for: [Package.self, TrackingEvent.self, LinkedEmailAccount.self], inMemory: true)
         .environment(PackageRefreshService())
 }

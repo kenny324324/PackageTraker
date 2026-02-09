@@ -403,7 +403,7 @@ Full implementation plan in `File/後端推播系統實施計劃.md`. The system
 | **Phase 1** | Firebase setup + Apple Sign In | **Completed** (2026-02-09) |
 | **Phase 2** | Firestore data sync + FCM token | **Completed** (2026-02-09) |
 | **Phase 3** | Cloud Functions backend | **Completed** (2026-02-09) |
-| **Phase 4** | Deep Link + UI polish | Not started |
+| **Phase 4** | Deep Link + UI polish | **Completed** (2026-02-09) |
 
 ### Phase 1 Completed Work
 
@@ -493,6 +493,20 @@ Full implementation plan in `File/後端推播系統實施計劃.md`. The system
 **Deployment:**
 - Region: asia-east1, Runtime: Node.js 20
 - Token stored via Firebase Secret Manager (`TRACKW_TOKEN`)
+
+### Phase 4 Completed Work
+
+**Modified files:**
+- `PackageTraker/PackageTrakerApp.swift` - NotificationDelegate added `didReceive` for notification tap handling; added `pendingPackageId` state and `.onReceive()` for deep link; added `Notification.Name.didTapPackageNotification`
+- `PackageTraker/Views/MainTabView.swift` - Added `@Binding var pendingPackageId: UUID?`, passes to PackageListView
+- `PackageTraker/Views/PackageList/PackageListView.swift` - Added `@Binding var pendingPackageId: UUID?`, `.onChange(of:)` triggers navigation via existing `navigationDestination(item:)`
+
+**Deep link flow:**
+1. User taps push notification → `NotificationDelegate.didReceive` extracts `packageId` from payload
+2. Posts `Notification.Name.didTapPackageNotification` via Foundation NotificationCenter
+3. `PackageTrakerApp.onReceive` → sets `selectedTab = 0` + `pendingPackageId = uuid`
+4. Binding chain → `MainTabView` → `PackageListView`
+5. `PackageListView.onChange(of: pendingPackageId)` → finds Package in `@Query` results → sets `selectedPackage` → existing `navigationDestination(item:)` pushes `PackageDetailView`
 
 ### Known Issues / TODOs
 
