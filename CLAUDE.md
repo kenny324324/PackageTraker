@@ -6,10 +6,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **PackageTraker** (取貨吧) is an iOS package tracking app targeting the Taiwan market. It helps users track packages from 18+ carriers and manage pickups from convenience stores and logistics centers.
 
-- **Technology**: SwiftUI + SwiftData (local database)
+- **Technology**: SwiftUI + SwiftData (local database) + Firebase (Auth, Firestore, FCM)
 - **Target**: iOS 16+ (dark mode only, `.preferredColorScheme(.dark)`)
 - **Project Type**: Xcode project (no SPM workspace)
 - **Localization**: 3 languages (Traditional Chinese `zh-Hant`, Simplified Chinese `zh-Hans`, English `en`)
+- **Authentication**: Apple Sign In via Firebase Auth (required before accessing main app)
 
 ## Build & Development Commands
 
@@ -72,6 +73,9 @@ xcodebuild test -project PackageTraker.xcodeproj -scheme PackageTraker -destinat
 - Taiwan-specific email parser for extracting tracking info from logistics emails
 - Email link settings in Settings view
 
+**Firebase Services (`Services/Firebase/`):**
+- `FirebaseAuthService.swift` - Singleton `@MainActor ObservableObject` managing Apple Sign In via Firebase Auth. Handles nonce generation, credential exchange, Firestore user profile creation, and auth state listening.
+
 **Other Services:**
 - `CarrierDetector.swift` - Detects carrier from tracking number format
 - `ThemeManager.swift` - Theme/appearance management
@@ -80,15 +84,16 @@ xcodebuild test -project PackageTraker.xcodeproj -scheme PackageTraker -destinat
 ### View Layer (`PackageTraker/Views/`)
 
 **Main Navigation:**
-- `MainTabView.swift` - Tab bar with 4 tabs: PackageList, AddPackage, History, Settings
-- `SplashView.swift` - Launch animation screen
+- `MainTabView.swift` - Tab bar with 3 tabs: PackageList (tag 0), History (tag 1), Settings (tag 2). Uses `@Binding var selectedTab: Int` controlled by `PackageTrakerApp`.
+- `SplashView.swift` - Cold start launch animation (box drop + progress bar), for already-authenticated users
+- `Auth/SignInView.swift` - Apple Sign In screen (box drop animation + sign in button + loading progress bar)
 
 **Feature Views:**
 - `PackageList/` - List of active packages with pull-to-refresh tracking
 - `AddPackage/` - Multi-step package addition with carrier selection and manual entry
 - `PackageDetail/` - Package info, tracking events, delivery details
 - `History/` - Archived packages management
-- `Settings/` - User preferences, Gmail linking (disabled), theme settings
+- `Settings/` - User preferences, account section (Apple ID display, sign out), theme settings
 - `Email/` - Gmail account management (feature disabled)
 
 ### UI Components (`PackageTraker/Components/`)
@@ -108,8 +113,10 @@ Reusable SwiftUI components for common patterns (backgrounds, input styling, car
 
 ### Supporting Files
 
-- `PackageTrakerApp.swift` - App entry point, SwiftData container setup, background task registration
-- `Info.plist` - App metadata and privacy permissions
+- `PackageTrakerApp.swift` - App entry point with `AppFlow` enum state machine, Firebase init, SwiftData container, ZStack overlay transition pattern
+- `PackageTraker.entitlements` - Apple Sign In + APNs (development) entitlements
+- `GoogleService-Info.plist` - Firebase configuration (not tracked in git)
+- `Info.plist` - App metadata, privacy permissions, `UIBackgroundModes` (fetch, processing, remote-notification)
 - `Secrets.swift` - API token placeholder (actual token from environment/Keychain)
 - `FeatureFlags.swift` - Feature toggles (currently: `emailAutoImportEnabled = false`)
 
@@ -144,6 +151,75 @@ The app migrated from multiple custom scrapers (2026-02-05) to a unified Track.T
 - `.unauthorized` - API token expired/invalid
 - `.rateLimited` - Rate limit exceeded
 - `.invalidResponse` / `.serverError` - API server issues
+
+## App Flow & Authentication Architecture
+
+### AppFlow State Machine
+
+The app uses an `AppFlow` enum to manage navigation between auth/splash/main screens:
+
+```swift
+enum AppFlow: Equatable {
+    case signIn     // Not authenticated → show SignInView
+    case coldStart  // Authenticated cold start → show SplashView (box drop + progress bar)
+    case main       // Main app → show MainTabView
+}
+```
+
+**Initialization logic** (in `PackageTrakerApp.init()`):
+- `FirebaseApp.configure()` is called first
+- `Auth.auth().currentUser` (synchronous after configure) determines initial flow:
+  - `!= nil` → `.coldStart` (user was previously signed in)
+  - `== nil` → `.signIn` (needs to authenticate)
+
+### ZStack Overlay Transition Pattern
+
+MainTabView is **always present at the bottom** of the ZStack to avoid TabView/NavigationStack internal layout animations on first insertion. SignInView and SplashView are rendered as **overlay layers** that fade out via `.transition(.opacity)`:
+
+```swift
+ZStack {
+    // Bottom: always present, already laid out
+    MainTabView(selectedTab: $selectedTab)
+        .allowsHitTesting(appFlow == .main)
+        .opacity(appFlow == .main ? 1 : 0)
+
+    // Overlay: sign in (fades out when dismissed)
+    if appFlow == .signIn {
+        SignInView(...) { onLoadingComplete() }
+            .transition(.opacity)
+            .zIndex(1)
+    }
+
+    // Overlay: cold start splash (fades out when dismissed)
+    if appFlow == .coldStart {
+        SplashView(...) { onLoadingComplete() }
+            .transition(.opacity)
+            .zIndex(1)
+    }
+}
+.animation(.easeOut(duration: 0.4), value: appFlow)
+```
+
+**Key design decisions:**
+- `MainTabView` always at bottom avoids the "slide from top-left corner" glitch caused by TabView/NavigationStack implicit layout animations
+- `selectedTab` is a `@Binding` from `PackageTrakerApp` → reset to 0 before each transition to main (prevents showing Settings tab after login)
+- `.opacity(appFlow == .main ? 1 : 0)` on MainTabView hides it during sign-out transition
+- Both `withAnimation` in closures and `.animation(value:)` on ZStack for animation reliability
+- Sign-out is handled via `.onChange(of: authService.isAuthenticated)` → transitions to `.signIn`
+
+### Firebase Auth Flow
+
+1. **Sign In**: SignInView → Apple Sign In button → `FirebaseAuthService.signInWithApple()` → Firebase credential exchange → `authService.isAuthenticated` becomes `true` → `.onChange` in SignInView triggers loading → progress bar → `onLoadingComplete()` → fade to main
+2. **Cold Start**: Already authenticated → SplashView → box drop animation → data loading → `onLoadingComplete()` → fade to main
+3. **Sign Out**: SettingsView → sign out button → `authService.signOut()` → `isAuthenticated` becomes `false` → `PackageTrakerApp.onChange` transitions to `.signIn`
+
+### Firestore User Profile
+
+On first sign-in, `FirebaseAuthService.createUserProfileIfNeeded()` creates `/users/{uid}` in Firestore with:
+- `appleId`, `email`, `createdAt`, `lastActive`
+- `notificationSettings` (enabled, arrivalNotification, pickupReminder)
+
+On subsequent sign-ins, only `lastActive` is updated.
 
 ## Key Patterns & Conventions
 
@@ -281,10 +357,14 @@ PackageTraker/
 ├── Services/                  # Business logic layer
 │   ├── TrackingManager.swift  # Main coordination service
 │   ├── TrackTw/              # Track.TW API integration
+│   ├── Firebase/             # Firebase integration
+│   │   └── FirebaseAuthService.swift  # Apple Sign In + Auth
 │   ├── Gmail/                # Email integration (disabled)
 │   └── ...
 ├── Views/                     # SwiftUI views
-│   ├── MainTabView.swift
+│   ├── MainTabView.swift     # 3-tab view with @Binding selectedTab
+│   ├── Auth/
+│   │   └── SignInView.swift  # Apple Sign In screen
 │   ├── PackageList/
 │   ├── AddPackage/
 │   ├── PackageDetail/
@@ -293,8 +373,83 @@ PackageTraker/
 ├── Extensions/               # Swift extensions
 ├── Assets.xcassets/          # Images, colors, app icon
 ├── *.lproj/                  # Localization files
-└── PackageTrakerApp.swift    # Entry point
+├── PackageTraker.entitlements # Apple Sign In + APNs
+├── GoogleService-Info.plist  # Firebase config (not in git)
+└── PackageTrakerApp.swift    # Entry point with AppFlow state machine
 ```
+
+```
+File/                          # Project documentation
+├── 後端推播系統實施計劃.md     # Full 4-phase push notification backend plan
+├── 背景追蹤與推播系統計劃.md   # Background tracking plan
+├── AI-截圖辨識升級計畫.md     # AI screenshot recognition plan
+├── PackageTracker-PRD.md      # Product requirements document
+└── TrackTW-API-Spec.md        # Track.TW API specification
+```
+
+```
+Key/                           # APNs keys (not in git)
+└── AuthKey_*.p8              # APNs authentication key for Firebase Cloud Messaging
+```
+
+## Firebase Push Notification Backend (In Progress)
+
+Full implementation plan in `File/後端推播系統實施計劃.md`. The system enables server-side package tracking every 15 minutes with FCM push notifications when packages arrive.
+
+### Phase Status
+
+| Phase | Description | Status |
+|-------|-------------|--------|
+| **Phase 1** | Firebase setup + Apple Sign In | **Completed** (2026-02-09) |
+| **Phase 2** | Firestore data sync + FCM token | Not started |
+| **Phase 3** | Cloud Functions backend | Not started |
+| **Phase 4** | Deep Link + UI polish | Not started |
+
+### Phase 1 Completed Work
+
+**New files created:**
+- `Services/Firebase/FirebaseAuthService.swift` - Apple Sign In via Firebase Auth, Firestore user profile creation
+- `Views/Auth/SignInView.swift` - Sign in screen with box drop animation, Apple Sign In button, loading progress bar
+- `PackageTraker.entitlements` - Apple Sign In + APNs development entitlements
+- `GoogleService-Info.plist` - Firebase project configuration
+
+**Modified files:**
+- `PackageTrakerApp.swift` - Added `AppFlow` enum, Firebase init, ZStack overlay transition pattern, `@State selectedTab` with binding to MainTabView
+- `MainTabView.swift` - Changed to 3 tabs (removed AddPackage tab), `selectedTab` changed from `@State` to `@Binding`
+- `SettingsView.swift` - Added account section (Apple ID display, sign out button with confirmation)
+- `Info.plist` - Added `UIBackgroundModes` (remote-notification), existing permissions preserved
+- `en.lproj/Localizable.strings` - Added auth.* and settings.account/signOut keys
+- `zh-Hant.lproj/Localizable.strings` - Added Traditional Chinese translations
+- `zh-Hans.lproj/Localizable.strings` - Added Simplified Chinese translations
+- `project.pbxproj` - Firebase SDK dependencies, new file references
+
+**Firebase SDK dependencies added (via SPM):**
+- `FirebaseAuth`
+- `FirebaseCore`
+- `FirebaseFirestore`
+
+**Localization keys added:**
+- `auth.signIn.subtitle`, `auth.signIn.termsLine1`, `auth.signIn.termsLink`, `auth.signIn.and`, `auth.signIn.privacyLink`
+- `auth.error.title`, `auth.error.invalidCredential`
+- `settings.account`, `settings.appleId`, `settings.signOut`, `settings.signOut.confirmTitle`, `settings.signOut.confirmMessage`
+
+### Phase 2 TODO (Next)
+
+Files to create:
+- `Services/Firebase/FirebaseSyncService.swift` - Firestore bidirectional sync
+- `Services/Firebase/FirebasePushService.swift` - FCM token management
+- `Services/Firebase/FirebaseModels.swift` - Firestore model mapping
+
+Files to modify:
+- `PackageTrakerApp.swift` - FCM registration, initial sync on login
+- `Services/PackageRefreshService.swift` - Sync to Firestore after refresh
+- `Views/AddPackage/AddPackageView.swift` - Sync new packages to Firestore
+
+### Known Issues / TODOs
+
+- `SignInView.openPrivacyPolicy()` uses placeholder URL (Apple EULA instead of custom privacy policy)
+- FCM token registration not yet implemented (Phase 2)
+- No Firestore data sync yet (Phase 2)
 
 ## Removed Legacy Services (2026-02-05)
 

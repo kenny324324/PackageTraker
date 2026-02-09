@@ -1,7 +1,7 @@
 import SwiftUI
 import SwiftData
 
-/// 自定義啟動頁面
+/// 啟動畫面（箱子掉落動畫 + 進度條載入）
 struct SplashView: View {
     @Environment(\.modelContext) private var modelContext
     var refreshService: PackageRefreshService
@@ -10,9 +10,6 @@ struct SplashView: View {
     @State private var boxOffset: CGFloat = -400 // 從畫面上方開始
     @State private var boxRotation: Double = -20 // 初始傾斜
     @State private var boxSquash: CGFloat = 1.0 // 壓扁效果
-    @State private var shadowRadius: CGFloat = 0
-    @State private var shadowOpacity: Double = 0
-    @State private var shadowScale: CGFloat = 0.3
     @State private var showProgress = false
     @State private var isSyncing = false
 
@@ -39,23 +36,13 @@ struct SplashView: View {
                 Spacer()
 
                 // 箱子 - 從天而降動畫
-                VStack(spacing: 0) {
-                    Image("SplashIcon")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 120, height: 120)
-                        .rotationEffect(.degrees(boxRotation))
-                        .scaleEffect(x: 1.0 / boxSquash, y: boxSquash, anchor: .bottom) // 落地壓扁效果
-                        .offset(y: boxOffset)
-
-                    // 落地陰影
-                    Ellipse()
-                        .fill(Color.black.opacity(shadowOpacity))
-                        .frame(width: 80, height: 24)
-                        .blur(radius: shadowRadius)
-                        .scaleEffect(shadowScale)
-                        .offset(y: -15)
-                }
+                Image("SplashIcon")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 120, height: 120)
+                    .rotationEffect(.degrees(boxRotation))
+                    .scaleEffect(x: 1.0 / boxSquash, y: boxSquash, anchor: .bottom)
+                    .offset(y: boxOffset)
 
                 Spacer()
 
@@ -93,15 +80,6 @@ struct SplashView: View {
         // 等待一小段時間讓畫面準備好
         try? await Task.sleep(nanoseconds: 100_000_000)
 
-        // 掉落過程中陰影漸漸出現並變大
-        await MainActor.run {
-            withAnimation(.easeIn(duration: 0.35)) {
-                shadowOpacity = 0.25
-                shadowRadius = 10
-                shadowScale = 0.8
-            }
-        }
-
         // 箱子快速掉落（保持傾斜）
         await MainActor.run {
             withAnimation(.easeIn(duration: 0.35)) {
@@ -116,9 +94,6 @@ struct SplashView: View {
             withAnimation(.easeOut(duration: 0.06)) {
                 boxSquash = 0.8
                 boxRotation = -25
-                shadowOpacity = 0.4
-                shadowRadius = 5
-                shadowScale = 1.0
             }
         }
 
@@ -130,8 +105,6 @@ struct SplashView: View {
                 boxSquash = 1.0
                 boxOffset = -40
                 boxRotation = 10 // 往另一邊傾斜
-                shadowOpacity = 0.2
-                shadowScale = 0.6
             }
         }
 
@@ -141,7 +114,6 @@ struct SplashView: View {
         await MainActor.run {
             withAnimation(.easeIn(duration: 0.15)) {
                 boxOffset = 0
-                shadowScale = 0.9
             }
         }
 
@@ -152,8 +124,6 @@ struct SplashView: View {
             withAnimation(.easeOut(duration: 0.05)) {
                 boxSquash = 0.9
                 boxRotation = -5
-                shadowOpacity = 0.35
-                shadowScale = 1.0
             }
         }
 
@@ -164,9 +134,6 @@ struct SplashView: View {
             withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
                 boxSquash = 1.0
                 boxRotation = 0
-                shadowOpacity = 0.15
-                shadowRadius = 12
-                shadowScale = 0.85
             }
         }
 
@@ -254,4 +221,5 @@ struct SplashView: View {
     SplashView(refreshService: PackageRefreshService()) {
         print("Loading complete")
     }
+    .modelContainer(for: [Package.self, TrackingEvent.self], inMemory: true)
 }

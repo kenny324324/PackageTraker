@@ -291,3 +291,21 @@
 "email.systemInfo" = "系统资讯";
 "email.cannotOpenTitle" = "无法开启邮件";
 "email.cannotOpenMessage" = "请确认已安装邮件 App，或直接发送邮件至";
+
+// Auth
+"auth.signIn.subtitle" = "井然有序地追踪与管理您的所有包裹";
+"auth.signIn.privacyNote" = "我们尊重您的隐私。您的资料安全储存，仅用于包裹追踪。";
+"auth.signIn.termsAndPrivacy" = "登录即表示您同意我们的 服务条款 和 隐私政策";
+"auth.signIn.termsLine1" = "登录即表示您同意我们的";
+"auth.signIn.termsLink" = "服务条款";
+"auth.signIn.and" = "和";
+"auth.signIn.privacyLink" = "隐私政策";
+"auth.error.title" = "登录失败";
+"auth.error.invalidCredential" = "无效的 Apple 登录凭证";
+
+// Settings - Account
+"settings.account" = "账号";
+"settings.appleId" = "Apple ID";
+"settings.signOut" = "登出";
+"settings.signOut.confirmTitle" = "确认登出";
+"settings.signOut.confirmMessage" = "登出后将停止推播通知，本地资料将保留。";

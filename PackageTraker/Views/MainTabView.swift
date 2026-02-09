@@ -3,7 +3,7 @@ import SwiftData
 
 /// 主 TabView
 struct MainTabView: View {
-    @State private var selectedTab = 0
+    @Binding var selectedTab: Int
     @ObservedObject private var themeManager = ThemeManager.shared
 
     var body: some View {
@@ -37,6 +37,6 @@ struct MainTabView: View {
 // MARK: - Previews
 
 #Preview {
-    MainTabView()
+    MainTabView(selectedTab: .constant(0))
         .modelContainer(for: [Package.self, TrackingEvent.self], inMemory: true)
 }

@@ -292,3 +292,21 @@
 "email.systemInfo" = "System Information";
 "email.cannotOpenTitle" = "Cannot Open Mail";
 "email.cannotOpenMessage" = "Please make sure Mail app is installed, or send email to";
+
+// Auth
+"auth.signIn.subtitle" = "Track and manage all your packages in one place";
+"auth.signIn.privacyNote" = "We respect your privacy. Your data is securely stored and only used for package tracking.";
+"auth.signIn.termsAndPrivacy" = "By signing in, you agree to our Terms of Service and Privacy Policy";
+"auth.signIn.termsLine1" = "By signing in, you agree to our";
+"auth.signIn.termsLink" = "Terms of Service";
+"auth.signIn.and" = "and";
+"auth.signIn.privacyLink" = "Privacy Policy";
+"auth.error.title" = "Sign In Failed";
+"auth.error.invalidCredential" = "Invalid Apple Sign In credential";
+
+// Settings - Account
+"settings.account" = "Account";
+"settings.appleId" = "Apple ID";
+"settings.signOut" = "Sign Out";
+"settings.signOut.confirmTitle" = "Confirm Sign Out";
+"settings.signOut.confirmMessage" = "After signing out, push notifications will stop. Local data will be retained.";

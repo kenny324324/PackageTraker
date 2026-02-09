@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import StoreKit
+import FirebaseAuth
 
 /// 更新頻率選項
 enum RefreshInterval: String, CaseIterable {
@@ -43,6 +44,7 @@ struct SettingsView: View {
 
     @StateObject private var gmailAuthManager = GmailAuthManager.shared
     @ObservedObject private var themeManager = ThemeManager.shared
+    @ObservedObject private var authService = FirebaseAuthService.shared
 
     // 通知設定（持久化到 UserDefaults）
     @AppStorage("notificationsEnabled") private var notificationsEnabled = false
@@ -53,6 +55,8 @@ struct SettingsView: View {
     @State private var showClearDataSuccess = false
     @State private var showNotificationDeniedAlert = false
     @State private var showFeedbackError = false
+    @State private var showSignOutAlert = false
+    @State private var cachedEmail: String? = nil // 快取 email，登出轉場時不消失
     @AppStorage("refreshInterval") private var refreshInterval: RefreshInterval = .thirtyMinutes
     @AppStorage("hideDeliveredPackages") private var hideDeliveredPackages = false
 
@@ -60,6 +64,9 @@ struct SettingsView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
+                    // 帳號設定
+                    accountSection
+
                     // 一般設定
                     generalSection
 
@@ -68,7 +75,7 @@ struct SettingsView: View {
 
                     // 資料管理
                     dataManagementSection
-                    
+
                     // 關於區塊
                     aboutSection
 
@@ -112,8 +119,20 @@ struct SettingsView: View {
             } message: {
                 Text(String(localized: "email.cannotOpenMessage") + " \(AppConfiguration.feedbackEmail)")
             }
+            .alert(String(localized: "settings.signOut.confirmTitle"), isPresented: $showSignOutAlert) {
+                Button(String(localized: "common.cancel"), role: .cancel) {}
+                Button(String(localized: "settings.signOut"), role: .destructive) {
+                    signOut()
+                }
+            } message: {
+                Text(String(localized: "settings.signOut.confirmMessage"))
+            }
             .onAppear {
                 checkNotificationPermission()
+                // 快取 email，登出轉場時保持顯示
+                if cachedEmail == nil {
+                    cachedEmail = authService.currentUser?.email
+                }
             }
             .onChange(of: notificationsEnabled) { oldValue, newValue in
                 if newValue && !oldValue {
@@ -132,6 +151,65 @@ struct SettingsView: View {
             }
         }
         .preferredColorScheme(.dark)
+    }
+
+    // MARK: - Account Section
+
+    private var accountSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(String(localized: "settings.account"))
+                .font(.title2)
+                .fontWeight(.bold)
+                .foregroundStyle(.white)
+
+            VStack(spacing: 0) {
+                // Apple ID 顯示
+                HStack(spacing: 12) {
+                    Image(systemName: "person.circle.fill")
+                        .font(.system(size: 18))
+                        .foregroundStyle(.green)
+                        .frame(width: 28)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(String(localized: "settings.appleId"))
+                            .foregroundStyle(.white)
+                            .font(.body)
+
+                        if let email = cachedEmail ?? authService.currentUser?.email {
+                            Text(email)
+                                .foregroundStyle(.secondary)
+                                .font(.caption)
+                        }
+                    }
+
+                    Spacer()
+                }
+                .padding(16)
+
+                Divider()
+                    .background(Color.cardBackground)
+
+                // 登出按鈕
+                Button {
+                    showSignOutAlert = true
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "rectangle.portrait.and.arrow.right")
+                            .font(.system(size: 18))
+                            .foregroundStyle(.red)
+                            .frame(width: 28)
+
+                        Text(String(localized: "settings.signOut"))
+                            .foregroundStyle(.red)
+
+                        Spacer()
+                    }
+                    .padding(16)
+                }
+            }
+            .background(Color.secondaryCardBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+        }
     }
 
     // MARK: - About Section
@@ -607,6 +685,14 @@ struct SettingsView: View {
             if status == .denied && notificationsEnabled {
                 showNotificationDeniedAlert = true
             }
+        }
+    }
+
+    private func signOut() {
+        do {
+            try authService.signOut()
+        } catch {
+            print("Sign out failed: \(error)")
         }
     }
 }

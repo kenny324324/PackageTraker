@@ -291,3 +291,21 @@
 "email.systemInfo" = "系統資訊";
 "email.cannotOpenTitle" = "無法開啟郵件";
 "email.cannotOpenMessage" = "請確認已安裝郵件 App，或直接發送郵件至";
+
+// Auth
+"auth.signIn.subtitle" = "井然有序地追蹤與管理您的所有包裹";
+"auth.signIn.privacyNote" = "我們尊重您的隱私。您的資料安全儲存，僅用於包裹追蹤。";
+"auth.signIn.termsAndPrivacy" = "登入即表示您同意我們的 服務條款 和 隱私政策";
+"auth.signIn.termsLine1" = "登入即表示您同意我們的";
+"auth.signIn.termsLink" = "服務條款";
+"auth.signIn.and" = "和";
+"auth.signIn.privacyLink" = "隱私政策";
+"auth.error.title" = "登入失敗";
+"auth.error.invalidCredential" = "無效的 Apple 登入憑證";
+
+// Settings - Account
+"settings.account" = "帳號";
+"settings.appleId" = "Apple ID";
+"settings.signOut" = "登出";
+"settings.signOut.confirmTitle" = "確認登出";
+"settings.signOut.confirmMessage" = "登出後將停止推播通知，本地資料將保留。";

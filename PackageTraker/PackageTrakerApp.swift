@@ -9,22 +9,48 @@ import SwiftUI
 import SwiftData
 import BackgroundTasks
 import UserNotifications
+import FirebaseCore
+import FirebaseAuth
+
+/// App 啟動流程狀態
+enum AppFlow: Equatable {
+    case signIn     // 未登入：顯示 SignInView
+    case coldStart  // 已登入冷啟動：SplashView（箱子掉落 + 進度條）
+    case main       // 主畫面
+}
 
 @main
 struct PackageTrakerApp: App {
 
     // 背景任務識別碼
     static let emailSyncTaskIdentifier = "com.packagetraker.emailsync"
-    
-    // 控制是否顯示啟動頁
-    @State private var showSplash = true
+
+    // App 流程狀態（根據初始認證狀態決定）
+    @State private var appFlow: AppFlow
 
     // 共享的刷新服務
     @State private var refreshService = PackageRefreshService()
 
+    // Tab 選擇（進入主畫面時重設為首頁）
+    @State private var selectedTab = 0
+
+    // Firebase 認證服務
+    @StateObject private var authService = FirebaseAuthService.shared
+
     init() {
+        // 初始化 Firebase
+        FirebaseApp.configure()
+
         // 設置通知中心代理
         UNUserNotificationCenter.current().delegate = NotificationDelegate.shared
+
+        // 根據初始認證狀態決定流程
+        // Auth.auth().currentUser 在 configure() 後可同步取得
+        if Auth.auth().currentUser != nil {
+            _appFlow = State(initialValue: .coldStart)
+        } else {
+            _appFlow = State(initialValue: .signIn)
+        }
 
         // 註冊背景任務（郵件同步功能暫時停用）
         if FeatureFlags.emailAutoImportEnabled {
@@ -35,24 +61,55 @@ struct PackageTrakerApp: App {
     var body: some Scene {
         WindowGroup {
             ZStack {
-                MainTabView()
+                // 主畫面始終存在底層（已完成佈局，避免 TabView/NavigationStack 插入時的內部動畫）
+                MainTabView(selectedTab: $selectedTab)
                     .environment(refreshService)
                     .onOpenURL { url in
-                        // 處理 OAuth 回調 URL
                         handleIncomingURL(url)
                     }
+                    .allowsHitTesting(appFlow == .main)
 
-                if showSplash {
-                    SplashView(refreshService: refreshService) {
+                // 登入覆蓋層
+                if appFlow == .signIn {
+                    SignInView(refreshService: refreshService) {
+                        selectedTab = 0 // 確保回到包裹列表
+                        // 進入主畫面時震動回饋
+                        let generator = UIImpactFeedbackGenerator(style: .medium)
+                        generator.impactOccurred()
                         withAnimation(.easeOut(duration: 0.4)) {
-                            showSplash = false
+                            appFlow = .main
                         }
                     }
-                    .zIndex(1)
                     .transition(.opacity)
+                    .zIndex(1)
+                }
+
+                // 冷啟動覆蓋層
+                if appFlow == .coldStart {
+                    SplashView(refreshService: refreshService) {
+                        selectedTab = 0
+                        // 進入主畫面時震動回饋
+                        let generator = UIImpactFeedbackGenerator(style: .medium)
+                        generator.impactOccurred()
+                        withAnimation(.easeOut(duration: 0.4)) {
+                            appFlow = .main
+                        }
+                    }
+                    .transition(.opacity)
+                    .zIndex(1)
                 }
             }
-            .animation(.easeOut(duration: 0.4), value: showSplash)
+            .animation(.easeOut(duration: 0.4), value: appFlow) // 驅動覆蓋層的淡入淡出轉場
+            .preferredColorScheme(.dark)
+            .onChange(of: authService.isAuthenticated) { oldValue, newValue in
+                // 只處理登出（登入由 SignInView 內部處理）
+                if oldValue && !newValue {
+                    withAnimation(.easeOut(duration: 0.4)) {
+                        selectedTab = 0 // 重置 tab
+                        appFlow = .signIn
+                    }
+                }
+            }
         }
         .modelContainer(for: [
             Package.self,
