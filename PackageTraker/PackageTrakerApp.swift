@@ -19,6 +19,9 @@ struct PackageTrakerApp: App {
     // 控制是否顯示啟動頁
     @State private var showSplash = true
 
+    // 共享的刷新服務
+    @State private var refreshService = PackageRefreshService()
+
     init() {
         // 設置通知中心代理
         UNUserNotificationCenter.current().delegate = NotificationDelegate.shared
@@ -33,13 +36,14 @@ struct PackageTrakerApp: App {
         WindowGroup {
             ZStack {
                 MainTabView()
+                    .environment(refreshService)
                     .onOpenURL { url in
                         // 處理 OAuth 回調 URL
                         handleIncomingURL(url)
                     }
-                
+
                 if showSplash {
-                    SplashView {
+                    SplashView(refreshService: refreshService) {
                         withAnimation(.easeOut(duration: 0.4)) {
                             showSplash = false
                         }

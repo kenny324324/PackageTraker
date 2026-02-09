@@ -13,6 +13,11 @@
 "home.pending" = "Pending Pickup";
 "home.delivered30" = "Last 30 Days";
 
+// Sheet
+"sheet.pendingTitle" = "Pending Pickup";
+"sheet.deliveredTitle" = "Picked Up (30 Days)";
+"sheet.empty" = "No packages";
+
 // Package Status
 "status.pending" = "Pending";
 "status.shipped" = "Shipped";
@@ -101,6 +106,7 @@
 "settings.general" = "General";
 "settings.themeColor" = "Theme Color";
 "settings.language" = "Language";
+"settings.hideDelivered" = "Hide Picked Up Packages";
 "settings.notifications" = "Notifications";
 "settings.pushNotification" = "Push Notifications";
 "settings.arrivalNotification" = "Arrival Notification";
@@ -122,6 +128,9 @@
 
 // Splash
 "splash.loading" = "Finding your packages";
+"splash.syncing" = "Syncing latest status";
+"splash.almostDone" = "Almost done";
+"refresh.syncing" = "Syncing";
 
 // Common
 "common.edit" = "Edit";

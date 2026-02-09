@@ -80,20 +80,40 @@ enum TrackingStatus: String, CaseIterable, Identifiable, Codable {
 
     /// 根據中文描述細分 transit 狀態
     private static func mapTransitSubStatus(_ description: String) -> TrackingStatus {
-        if description.contains("到店") || description.contains("待取") ||
-           description.contains("可取貨") || description.contains("配達") ||
-           description.contains("已到達") {
+        // 1. 尚未出貨（優先排除）
+        //    「將於...後出貨」「等待出貨」「等待寄件」「準備出貨」「訂單成立」「訂單處理」
+        if description.contains("將於") || description.contains("等待出貨") ||
+           description.contains("等待寄件") || description.contains("準備出貨") ||
+           description.contains("訂單成立") || description.contains("訂單處理") {
+            return .pending
+        }
+
+        // 2. 已到門市/到店（待取件）
+        //    「到店」「到門市」「待取」「可取貨」「配達」「已到達」「已送達」
+        if description.contains("到店") || description.contains("到門市") ||
+           description.contains("待取") || description.contains("可取貨") ||
+           description.contains("配達") || description.contains("已到達") ||
+           description.contains("已送達") {
             return .arrivedAtStore
         }
+
+        // 3. 物流運送中
+        //    「配送中」「運送中」「轉運」「理貨」「抵達」「派送」「投遞」
         if description.contains("配送中") || description.contains("運送中") ||
            description.contains("轉運") || description.contains("理貨") ||
-           description.contains("抵達") {
+           description.contains("抵達") || description.contains("派送") ||
+           description.contains("投遞") {
             return .inTransit
         }
+
+        // 4. 已出貨/已寄件（注意：前面已排除「將於...出貨」）
+        //    「寄件」「出貨」「已收件」「已攬收」
         if description.contains("寄件") || description.contains("出貨") ||
-           description.contains("已收件") || description.contains("賣家") {
+           description.contains("已收件") || description.contains("已攬收") {
             return .shipped
         }
+
+        // 5. 無法判斷，預設配送中
         return .inTransit
     }
 }

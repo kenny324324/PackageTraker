@@ -107,7 +107,7 @@ struct PackageSectionView: View {
                         }
                     }
                     .padding(.horizontal)
-                    .padding(.vertical, 4) // 為 liquid glass 按壓效果預留空間
+                    .padding(.vertical, 12) // 為 liquid glass 按壓效果和光暈預留空間
                 }
             }
         }

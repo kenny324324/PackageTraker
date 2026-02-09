@@ -4,7 +4,9 @@ import SwiftData
 /// 包裹清單主頁
 struct PackageListView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(PackageRefreshService.self) private var refreshService
     @ObservedObject private var themeManager = ThemeManager.shared
+    @AppStorage("hideDeliveredPackages") private var hideDeliveredPackages = false
 
     @Query(filter: #Predicate<Package> { !$0.isArchived },
            sort: \Package.lastUpdated, order: .reverse)
@@ -14,18 +16,18 @@ struct PackageListView: View {
 
     @State private var showAddPackage = false
     @State private var selectedPackage: Package?
-    @State private var isRefreshing = false
     @State private var emailSyncStatus: String?
-    
+    @State private var showPendingSheet = false
+    @State private var showDeliveredSheet = false
+
     // 編輯和刪除
     @State private var packageToEdit: Package?
     @State private var packageToDelete: Package?
     @State private var showDeleteConfirmation = false
-    
+
     // Hero 動畫用的 Namespace
     @Namespace private var heroNamespace
 
-    private let trackingManager = TrackingManager()
     private let gmailAuthManager = GmailAuthManager.shared
 
     /// 30 天前的日期
@@ -33,9 +35,13 @@ struct PackageListView: View {
         Calendar.current.date(byAdding: .day, value: -30, to: Date()) ?? Date()
     }
 
-    /// 過濾後的包裹（最後狀態距今超過 30 天的不顯示）
+    /// 過濾後的包裹（最後狀態距今超過 30 天的不顯示，可選隱藏已取貨）
     private var filteredPackages: [Package] {
         packages.filter { package in
+            // 隱藏已取貨的包裹
+            if hideDeliveredPackages && package.status == .delivered {
+                return false
+            }
             // 使用最後狀態的時間（最新事件的時間）判斷
             if let latestEventTime = package.latestEventTimestamp {
                 // 距今超過 30 天就不顯示
@@ -85,6 +91,18 @@ struct PackageListView: View {
                     packageToDelete = nil
                 }
             }
+            .sheet(isPresented: $showPendingSheet) {
+                PackageListSheetView(
+                    title: String(localized: "sheet.pendingTitle"),
+                    packages: pendingPackages
+                )
+            }
+            .sheet(isPresented: $showDeliveredSheet) {
+                PackageListSheetView(
+                    title: String(localized: "sheet.deliveredTitle"),
+                    packages: deliveredRecentPackages
+                )
+            }
             .navigationDestination(item: $selectedPackage) { package in
                 PackageDetailView(package: package, namespace: heroNamespace)
                     .navigationTransition(.zoom(sourceID: package.id, in: heroNamespace))
@@ -94,7 +112,7 @@ struct PackageListView: View {
         .animation(.easeInOut(duration: 0.3), value: selectedPackage)
         .preferredColorScheme(.dark)
     }
-    
+
     private func deletePackage(_ package: Package) {
         modelContext.delete(package)
         try? modelContext.save()
@@ -115,7 +133,9 @@ struct PackageListView: View {
                 // 統計摘要
                 StatsSummaryView(
                     pendingCount: pendingPackages.count,
-                    deliveredThisMonth: deliveredThisMonthCount
+                    deliveredThisMonth: deliveredRecentPackages.count,
+                    onPendingTap: { showPendingSheet = true },
+                    onDeliveredTap: { showDeliveredSheet = true }
                 )
                 .padding(.horizontal)
 
@@ -179,11 +199,22 @@ struct PackageListView: View {
     // MARK: - Computed Properties
 
     private var pendingPackages: [Package] {
-        filteredPackages.filter { $0.status.isPendingPickup }
+        allRecentPackages.filter { $0.status.isPendingPickup }
     }
 
-    private var deliveredThisMonthCount: Int {
-        filteredPackages.filter { $0.status == .delivered }.count
+    /// 30 天內已取貨的包裹（不受「隱藏已取貨」影響）
+    private var deliveredRecentPackages: [Package] {
+        allRecentPackages.filter { $0.status == .delivered }
+    }
+
+    /// 30 天內所有包裹（不含隱藏過濾，用於統計）
+    private var allRecentPackages: [Package] {
+        packages.filter { package in
+            if let latestEventTime = package.latestEventTimestamp {
+                return latestEventTime > thirtyDaysAgo
+            }
+            return package.lastUpdated > thirtyDaysAgo
+        }
     }
 
     /// 按物流商分組
@@ -202,35 +233,8 @@ struct PackageListView: View {
             await syncEmailPackages()
         }
 
-        // 2. 刷新首頁顯示的包裹（最多同時 3 個並行）
-        let packagesToRefresh = filteredPackages
-        print("📦 準備刷新 \(packagesToRefresh.count) 個包裹")
-        
-        // 使用 TaskGroup 並行刷新，但限制同時執行數量
-        let maxConcurrent = 3
-        var completedCount = 0
-        
-        await withTaskGroup(of: Void.self) { group in
-            for (index, package) in packagesToRefresh.enumerated() {
-                // 等待直到並行數量低於限制
-                if index >= maxConcurrent {
-                    await group.next()
-                }
-                
-                group.addTask {
-                    await self.refreshPackage(package)
-                }
-            }
-            
-            // 等待所有任務完成
-            for await _ in group {
-                completedCount += 1
-                print("[\(completedCount)/\(packagesToRefresh.count)] 完成")
-            }
-        }
-        
-        try? modelContext.save()
-        print("✅ 刷新完成")
+        // 2. 使用 refreshService 刷新（漸進式，每個包裹完成就 save）
+        await refreshService.refreshAll(filteredPackages, in: modelContext)
     }
 
     private func syncEmailPackages() async {
@@ -398,28 +402,6 @@ struct PackageListView: View {
         }
     }
 
-    private func refreshPackage(_ package: Package) async {
-        // 已完成且有事件的包裹不再刷新（無事件表示第一次需要抓）
-        guard !package.status.isCompleted || package.events.isEmpty else {
-            print("⏭️ 跳過已完成的包裹: \(package.trackingNumber)")
-            return
-        }
-        
-        // 只刷新支援 Track.TW API 的物流商
-        guard trackingManager.isAutoTrackingSupported(for: package.carrier) else {
-            print("⏭️ 跳過不支援自動刷新的物流商: \(package.carrier.displayName)")
-            return
-        }
-        
-        do {
-            let result = try await trackingManager.track(package: package)
-            applyTrackingResult(result, to: package)
-            print("✅ 刷新成功: \(package.trackingNumber)")
-        } catch {
-            print("❌ 刷新包裹 \(package.trackingNumber) 失敗: \(error.localizedDescription)")
-        }
-    }
-
     /// 自動刷新剛新增的 pending 包裹（無事件的）
     private func refreshPendingPackages() async {
         let pending = packages.filter { $0.status == .pending && $0.events.isEmpty }
@@ -427,37 +409,7 @@ struct PackageListView: View {
 
         print("🔄 自動刷新 \(pending.count) 個新增包裹")
         for package in pending {
-            await refreshPackage(package)
-        }
-        try? modelContext.save()
-    }
-
-    /// 將 API 追蹤結果寫入 Package model
-    private func applyTrackingResult(_ result: TrackingResult, to package: Package) {
-        package.status = result.currentStatus
-        package.lastUpdated = Date()
-
-        if let latestEvent = result.events.first {
-            package.latestDescription = latestEvent.description
-            if let location = latestEvent.location, !location.isEmpty {
-                package.pickupLocation = location
-            }
-        }
-
-        if let storeName = result.storeName { package.storeName = storeName }
-        if let serviceType = result.serviceType { package.serviceType = serviceType }
-        if let pickupDeadline = result.pickupDeadline { package.pickupDeadline = pickupDeadline }
-
-        package.events.removeAll()
-        for eventDTO in result.events {
-            let event = TrackingEvent(
-                timestamp: eventDTO.timestamp,
-                status: eventDTO.status,
-                description: eventDTO.description,
-                location: eventDTO.location
-            )
-            event.package = package
-            package.events.append(event)
+            _ = await refreshService.refreshPackage(package, in: modelContext)
         }
     }
 
@@ -494,4 +446,5 @@ struct EmptyPackageListView: View {
 #Preview {
     PackageListView()
         .modelContainer(for: [Package.self, TrackingEvent.self, LinkedEmailAccount.self], inMemory: true)
+        .environment(PackageRefreshService())
 }

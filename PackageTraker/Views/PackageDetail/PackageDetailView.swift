@@ -5,15 +5,14 @@ import SwiftData
 struct PackageDetailView: View {
     let package: Package
     var namespace: Namespace.ID? = nil
-    
+
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(PackageRefreshService.self) private var refreshService
 
     @State private var showDeleteConfirmation = false
     @State private var isRefreshing = false
     @State private var showEditSheet = false
-
-    private let trackingManager = TrackingManager()
 
     /// 追蹤事件（按時間降序排列）
     private var events: [TrackingEvent] {
@@ -24,7 +23,7 @@ struct PackageDetailView: View {
     private var isHeroNavigation: Bool {
         namespace != nil
     }
-    
+
     var body: some View {
         // 從 sheet 進入時需要 NavigationStack，從 hero 進入時不需要
         if isHeroNavigation {
@@ -35,13 +34,13 @@ struct PackageDetailView: View {
             }
         }
     }
-    
+
     private var contentView: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 // 頂部：包裹資訊卡片
                 packageInfoCard
-                
+
                 // 訂單資訊卡片（若有）
                 if hasOrderInfo {
                     orderInfoCard
@@ -86,8 +85,8 @@ struct PackageDetailView: View {
         }
         .preferredColorScheme(.dark)
         .task {
-            // 進入詳細頁時自動刷新最新資料
-            await refreshPackage()
+            // 進入詳細頁時，只在資料過期時才刷新
+            await refreshIfNeeded()
         }
         .confirmationDialog(String(localized: "detail.deleteConfirm"), isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
             Button(String(localized: "common.delete"), role: .destructive) {
@@ -109,7 +108,7 @@ struct PackageDetailView: View {
                     // 標題：物流商名稱 + 門市名稱（如有）
                     Text(carrierDisplayTitle)
                         .font(.headline)
-                    
+
                     // 副標題：單號
                     Text(package.trackingNumber)
                         .font(.caption)
@@ -145,7 +144,7 @@ struct PackageDetailView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            
+
             // 服務類型 + 取件期限（7-11、全家）
             if hasExtraInfo {
                 HStack(spacing: 16) {
@@ -160,7 +159,7 @@ struct PackageDetailView: View {
                                 .foregroundStyle(.secondary)
                         }
                     }
-                    
+
                     // 取件期限
                     HStack(spacing: 4) {
                         Image(systemName: "calendar")
@@ -175,12 +174,12 @@ struct PackageDetailView: View {
         }
         .adaptiveCardStyle()
     }
-    
+
     /// 是否有額外資訊
     private var hasExtraInfo: Bool {
         package.serviceType != nil || package.pickupDeadline != nil
     }
-    
+
     /// 是否有訂單資訊
     private var hasOrderInfo: Bool {
         package.customName != nil ||
@@ -189,34 +188,34 @@ struct PackageDetailView: View {
         package.amount != nil ||
         package.notes != nil
     }
-    
+
     /// 訂單資訊卡片
     private var orderInfoCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(String(localized: "detail.orderInfo"))
                 .font(.headline)
-            
+
             VStack(spacing: 12) {
                 // 品名
                 if let name = package.customName, !name.isEmpty {
                     orderInfoRow(icon: "shippingbox.fill", title: String(localized: "add.productName"), value: name)
                 }
-                
+
                 // 購買平台
                 if let platform = package.purchasePlatform, !platform.isEmpty {
                     orderInfoRow(icon: "cart.fill", title: String(localized: "add.platform"), value: platform)
                 }
-                
+
                 // 付款方式
                 if let method = package.paymentMethod {
                     orderInfoRow(icon: method.iconName, title: String(localized: "add.paymentMethod"), value: method.displayName)
                 }
-                
+
                 // 金額
                 if let amount = package.formattedAmount {
                     orderInfoRow(icon: "dollarsign.circle.fill", title: String(localized: "add.amount"), value: amount)
                 }
-                
+
                 // 備註
                 if let notes = package.notes, !notes.isEmpty {
                     VStack(alignment: .leading, spacing: 4) {
@@ -224,11 +223,11 @@ struct PackageDetailView: View {
                             Image(systemName: "note.text")
                                 .foregroundStyle(.secondary)
                                 .frame(width: 20)
-                            
+
                             Text(String(localized: "add.notes"))
                                 .foregroundStyle(.secondary)
                         }
-                        
+
                         Text(notes)
                             .font(.subheadline)
                             .foregroundStyle(.primary)
@@ -239,23 +238,23 @@ struct PackageDetailView: View {
         }
         .adaptiveCardStyle()
     }
-    
+
     private func orderInfoRow(icon: String, title: String, value: String) -> some View {
         HStack {
             Image(systemName: icon)
                 .foregroundStyle(.secondary)
                 .frame(width: 20)
-            
+
             Text(title)
                 .foregroundStyle(.secondary)
-            
+
             Spacer()
-            
+
             Text(value)
                 .fontWeight(.medium)
         }
     }
-    
+
     /// 格式化的取件期限顯示
     private var formattedDeadlineDisplay: String {
         guard let deadline = package.pickupDeadline, !deadline.isEmpty else {
@@ -263,7 +262,7 @@ struct PackageDetailView: View {
         }
         return formatDeadline(deadline)
     }
-    
+
     /// 物流商顯示標題（含門市名稱）
     private var carrierDisplayTitle: String {
         if let storeName = package.storeName, !storeName.isEmpty {
@@ -277,7 +276,7 @@ struct PackageDetailView: View {
         }
         return package.carrier.displayName
     }
-    
+
     /// 格式化取件期限（2026-02-06 -> 02/06）
     private func formatDeadline(_ deadline: String) -> String {
         // 嘗試解析日期
@@ -293,7 +292,7 @@ struct PackageDetailView: View {
         }
         return deadline
     }
-    
+
     /// 本地化取貨地點顯示
     /// 如果取貨地點等於物流商的預設名稱，返回本地化的名稱
     private func localizedPickupLocation(_ location: String) -> String {
@@ -375,53 +374,19 @@ struct PackageDetailView: View {
         dismiss()
     }
 
-    private func refreshPackage() async {
-        guard !isRefreshing else { return }
-        
-        // 已完成且有事件的包裹不再刷新（無事件表示第一次需要抓）
-        guard !package.status.isCompleted || package.events.isEmpty else {
-            print("⏭️ 跳過已完成的包裹: \(package.trackingNumber)")
+    /// 只在資料過期時自動刷新（5 分鐘內不重複呼叫 API）
+    private func refreshIfNeeded() async {
+        guard refreshService.isStale(package, threshold: 300) else {
             return
         }
-        
+        await refreshPackage()
+    }
+
+    /// 刷新包裹追蹤資料
+    private func refreshPackage() async {
+        guard !isRefreshing else { return }
         isRefreshing = true
-        print("🔄 開始刷新包裹: \(package.trackingNumber)")
-        
-        do {
-            let result = try await trackingManager.track(package: package)
-
-            package.status = result.currentStatus
-            package.lastUpdated = Date()
-
-            if let latestEvent = result.events.first {
-                package.latestDescription = latestEvent.description
-                if let location = latestEvent.location, !location.isEmpty {
-                    package.pickupLocation = location
-                }
-            }
-
-            if let storeName = result.storeName { package.storeName = storeName }
-            if let serviceType = result.serviceType { package.serviceType = serviceType }
-            if let pickupDeadline = result.pickupDeadline { package.pickupDeadline = pickupDeadline }
-
-            package.events.removeAll()
-            for eventDTO in result.events {
-                let event = TrackingEvent(
-                    timestamp: eventDTO.timestamp,
-                    status: eventDTO.status,
-                    description: eventDTO.description,
-                    location: eventDTO.location
-                )
-                event.package = package
-                package.events.append(event)
-            }
-
-            try? modelContext.save()
-            print("✅ 刷新完成: \(package.trackingNumber)")
-        } catch {
-            print("❌ 刷新失敗: \(error.localizedDescription)")
-        }
-        
+        _ = await refreshService.refreshPackage(package, in: modelContext)
         isRefreshing = false
     }
 }
@@ -431,7 +396,7 @@ struct TimelineEventRow: View {
     let event: TrackingEvent
     let isFirst: Bool
     let isLast: Bool
-    
+
     // 波紋動畫狀態（多層波紋）
     @State private var ripple1 = false
     @State private var ripple2 = false
@@ -447,7 +412,7 @@ struct TimelineEventRow: View {
                         .fill(Color.secondaryCardBackground)
                         .frame(width: 2, height: 4)
                 }
-                
+
                 // 圓點（含波紋動畫）
                 ZStack {
                     // 多層波紋效果（僅當前狀態）
@@ -457,20 +422,20 @@ struct TimelineEventRow: View {
                             .fill(event.status.color.opacity(ripple1 ? 0 : 0.3))
                             .frame(width: 12, height: 12)
                             .scaleEffect(ripple1 ? 2.5 : 1)
-                        
+
                         // 第二層波紋（延遲）
                         Circle()
                             .fill(event.status.color.opacity(ripple2 ? 0 : 0.3))
                             .frame(width: 12, height: 12)
                             .scaleEffect(ripple2 ? 2.5 : 1)
-                        
+
                         // 第三層波紋（更多延遲）
                         Circle()
                             .fill(event.status.color.opacity(ripple3 ? 0 : 0.3))
                             .frame(width: 12, height: 12)
                             .scaleEffect(ripple3 ? 2.5 : 1)
                     }
-                    
+
                     // 主圓點
                     Circle()
                         .fill(isFirst ? event.status.color : Color.secondaryCardBackground)
@@ -550,7 +515,7 @@ struct TimelineEventRow: View {
         amount: 1290,
         purchasePlatform: "蝦皮購物"
     )
-    
+
     // 建立測試事件
     let events = [
         TrackingEvent(
@@ -584,11 +549,12 @@ struct TimelineEventRow: View {
             location: nil
         )
     ]
-    
+
     for event in events {
         event.package = package
         package.events.append(event)
     }
-    
+
     return PackageDetailView(package: package)
+        .environment(PackageRefreshService())
 }

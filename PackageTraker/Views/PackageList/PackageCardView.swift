@@ -55,6 +55,18 @@ struct PackageCardView: View {
                 }
             }
             .adaptiveInteractiveCardStyle()
+            .overlay(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .stroke(Color.appAccent.opacity(package.status == .arrivedAtStore ? 0.7 : 0), lineWidth: 1.5)
+            )
+            .overlay(
+                // 內陰影：邊緣向內發光
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .stroke(Color.appAccent.opacity(package.status == .arrivedAtStore ? 0.6 : 0), lineWidth: 4)
+                    .blur(radius: 6)
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            )
+            .shadow(color: Color.appAccent.opacity(package.status == .arrivedAtStore ? 1.0 : 0), radius: 4, x: 0, y: 0)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

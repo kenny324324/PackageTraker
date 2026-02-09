@@ -13,6 +13,11 @@
 "home.pending" = "待取";
 "home.delivered30" = "近 30 天已取";
 
+// Sheet
+"sheet.pendingTitle" = "待取件";
+"sheet.deliveredTitle" = "已取货（30 天内）";
+"sheet.empty" = "没有包裹";
+
 // Package Status
 "status.pending" = "待发货";
 "status.shipped" = "已发货";
@@ -101,6 +106,7 @@
 "settings.general" = "通用";
 "settings.themeColor" = "主题颜色";
 "settings.language" = "语言";
+"settings.hideDelivered" = "在首页隐藏已取货包裹";
 "settings.notifications" = "通知";
 "settings.pushNotification" = "推送通知";
 "settings.arrivalNotification" = "到货通知";
@@ -122,6 +128,9 @@
 
 // Splash
 "splash.loading" = "正在寻找您的包裹";
+"splash.syncing" = "正在同步最新状态";
+"splash.almostDone" = "即将完成";
+"refresh.syncing" = "同步中";
 
 // Common
 "common.edit" = "编辑";

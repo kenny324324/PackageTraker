@@ -54,6 +54,7 @@ struct SettingsView: View {
     @State private var showNotificationDeniedAlert = false
     @State private var showFeedbackError = false
     @AppStorage("refreshInterval") private var refreshInterval: RefreshInterval = .thirtyMinutes
+    @AppStorage("hideDeliveredPackages") private var hideDeliveredPackages = false
 
     var body: some View {
         NavigationStack {
@@ -318,6 +319,17 @@ struct SettingsView: View {
                     }
                     .padding(16)
                 }
+
+                Divider()
+                    .background(Color.cardBackground)
+
+                // 隱藏已取貨包裹
+                settingsToggleRow(
+                    icon: "eye.slash.fill",
+                    iconColor: .white,
+                    title: String(localized: "settings.hideDelivered"),
+                    isOn: $hideDeliveredPackages
+                )
             }
             .background(Color.secondaryCardBackground)
             .clipShape(RoundedRectangle(cornerRadius: 16))

@@ -13,6 +13,11 @@
 "home.pending" = "待取";
 "home.delivered30" = "近 30 天已取";
 
+// Sheet
+"sheet.pendingTitle" = "待取件";
+"sheet.deliveredTitle" = "已取貨（30 天內）";
+"sheet.empty" = "沒有包裹";
+
 // Package Status
 "status.pending" = "待出貨";
 "status.shipped" = "已出貨";
@@ -101,6 +106,7 @@
 "settings.general" = "一般";
 "settings.themeColor" = "主題顏色";
 "settings.language" = "語言";
+"settings.hideDelivered" = "在首頁隱藏已取貨包裹";
 "settings.notifications" = "通知";
 "settings.pushNotification" = "推播通知";
 "settings.arrivalNotification" = "到貨通知";
@@ -122,6 +128,9 @@
 
 // Splash
 "splash.loading" = "正在尋找您的包裹";
+"splash.syncing" = "正在同步最新狀態";
+"splash.almostDone" = "即將完成";
+"refresh.syncing" = "同步中";
 
 // Common
 "common.edit" = "編輯";
