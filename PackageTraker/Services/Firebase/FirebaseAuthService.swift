@@ -98,9 +98,10 @@ final class FirebaseAuthService: NSObject, ObservableObject {
         // 檢查是否已存在
         let userDoc = try? await userRef.getDocument()
         if userDoc?.exists == true {
-            // 文件已存在：更新 lastActive，並補齊可能缺少的 notificationSettings
+            // 文件已存在：更新 lastActive、語系，並補齊可能缺少的欄位
             var updateData: [String: Any] = [
-                "lastActive": FieldValue.serverTimestamp()
+                "lastActive": FieldValue.serverTimestamp(),
+                "language": detectLanguage()
             ]
 
             let data = userDoc?.data()
@@ -108,6 +109,7 @@ final class FirebaseAuthService: NSObject, ObservableObject {
                 updateData["notificationSettings"] = [
                     "enabled": true,
                     "arrivalNotification": true,
+                    "shippedNotification": true,
                     "pickupReminder": true
                 ]
             }
@@ -122,14 +124,27 @@ final class FirebaseAuthService: NSObject, ObservableObject {
             "email": credential.email ?? "",
             "createdAt": FieldValue.serverTimestamp(),
             "lastActive": FieldValue.serverTimestamp(),
+            "language": detectLanguage(),
             "notificationSettings": [
                 "enabled": true,
                 "arrivalNotification": true,
+                "shippedNotification": true,
                 "pickupReminder": true
             ]
         ]
 
         try? await userRef.setData(userData)
+    }
+
+    // MARK: - 語系偵測
+
+    /// 偵測用戶裝置語系，映射為 Firestore 支援的語系代碼
+    private func detectLanguage() -> String {
+        let preferred = Locale.preferredLanguages.first ?? "en"
+        if preferred.hasPrefix("zh-Hant") { return "zh-Hant" }
+        if preferred.hasPrefix("zh-Hans") { return "zh-Hans" }
+        if preferred.hasPrefix("zh") { return "zh-Hant" } // 中文 fallback 台灣
+        return "en"
     }
 
     // MARK: - Nonce 工具

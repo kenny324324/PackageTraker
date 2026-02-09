@@ -2,13 +2,17 @@
  * triggers.ts
  *
  * Firestore Trigger：監聽包裹狀態變化，
- * 當狀態變為 "arrivedAtStore" 時發送 FCM 推播通知。
+ * 當狀態變為 shipped 或 arrivedAtStore 時發送多語系 FCM 推播通知。
  */
 
 import {onDocumentUpdated} from "firebase-functions/v2/firestore";
 import {getFirestore} from "firebase-admin/firestore";
 import {logger} from "firebase-functions/v2";
 import {sendPushNotification} from "./services/pushNotification";
+import {getNotificationText, normalizeLang} from "./i18n/notifications";
+
+/** 需要推播的狀態清單 */
+const NOTIFIABLE_STATUSES = ["shipped", "arrivedAtStore"];
 
 export const onPackageStatusChange = onDocumentUpdated(
   {
@@ -32,8 +36,8 @@ export const onPackageStatusChange = onDocumentUpdated(
       `(${before.status} -> ${after.status})`
     );
 
-    // 只在到貨時推播
-    if (after.status !== "arrivedAtStore") {
+    // 只在指定狀態推播
+    if (!NOTIFIABLE_STATUSES.includes(after.status)) {
       return;
     }
 
@@ -59,10 +63,19 @@ export const onPackageStatusChange = onDocumentUpdated(
       logger.info("[Trigger] Notifications disabled, skipping");
       return;
     }
-    if (!settings?.arrivalNotification) {
+
+    // 根據狀態檢查對應的通知開關
+    if (after.status === "arrivedAtStore" && !settings?.arrivalNotification) {
       logger.info("[Trigger] Arrival notifications disabled, skipping");
       return;
     }
+    if (after.status === "shipped" && !settings?.shippedNotification) {
+      logger.info("[Trigger] Shipped notifications disabled, skipping");
+      return;
+    }
+
+    // 取得用戶語系
+    const lang = normalizeLang(userData.language);
 
     // 組裝推播內容
     const packageName = after.customName || after.trackingNumber;
@@ -70,11 +83,21 @@ export const onPackageStatusChange = onDocumentUpdated(
       after.pickupLocation ||
       after.userPickupLocation ||
       after.storeName ||
-      "取貨地點";
+      "";
+
+    const text = getNotificationText(after.status, lang, {
+      name: packageName,
+      location: location,
+    });
+
+    if (!text) {
+      logger.warn(`[Trigger] No template for status: ${after.status}`);
+      return;
+    }
 
     const success = await sendPushNotification(userData.fcmToken, {
-      title: "包裹已到達取貨點",
-      body: `${packageName} 已到達 ${location}，請儘快取貨`,
+      title: text.title,
+      body: text.body,
       data: {
         packageId: packageId,
         trackingNumber: after.trackingNumber || "",
@@ -87,7 +110,7 @@ export const onPackageStatusChange = onDocumentUpdated(
       await event.data.after.ref.update({
         lastNotifiedStatus: after.status,
       });
-      logger.info(`[Trigger] Push sent to user ${userId}`);
+      logger.info(`[Trigger] Push sent to user ${userId} (${after.status}, ${lang})`);
     } else {
       logger.warn(`[Trigger] Failed to send push to user ${userId}`);
     }

@@ -110,6 +110,7 @@
 "settings.notifications" = "Notifications";
 "settings.pushNotification" = "Push Notifications";
 "settings.arrivalNotification" = "Arrival Notification";
+"settings.shippedNotification" = "Shipped Notification";
 "settings.pickupReminder" = "Pickup Reminder";
 "settings.notificationHint" = "Enable to receive package status updates";
 "settings.dataManagement" = "Data Management";

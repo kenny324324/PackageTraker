@@ -510,9 +510,10 @@ Full implementation plan in `File/後端推播系統實施計劃.md`. The system
 
 ### Known Issues / TODOs
 
-- `SignInView.openPrivacyPolicy()` uses placeholder URL (Apple EULA instead of custom privacy policy)
+- `SignInView.openPrivacyPolicy()` uses placeholder URL — 正式隱私政策 URL: `https://ripe-cereal-4f9.notion.site/Privacy-Policy-302341fcbfde81d589a2e4ba6713b911`
 - Firestore security rules may need tightening for events subcollection
-- Push notification text is Chinese-only; needs localization (zh-Hant/zh-Hans/en) and richer content (pickup code, deadline)
+- Push notification text now supports 3 languages (zh-Hant/zh-Hans/en) via `functions/src/i18n/notifications.ts`
+- 短期優化計劃詳見 `File/後端推播系統實施計劃.md` 的「後續優化方向」章節
 
 ## Removed Legacy Services (2026-02-05)
 

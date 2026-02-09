@@ -31,6 +31,7 @@ struct SignInView: View {
     @State private var showProgress = false
     @State private var progress: Double = 0
     @State private var isSyncing = false
+    @State private var safariURL: IdentifiableURL?
 
     var body: some View {
         ZStack {
@@ -138,6 +139,10 @@ struct SignInView: View {
             }
         }
         .preferredColorScheme(.dark)
+        .sheet(item: $safariURL) { item in
+            SafariView(url: item.url)
+                .ignoresSafeArea()
+        }
         .alert(String(localized: "auth.error.title"), isPresented: $showError) {
             Button(String(localized: "common.ok"), role: .cancel) {}
         } message: {
@@ -346,14 +351,15 @@ struct SignInView: View {
     // MARK: - External Links
 
     private func openTermsOfService() {
-        guard let url = URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/") else { return }
-        UIApplication.shared.open(url)
+        if let url = URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/") {
+            safariURL = IdentifiableURL(url: url)
+        }
     }
 
     private func openPrivacyPolicy() {
-        // TODO: 隱私政策網址待補充
-        guard let url = URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/") else { return }
-        UIApplication.shared.open(url)
+        if let url = URL(string: "https://ripe-cereal-4f9.notion.site/Privacy-Policy-302341fcbfde81d589a2e4ba6713b911") {
+            safariURL = IdentifiableURL(url: url)
+        }
     }
 
     // MARK: - Apple Sign In

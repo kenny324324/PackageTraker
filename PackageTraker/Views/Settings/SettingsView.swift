@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 import StoreKit
 import FirebaseAuth
+import FirebaseFirestore
 
 /// 更新頻率選項
 enum RefreshInterval: String, CaseIterable {
@@ -46,9 +47,10 @@ struct SettingsView: View {
     @ObservedObject private var themeManager = ThemeManager.shared
     @ObservedObject private var authService = FirebaseAuthService.shared
 
-    // 通知設定（持久化到 UserDefaults）
+    // 通知設定（持久化到 UserDefaults，並同步到 Firestore）
     @AppStorage("notificationsEnabled") private var notificationsEnabled = false
     @AppStorage("arrivalNotificationEnabled") private var arrivalNotificationEnabled = false
+    @AppStorage("shippedNotificationEnabled") private var shippedNotificationEnabled = false
     @AppStorage("pickupReminderEnabled") private var pickupReminderEnabled = false
 
     @State private var showClearDataConfirmation = false
@@ -56,6 +58,7 @@ struct SettingsView: View {
     @State private var showNotificationDeniedAlert = false
     @State private var showFeedbackError = false
     @State private var showSignOutAlert = false
+    @State private var safariURL: IdentifiableURL?
     @State private var cachedEmail: String? = nil // 快取 email，登出轉場時不消失
     @AppStorage("refreshInterval") private var refreshInterval: RefreshInterval = .thirtyMinutes
     @AppStorage("hideDeliveredPackages") private var hideDeliveredPackages = false
@@ -91,6 +94,10 @@ struct SettingsView: View {
             .adaptiveBackground()
             .navigationTitle(String(localized: "settings.title"))
             .toolbarTitleDisplayMode(.inlineLarge)
+            .sheet(item: $safariURL) { item in
+                SafariView(url: item.url)
+                    .ignoresSafeArea()
+            }
             .confirmationDialog(
                 String(localized: "settings.clearDataConfirm"),
                 isPresented: $showClearDataConfirmation,
@@ -142,12 +149,24 @@ struct SettingsView: View {
                         if !granted {
                             notificationsEnabled = false
                             showNotificationDeniedAlert = true
+                            return
                         }
+                        syncNotificationSettingsToFirestore()
                     }
                 } else if !newValue && oldValue {
                     // 用戶關閉通知，取消所有通知
                     NotificationService.shared.cancelAllNotifications()
+                    syncNotificationSettingsToFirestore()
                 }
+            }
+            .onChange(of: arrivalNotificationEnabled) { _, _ in
+                syncNotificationSettingsToFirestore()
+            }
+            .onChange(of: shippedNotificationEnabled) { _, _ in
+                syncNotificationSettingsToFirestore()
+            }
+            .onChange(of: pickupReminderEnabled) { _, _ in
+                syncNotificationSettingsToFirestore()
             }
         }
         .preferredColorScheme(.dark)
@@ -288,7 +307,7 @@ struct SettingsView: View {
                 
                 // 隱私政策
                 Button {
-                    openPrivacyEmail()
+                    openPrivacyPolicy()
                 } label: {
                     settingsRowButton(
                         icon: "hand.raised.fill",
@@ -451,6 +470,16 @@ struct SettingsView: View {
                     .background(Color.cardBackground)
 
                 settingsToggleRow(
+                    icon: "truck.box.fill",
+                    iconColor: .white,
+                    title: String(localized: "settings.shippedNotification"),
+                    isOn: $shippedNotificationEnabled
+                )
+
+                Divider()
+                    .background(Color.cardBackground)
+
+                settingsToggleRow(
                     icon: "clock.fill",
                     iconColor: .white,
                     title: String(localized: "settings.pickupReminder"),
@@ -476,45 +505,6 @@ struct SettingsView: View {
                 .foregroundStyle(.white)
 
             VStack(spacing: 0) {
-                // 更新頻率
-                HStack(spacing: 12) {
-                    Image(systemName: "arrow.triangle.2.circlepath")
-                        .font(.system(size: 18))
-                        .foregroundStyle(.white)
-                        .frame(width: 28)
-                    
-                    Text(String(localized: "settings.refreshInterval"))
-                        .foregroundStyle(.white)
-                    
-                    Spacer()
-                    
-                    Menu {
-                        ForEach(RefreshInterval.allCases, id: \.self) { interval in
-                            Button {
-                                refreshInterval = interval
-                            } label: {
-                                if refreshInterval == interval {
-                                    Label(interval.displayName, systemImage: "checkmark")
-                                } else {
-                                    Text(interval.displayName)
-                                }
-                            }
-                        }
-                    } label: {
-                        Text(refreshInterval.displayName)
-                            .font(.subheadline)
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(Color.gray.opacity(0.3))
-                            .clipShape(Capsule())
-                    }
-                }
-                .padding(16)
-                
-                Divider()
-                    .background(Color.cardBackground)
-                
                 // 清除所有資料
                 Button {
                     showClearDataConfirmation = true
@@ -639,12 +629,10 @@ struct SettingsView: View {
         }
     }
 
-    private func openPrivacyEmail() {
-        let subject = String(format: String(localized: "email.privacyInquiry"), AppConfiguration.appName)
-        let subjectEncoded = subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-
-        guard let url = URL(string: "mailto:\(AppConfiguration.feedbackEmail)?subject=\(subjectEncoded)") else { return }
-        UIApplication.shared.open(url)
+    private func openPrivacyPolicy() {
+        if let url = URL(string: "https://ripe-cereal-4f9.notion.site/Privacy-Policy-302341fcbfde81d589a2e4ba6713b911") {
+            safariURL = IdentifiableURL(url: url)
+        }
     }
 
     private func clearAllData() {
@@ -712,6 +700,30 @@ struct SettingsView: View {
             try authService.signOut()
         } catch {
             print("Sign out failed: \(error)")
+        }
+    }
+
+    /// 將通知設定同步到 Firestore（fire-and-forget）
+    private func syncNotificationSettingsToFirestore() {
+        guard let userId = authService.currentUser?.uid else { return }
+
+        let db = Firestore.firestore()
+        let settings: [String: Any] = [
+            "notificationSettings": [
+                "enabled": notificationsEnabled,
+                "arrivalNotification": arrivalNotificationEnabled,
+                "shippedNotification": shippedNotificationEnabled,
+                "pickupReminder": pickupReminderEnabled
+            ]
+        ]
+
+        Task {
+            do {
+                try await db.collection("users").document(userId).setData(settings, merge: true)
+                print("[Settings] Notification settings synced to Firestore")
+            } catch {
+                print("[Settings] Failed to sync notification settings: \(error.localizedDescription)")
+            }
         }
     }
 }

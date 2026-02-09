@@ -110,6 +110,7 @@
 "settings.notifications" = "通知";
 "settings.pushNotification" = "推送通知";
 "settings.arrivalNotification" = "到货通知";
+"settings.shippedNotification" = "发货通知";
 "settings.pickupReminder" = "取货提醒";
 "settings.notificationHint" = "开启通知以即时收到包裹状态更新";
 "settings.dataManagement" = "数据管理";
