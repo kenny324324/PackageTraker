@@ -109,6 +109,7 @@
 "settings.hideDelivered" = "Hide Picked Up Packages";
 "settings.notifications" = "Notifications";
 "settings.pushNotification" = "Push Notifications";
+"settings.notificationSettings" = "Notification Settings";
 "settings.arrivalNotification" = "Arrival Notification";
 "settings.shippedNotification" = "Shipped Notification";
 "settings.pickupReminder" = "Pickup Reminder";
@@ -229,6 +230,9 @@
 "ocr.tapToSelect" = "Tap to select tracking number";
 "ocr.possiblyCarrier" = "Possibly %@";
 "ocr.manualSelection" = "Unable to automatically recognize tracking number. Please select from the text below";
+"ocr.noResultTitle" = "No Tracking Number Found";
+"ocr.noResultMessage" = "Please select from the recognized text below";
+"ocr.noTextsFound" = "No text recognized from the image";
 
 // Platform Picker
 "platform.title" = "Select Platform";
@@ -310,4 +314,88 @@
 "settings.appleId" = "Apple ID";
 "settings.signOut" = "Sign Out";
 "settings.signOut.confirmTitle" = "Confirm Sign Out";
-"settings.signOut.confirmMessage" = "After signing out, push notifications will stop. Local data will be retained.";
+"settings.signOut.confirmMessage" = "Are you sure you want to sign out?";
+
+// Account Detail
+"account.title" = "Personal Info";
+"account.close" = "Close";
+"account.edit" = "Edit";
+"account.nickname" = "Nickname";
+"account.nicknamePlaceholder" = "Enter your nickname";
+"account.registrationDate" = "Registered";
+"account.status.normal" = "Active";
+"account.unknown" = "User";
+
+// Package Quota
+"settings.quota.title" = "Free Package Tracking Quota";
+"settings.quota.remaining" = "Remaining";
+"settings.quota.packages" = "packages";
+"settings.quota.used" = "Used";
+"settings.quota.upgrade" = "Upgrade for unlimited";
+
+// Settings - Subscription
+"settings.subscription" = "Subscription";
+"settings.subscription.free" = "Free Plan";
+"settings.subscription.pro" = "Pro Plan";
+"settings.subscription.freeDesc" = "Up to 5 packages, basic features";
+"settings.subscription.proDesc" = "Unlimited packages, all features unlocked";
+"settings.subscription.upgrade" = "Upgrade to Pro";
+"settings.subscription.manage" = "Manage Subscription";
+"settings.subscription.restore" = "Restore Purchases";
+
+// Paywall
+"paywall.title" = "Upgrade to Pro";
+"paywall.headline" = "Unlock All Features";
+"paywall.subheadline" = "Track unlimited packages with AI recognition, custom themes, and widgets";
+"paywall.features" = "Features";
+"paywall.free" = "Free";
+"paywall.pro" = "Pro";
+"paywall.feature.packages" = "Packages";
+"paywall.feature.themes" = "Themes";
+"paywall.feature.ocr" = "Screenshot OCR";
+"paywall.feature.ai" = "AI Recognition";
+"paywall.feature.widget" = "Home Widget";
+"paywall.feature.push" = "Push Notifications";
+"paywall.yearly" = "Yearly";
+"paywall.monthly" = "Monthly";
+"paywall.year" = "year";
+"paywall.month" = "month";
+"paywall.bestValue" = "Best Value";
+"paywall.subscribe" = "Subscribe Now";
+"paywall.restore" = "Restore Purchases";
+"paywall.restoreSuccess" = "Purchases Restored";
+"paywall.error" = "Purchase Error";
+"paywall.loadingProducts" = "Loading plans...";
+"paywall.termsNote" = "Payment will be charged to your Apple ID account. Subscriptions auto-renew unless cancelled 24 hours before the end of the current period.";
+"paywall.terms" = "Terms of Service";
+"paywall.privacy" = "Privacy Policy";
+
+// AI Vision
+"ai.card.title" = "AI Screenshot Recognition";
+"ai.card.description" = "Take a screenshot of your package notification, AI will auto-extract tracking info";
+"ai.resultTitle" = "AI Recognition Result";
+"ai.confirm" = "Confirm & Fill In";
+"ai.field.trackingNumber" = "Tracking Number";
+"ai.field.carrier" = "Carrier";
+"ai.field.pickupLocation" = "Pickup Location";
+"ai.field.pickupCode" = "Pickup Code";
+"ai.field.packageName" = "Package Name";
+"ai.field.unknown" = "Unknown";
+"ai.confidence.high" = "High";
+"ai.confidence.medium" = "Medium";
+"ai.confidence.low" = "Low";
+"ai.error.title" = "AI Recognition Failed";
+"ai.error.subscriptionRequired" = "AI recognition requires Pro subscription";
+"ai.error.apiKeyMissing" = "AI service not configured";
+"ai.error.apiFailed" = "AI service error";
+"ai.error.parseFailed" = "Unable to parse AI result";
+"ai.error.sdkNotAvailable" = "AI service unavailable";
+
+// Widget
+"widget.displayName" = "Package Tracker";
+"widget.description" = "View your package tracking status at a glance";
+"widget.title" = "My Packages";
+"widget.empty" = "No packages";
+"widget.emptyHint" = "Add a package in the app to see it here";
+"widget.upgradePro" = "Upgrade to Pro for full Widget experience";
+"widget.count%lld" = "%lld packages";

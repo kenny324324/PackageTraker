@@ -42,10 +42,12 @@ struct SettingsView: View {
     @Environment(\.requestReview) private var requestReview
 
     @Query private var linkedAccounts: [LinkedEmailAccount]
+    @Query private var existingPackages: [Package]
 
     @StateObject private var gmailAuthManager = GmailAuthManager.shared
     @ObservedObject private var themeManager = ThemeManager.shared
     @ObservedObject private var authService = FirebaseAuthService.shared
+    @ObservedObject private var subscriptionManager = SubscriptionManager.shared
 
     // 通知設定（持久化到 UserDefaults，並同步到 Firestore）
     @AppStorage("notificationsEnabled") private var notificationsEnabled = false
@@ -57,9 +59,10 @@ struct SettingsView: View {
     @State private var showClearDataSuccess = false
     @State private var showNotificationDeniedAlert = false
     @State private var showFeedbackError = false
-    @State private var showSignOutAlert = false
+    @State private var showPaywall = false
+    @State private var showAccountDetail = false
     @State private var safariURL: IdentifiableURL?
-    @State private var cachedEmail: String? = nil // 快取 email，登出轉場時不消失
+    @State private var cachedDisplayName: String? = nil
     @AppStorage("refreshInterval") private var refreshInterval: RefreshInterval = .thirtyMinutes
     @AppStorage("hideDeliveredPackages") private var hideDeliveredPackages = false
 
@@ -69,6 +72,11 @@ struct SettingsView: View {
                 VStack(spacing: 24) {
                     // 帳號設定
                     accountSection
+
+                    // 包裹額度（免費用戶才顯示）
+                    if FeatureFlags.subscriptionEnabled && !subscriptionManager.isPro {
+                        packageQuotaSection
+                    }
 
                     // 一般設定
                     generalSection
@@ -126,20 +134,15 @@ struct SettingsView: View {
             } message: {
                 Text(String(localized: "email.cannotOpenMessage") + " \(AppConfiguration.feedbackEmail)")
             }
-            .alert(String(localized: "settings.signOut.confirmTitle"), isPresented: $showSignOutAlert) {
-                Button(String(localized: "common.cancel"), role: .cancel) {}
-                Button(String(localized: "settings.signOut"), role: .destructive) {
-                    signOut()
-                }
-            } message: {
-                Text(String(localized: "settings.signOut.confirmMessage"))
+            .sheet(isPresented: $showPaywall) {
+                PaywallView()
+            }
+            .sheet(isPresented: $showAccountDetail) {
+                AccountDetailView()
             }
             .onAppear {
                 checkNotificationPermission()
-                // 快取 email，登出轉場時保持顯示
-                if cachedEmail == nil {
-                    cachedEmail = authService.currentUser?.email
-                }
+                loadDisplayName()
             }
             .onChange(of: notificationsEnabled) { oldValue, newValue in
                 if newValue && !oldValue {
@@ -159,15 +162,6 @@ struct SettingsView: View {
                     syncNotificationSettingsToFirestore()
                 }
             }
-            .onChange(of: arrivalNotificationEnabled) { _, _ in
-                syncNotificationSettingsToFirestore()
-            }
-            .onChange(of: shippedNotificationEnabled) { _, _ in
-                syncNotificationSettingsToFirestore()
-            }
-            .onChange(of: pickupReminderEnabled) { _, _ in
-                syncNotificationSettingsToFirestore()
-            }
         }
         .preferredColorScheme(.dark)
     }
@@ -175,60 +169,174 @@ struct SettingsView: View {
     // MARK: - Account Section
 
     private var accountSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(String(localized: "settings.account"))
-                .font(.title2)
-                .fontWeight(.bold)
-                .foregroundStyle(.white)
+        VStack(spacing: 0) {
+            // 上半部：頭像 + 名稱 + 箭頭（可點擊）
+            Button {
+                showAccountDetail = true
+            } label: {
+                HStack(spacing: 14) {
+                    // 頭像
+                    Image(systemName: "person.crop.circle.fill")
+                        .font(.system(size: 48))
+                        .foregroundStyle(Color(.systemGray3))
 
-            VStack(spacing: 0) {
-                // Apple ID 顯示
-                HStack(spacing: 12) {
-                    Image(systemName: "person.circle.fill")
-                        .font(.system(size: 18))
-                        .foregroundStyle(.green)
-                        .frame(width: 28)
-
+                    // 名稱
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(String(localized: "settings.appleId"))
+                        Text(displayName)
+                            .font(.title3)
+                            .fontWeight(.semibold)
                             .foregroundStyle(.white)
-                            .font(.body)
-
-                        if let email = cachedEmail ?? authService.currentUser?.email {
-                            Text(email)
-                                .foregroundStyle(.secondary)
-                                .font(.caption)
-                        }
                     }
 
                     Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.secondary)
                 }
                 .padding(16)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
 
-                Divider()
-                    .background(Color.cardBackground)
+            // 分隔線
+            Divider()
+                .background(Color.white.opacity(0.1))
+                .padding(.horizontal, 16)
 
-                // 登出按鈕
-                Button {
-                    showSignOutAlert = true
-                } label: {
-                    HStack(spacing: 12) {
-                        Image(systemName: "rectangle.portrait.and.arrow.right")
-                            .font(.system(size: 18))
-                            .foregroundStyle(.red)
-                            .frame(width: 28)
+            // 下半部：訂閱方案資訊（灰底）
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(subscriptionManager.isPro
+                         ? String(localized: "settings.subscription.pro")
+                         : String(localized: "settings.subscription.free"))
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.white)
 
-                        Text(String(localized: "settings.signOut"))
-                            .foregroundStyle(.red)
+                    Text(subscriptionManager.isPro
+                         ? String(localized: "settings.subscription.proDesc")
+                         : String(localized: "settings.subscription.freeDesc"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
 
-                        Spacer()
-                    }
-                    .padding(16)
+                Spacer()
+
+                if subscriptionManager.isPro {
+                    Text("PRO")
+                        .font(.caption2)
+                        .fontWeight(.bold)
+                        .foregroundStyle(.black)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Color.yellow)
+                        .clipShape(Capsule())
                 }
             }
-            .background(Color.secondaryCardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .padding(12)
+            .background(Color(.systemGray6).opacity(0.3))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
         }
+        .background(Color.secondaryCardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+    }
+
+    /// 顯示名稱（優先順序：快取 > email username > 未知）
+    private var displayName: String {
+        if let cached = cachedDisplayName, !cached.isEmpty {
+            return cached
+        }
+        if let email = authService.currentUser?.email {
+            let username = email.components(separatedBy: "@").first ?? email
+            return username
+        }
+        return String(localized: "account.unknown")
+    }
+
+    // MARK: - Package Quota Section
+
+    private var packageQuotaSection: some View {
+        let remainingCount = subscriptionManager.maxPackageCount - activePackageCount
+        let isFull = activePackageCount >= subscriptionManager.maxPackageCount
+        let progressColor: Color = isFull ? .red : .green
+        let borderColor: Color = isFull ? .red.opacity(0.3) : .green.opacity(0.3)
+
+        return Button {
+            showPaywall = true
+        } label: {
+            VStack(spacing: 10) {
+                HStack(spacing: 10) {
+                    Image(systemName: "shippingbox.fill")
+                        .font(.system(size: 18))
+                        .foregroundStyle(progressColor)
+
+                    Text(String(localized: "settings.quota.title"))
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.white)
+
+                    Spacer()
+
+                    Text(String(localized: "settings.quota.remaining") + " \(max(0, remainingCount)) " + String(localized: "settings.quota.packages"))
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(progressColor)
+                }
+
+                // 進度條
+                VStack(spacing: 6) {
+                    GeometryReader { geometry in
+                        ZStack(alignment: .leading) {
+                            // 背景
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color(.systemGray5))
+                                .frame(height: 6)
+
+                            // 進度
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(progressColor)
+                                .frame(width: min(CGFloat(activePackageCount) / CGFloat(subscriptionManager.maxPackageCount) * geometry.size.width, geometry.size.width), height: 6)
+                        }
+                    }
+                    .frame(height: 6)
+
+                    HStack {
+                        Text(String(localized: "settings.quota.used") + " \(activePackageCount)/\(subscriptionManager.maxPackageCount)")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+
+                        Spacer()
+
+                        HStack(spacing: 3) {
+                            Image(systemName: "crown.fill")
+                                .font(.system(size: 9))
+                            Text(String(localized: "settings.quota.upgrade"))
+                                .font(.caption2)
+                                .fontWeight(.medium)
+                        }
+                        .foregroundStyle(isFull ? Color.secondary : Color.yellow)
+                    }
+                }
+            }
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(borderColor, lineWidth: 1.5)
+                    .background(
+                        RoundedRectangle(cornerRadius: 20)
+                            .fill(Color.secondaryCardBackground)
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// 計算活躍包裹數量
+    private var activePackageCount: Int {
+        existingPackages.filter { !$0.isArchived }.count
     }
 
     // MARK: - About Section
@@ -317,7 +425,7 @@ struct SettingsView: View {
                 }
             }
             .background(Color.secondaryCardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .clipShape(RoundedRectangle(cornerRadius: 20))
         }
     }
 
@@ -349,7 +457,7 @@ struct SettingsView: View {
                 .padding(16)
             }
             .background(Color.secondaryCardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .clipShape(RoundedRectangle(cornerRadius: 20))
 
             Text("僅在 DEBUG 模式顯示")
                 .font(.caption)
@@ -429,7 +537,7 @@ struct SettingsView: View {
                 )
             }
             .background(Color.secondaryCardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .clipShape(RoundedRectangle(cornerRadius: 20))
 
             // 語言設置提示
             Text(String(localized: "settings.languageHint"))
@@ -449,6 +557,7 @@ struct SettingsView: View {
                 .foregroundStyle(.white)
 
             VStack(spacing: 0) {
+                // 推播通知總開關
                 settingsToggleRow(
                     icon: "bell.fill",
                     iconColor: .white,
@@ -459,35 +568,30 @@ struct SettingsView: View {
                 Divider()
                     .background(Color.cardBackground)
 
-                settingsToggleRow(
-                    icon: "shippingbox.fill",
-                    iconColor: .white,
-                    title: String(localized: "settings.arrivalNotification"),
-                    isOn: $arrivalNotificationEnabled
-                )
+                // 推播設定
+                NavigationLink(destination: NotificationSettingsView()) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "bell.badge.fill")
+                            .font(.system(size: 18))
+                            .foregroundStyle(.white)
+                            .frame(width: 28)
 
-                Divider()
-                    .background(Color.cardBackground)
+                        Text(String(localized: "settings.notificationSettings"))
+                            .foregroundStyle(.white)
 
-                settingsToggleRow(
-                    icon: "truck.box.fill",
-                    iconColor: .white,
-                    title: String(localized: "settings.shippedNotification"),
-                    isOn: $shippedNotificationEnabled
-                )
+                        Spacer()
 
-                Divider()
-                    .background(Color.cardBackground)
-
-                settingsToggleRow(
-                    icon: "clock.fill",
-                    iconColor: .white,
-                    title: String(localized: "settings.pickupReminder"),
-                    isOn: $pickupReminderEnabled
-                )
+                        Image(systemName: "chevron.right")
+                            .foregroundStyle(Color.gray)
+                    }
+                    .padding(16)
+                }
+                .tint(Color.gray)
+                .disabled(!notificationsEnabled)
+                .opacity(notificationsEnabled ? 1.0 : 0.5)
             }
             .background(Color.secondaryCardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .clipShape(RoundedRectangle(cornerRadius: 20))
 
             Text(String(localized: "settings.notificationHint"))
                 .font(.caption)
@@ -524,7 +628,7 @@ struct SettingsView: View {
                 }
             }
             .background(Color.secondaryCardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .clipShape(RoundedRectangle(cornerRadius: 20))
         }
     }
     
@@ -592,7 +696,52 @@ struct SettingsView: View {
     }
 
     // MARK: - Actions
-    
+
+    /// 從 Firestore 載入顯示名稱
+    private func loadDisplayName() {
+        guard let userId = authService.currentUser?.uid else {
+            // 沒有登入，使用預設值
+            if cachedDisplayName == nil {
+                if let email = authService.currentUser?.email {
+                    cachedDisplayName = email.components(separatedBy: "@").first ?? email
+                }
+            }
+            return
+        }
+
+        let db = Firestore.firestore()
+        Task {
+            do {
+                let doc = try await db.collection("users").document(userId).getDocument()
+
+                if let nickname = doc.data()?["nickname"] as? String, !nickname.isEmpty {
+                    await MainActor.run {
+                        cachedDisplayName = nickname
+                    }
+                } else {
+                    // 沒有暱稱，使用 email 前綴作為預設值
+                    await MainActor.run {
+                        if cachedDisplayName == nil {
+                            if let email = authService.currentUser?.email {
+                                cachedDisplayName = email.components(separatedBy: "@").first ?? email
+                            }
+                        }
+                    }
+                }
+            } catch {
+                print("[Settings] Failed to load display name: \(error)")
+                // 載入失敗時使用預設值
+                await MainActor.run {
+                    if cachedDisplayName == nil {
+                        if let email = authService.currentUser?.email {
+                            cachedDisplayName = email.components(separatedBy: "@").first ?? email
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     private func openAppSettings() {
         if let url = URL(string: UIApplication.openSettingsURLString) {
             UIApplication.shared.open(url)
@@ -687,19 +836,6 @@ struct SettingsView: View {
             if status == .denied && notificationsEnabled {
                 showNotificationDeniedAlert = true
             }
-        }
-    }
-
-    private func signOut() {
-        // 清除 FCM Token（在 signOut 前，還能取得 userId）
-        Task {
-            await FirebasePushService.shared.clearToken()
-        }
-
-        do {
-            try authService.signOut()
-        } catch {
-            print("Sign out failed: \(error)")
         }
     }
 

@@ -109,6 +109,7 @@
 "settings.hideDelivered" = "在首页隐藏已取货包裹";
 "settings.notifications" = "通知";
 "settings.pushNotification" = "推送通知";
+"settings.notificationSettings" = "推送设置";
 "settings.arrivalNotification" = "到货通知";
 "settings.shippedNotification" = "发货通知";
 "settings.pickupReminder" = "取货提醒";
@@ -229,6 +230,9 @@
 "ocr.tapToSelect" = "点击选取单号";
 "ocr.possiblyCarrier" = "可能是 %@";
 "ocr.manualSelection" = "未能自动识别到物流单号，请从以下文字中选取";
+"ocr.noResultTitle" = "未找到物流单号";
+"ocr.noResultMessage" = "请从下方识别到的文字中选择";
+"ocr.noTextsFound" = "未从图片中识别到任何文字";
 
 // Platform Picker
 "platform.title" = "选择购买平台";
@@ -309,4 +313,88 @@
 "settings.appleId" = "Apple ID";
 "settings.signOut" = "登出";
 "settings.signOut.confirmTitle" = "确认登出";
-"settings.signOut.confirmMessage" = "登出后将停止推播通知，本地资料将保留。";
+"settings.signOut.confirmMessage" = "确定要登出吗？";
+
+// Account Detail
+"account.title" = "个人信息";
+"account.close" = "关闭";
+"account.edit" = "编辑";
+"account.nickname" = "昵称";
+"account.nicknamePlaceholder" = "输入昵称";
+"account.registrationDate" = "注册时间";
+"account.status.normal" = "正常";
+"account.unknown" = "用户";
+
+// Package Quota
+"settings.quota.title" = "免费包裹追踪额度";
+"settings.quota.remaining" = "剩余";
+"settings.quota.packages" = "件";
+"settings.quota.used" = "已使用";
+"settings.quota.upgrade" = "升级无限额度";
+
+// Settings - Subscription
+"settings.subscription" = "订阅方案";
+"settings.subscription.free" = "免费方案";
+"settings.subscription.pro" = "Pro 方案";
+"settings.subscription.freeDesc" = "最多 5 个包裹，基本功能";
+"settings.subscription.proDesc" = "无限包裹，解锁所有功能";
+"settings.subscription.upgrade" = "升级至 Pro";
+"settings.subscription.manage" = "管理订阅";
+"settings.subscription.restore" = "恢复购买";
+
+// Paywall
+"paywall.title" = "升级至 Pro";
+"paywall.headline" = "解锁所有功能";
+"paywall.subheadline" = "无限包裹追踪、AI 识别、自定义主题与桌面小组件";
+"paywall.features" = "功能";
+"paywall.free" = "免费";
+"paywall.pro" = "Pro";
+"paywall.feature.packages" = "包裹数量";
+"paywall.feature.themes" = "主题颜色";
+"paywall.feature.ocr" = "截图识别";
+"paywall.feature.ai" = "AI 识别";
+"paywall.feature.widget" = "桌面小组件";
+"paywall.feature.push" = "推送通知";
+"paywall.yearly" = "年付";
+"paywall.monthly" = "月付";
+"paywall.year" = "年";
+"paywall.month" = "月";
+"paywall.bestValue" = "最划算";
+"paywall.subscribe" = "立即订阅";
+"paywall.restore" = "恢复购买";
+"paywall.restoreSuccess" = "已恢复购买";
+"paywall.error" = "购买失败";
+"paywall.loadingProducts" = "加载方案中...";
+"paywall.termsNote" = "付款将从您的 Apple ID 账号扣款。订阅将自动续订，除非在到期前 24 小时取消。";
+"paywall.terms" = "服务条款";
+"paywall.privacy" = "隐私政策";
+
+// AI Vision
+"ai.card.title" = "AI 截图识别";
+"ai.card.description" = "截图包裹通知，AI 自动提取追踪信息";
+"ai.resultTitle" = "AI 识别结果";
+"ai.confirm" = "确认并填入";
+"ai.field.trackingNumber" = "追踪号码";
+"ai.field.carrier" = "物流商";
+"ai.field.pickupLocation" = "取货地点";
+"ai.field.pickupCode" = "取货验证码";
+"ai.field.packageName" = "商品名称";
+"ai.field.unknown" = "未知";
+"ai.confidence.high" = "高";
+"ai.confidence.medium" = "中";
+"ai.confidence.low" = "低";
+"ai.error.title" = "AI 识别失败";
+"ai.error.subscriptionRequired" = "AI 识别需要 Pro 订阅";
+"ai.error.apiKeyMissing" = "AI 服务未配置";
+"ai.error.apiFailed" = "AI 服务错误";
+"ai.error.parseFailed" = "无法解析 AI 结果";
+"ai.error.sdkNotAvailable" = "AI 服务不可用";
+
+// Widget
+"widget.displayName" = "包裹追踪";
+"widget.description" = "随时查看包裹追踪状态";
+"widget.title" = "我的包裹";
+"widget.empty" = "没有包裹";
+"widget.emptyHint" = "在 App 中添加包裹即可在此显示";
+"widget.upgradePro" = "升级 Pro 体验完整 Widget";
+"widget.count%lld" = "%lld 个包裹";
