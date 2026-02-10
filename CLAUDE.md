@@ -392,9 +392,9 @@ Key/                           # APNs keys (not in git)
 └── AuthKey_*.p8              # APNs authentication key for Firebase Cloud Messaging
 ```
 
-## Firebase Push Notification Backend (In Progress)
+## Firebase Push Notification Backend
 
-Full implementation plan in `File/後端推播系統實施計劃.md`. The system enables server-side package tracking every 15 minutes with FCM push notifications when packages arrive.
+Full implementation plan in `File/後端推播系統實施計劃.md`. The system enables server-side package tracking every 15 minutes with FCM push notifications when packages arrive. **Core functionality and major optimizations completed (2026-02-09 - 2026-02-10).**
 
 ### Phase Status
 
@@ -480,12 +480,14 @@ Full implementation plan in `File/後端推播系統實施計劃.md`. The system
 - `.firebaserc` - Project link (packagetraker-e80b0)
 - `functions/package.json` - Node.js dependencies (axios, firebase-admin, firebase-functions)
 - `functions/tsconfig.json` - TypeScript configuration
-- `functions/src/index.ts` - Entry point: initializeApp + export 2 functions
+- `functions/src/index.ts` - Entry point: initializeApp + export 3 functions (scheduler, trigger, daily reminder)
 - `functions/src/scheduler.ts` - 15-minute tracking poll (`onSchedule`, asia-east1, 512MiB)
-- `functions/src/triggers.ts` - Firestore status change → FCM push (`onDocumentUpdated`)
+- `functions/src/triggers.ts` - Firestore status change → FCM push (`onDocumentUpdated`, supports shipped/arrivedAtStore notifications)
+- `functions/src/dailyReminder.ts` - Daily pickup reminder at 10:00 AM Taiwan time (`onSchedule`, respects user preferences)
 - `functions/src/services/trackTwApi.ts` - Track.TW API HTTP client (axios)
 - `functions/src/services/pushNotification.ts` - FCM push via firebase-admin messaging
 - `functions/src/utils/statusMapper.ts` - Status mapping (mirrors iOS `TrackingStatus.fromTrackTw()`)
+- `functions/src/i18n/notifications.ts` - Multilingual push notification templates (zh-Hant, zh-Hans, en)
 
 **Modified files (iOS bug fix):**
 - `PackageTraker/Services/Firebase/FirebaseAuthService.swift` - Fixed `notificationSettings` not being created when user doc already exists (race condition with FCM token upload)
@@ -508,12 +510,45 @@ Full implementation plan in `File/後端推播系統實施計劃.md`. The system
 4. Binding chain → `MainTabView` → `PackageListView`
 5. `PackageListView.onChange(of: pendingPackageId)` → finds Package in `@Query` results → sets `selectedPackage` → existing `navigationDestination(item:)` pushes `PackageDetailView`
 
-### Known Issues / TODOs
+### Optimization Features Completed (2026-02-10)
 
-- `SignInView.openPrivacyPolicy()` uses placeholder URL — 正式隱私政策 URL: `https://ripe-cereal-4f9.notion.site/Privacy-Policy-302341fcbfde81d589a2e4ba6713b911`
-- Firestore security rules may need tightening for events subcollection
-- Push notification text now supports 3 languages (zh-Hant/zh-Hans/en) via `functions/src/i18n/notifications.ts`
-- 短期優化計劃詳見 `File/後端推播系統實施計劃.md` 的「後續優化方向」章節
+The following optimization features from the implementation plan have been completed:
+
+✅ **Multilingual Push Notifications**
+- 3 languages supported: zh-Hant (Traditional Chinese), zh-Hans (Simplified Chinese), en (English)
+- User language preference stored in Firestore `/users/{uid}/language`
+- Templates in `functions/src/i18n/notifications.ts`
+- Auto-detected from user's device locale on first sign-in
+
+✅ **Rich Push Notification Content**
+- Package name displayed (customName or trackingNumber)
+- Pickup location included (pickupLocation, userPickupLocation, or storeName)
+- Status-specific notifications: shipped and arrivedAtStore
+- Respects user notification preferences (arrivalNotification, shippedNotification)
+
+✅ **Daily Pickup Reminder**
+- Scheduled at 10:00 AM Taiwan time (UTC 02:00) via `dailyPickupReminder` Cloud Function
+- Checks for packages with status = arrivedAtStore
+- Respects user preference `notificationSettings.pickupReminder`
+- Different templates for single vs. multiple pending packages
+- Fully multilingual
+
+✅ **Privacy Policy Page**
+- Updated from placeholder to official URL: `https://ripe-cereal-4f9.notion.site/Privacy-Policy-302341fcbfde81d589a2e4ba6713b911`
+- Accessible from SignInView terms & conditions links
+
+### Remaining Optimizations (Low Priority)
+
+⏸️ **iOS Widget** (deferred)
+- Home screen widget displaying package tracking status
+- Requires Widget Extension target + App Group sharing
+- See `File/後端推播系統實施計劃.md` optimization 5 for detailed plan
+
+### Known Issues / Notes
+
+- Firestore security rules may need tightening for events subcollection (currently same rules as parent packages)
+- Cloud Functions deployed to asia-east1 region for optimal Taiwan performance
+- Track.TW API token stored via Firebase Secret Manager
 
 ## Removed Legacy Services (2026-02-05)
 

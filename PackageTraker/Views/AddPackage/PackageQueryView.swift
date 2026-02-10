@@ -10,6 +10,11 @@ struct PackageQueryView: View {
     let onComplete: () -> Void
     let popToRoot: () -> Void
 
+    // AI 預填欄位（可選）
+    var prefillName: String? = nil
+    var prefillPickupLocation: String? = nil
+    var prefillPickupCode: String? = nil
+
     // 動畫狀態
     @State private var fillProgress: CGFloat = 0
     @State private var logoScale: CGFloat = 1.0
@@ -102,7 +107,10 @@ struct PackageQueryView: View {
                     trackingResult: result,
                     relationId: relationId,
                     onComplete: onComplete,
-                    popToRoot: popToRoot
+                    popToRoot: popToRoot,
+                    prefillName: prefillName,
+                    prefillPickupLocation: prefillPickupLocation,
+                    prefillPickupCode: prefillPickupCode
                 )
             }
         }

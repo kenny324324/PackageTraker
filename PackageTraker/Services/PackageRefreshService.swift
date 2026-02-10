@@ -2,6 +2,7 @@ import Foundation
 import SwiftUI
 import SwiftData
 import Observation
+import WidgetKit
 
 /// 集中管理所有包裹刷新邏輯
 /// 由 PackageTrakerApp 建立並透過 environment 注入
@@ -126,6 +127,10 @@ final class PackageRefreshService {
         batchProgress = 1.0
         lastBatchRefreshDate = Date()
         isBatchRefreshing = false
+
+        // 更新 Widget 資料
+        WidgetDataService.shared.updateWidgetData(packages: packages)
+        WidgetCenter.shared.reloadAllTimelines()
     }
 
     // MARK: - 帶 Timeout 的批次刷新（用於 Splash）

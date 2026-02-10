@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import WidgetKit
 
 /// 包裹詳情頁（時間軸）
 struct PackageDetailView: View {
@@ -374,6 +375,8 @@ struct PackageDetailView: View {
         try? modelContext.save()
         // 從 Firestore 刪除
         FirebaseSyncService.shared.deletePackage(packageId)
+        // 更新 Widget
+        WidgetCenter.shared.reloadAllTimelines()
         dismiss()
     }
 

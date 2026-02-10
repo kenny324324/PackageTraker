@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import WidgetKit
 
 /// 新增包裹 — 第二步：填寫包裹額外資訊
 struct PackageInfoView: View {
@@ -14,6 +15,11 @@ struct PackageInfoView: View {
     let relationId: String
     let onComplete: () -> Void
     let popToRoot: () -> Void
+
+    // AI 預填欄位（可選）
+    var prefillName: String? = nil
+    var prefillPickupLocation: String? = nil
+    var prefillPickupCode: String? = nil
 
     @State private var customName = ""
     @State private var selectedPaymentMethod: PaymentMethod?
@@ -93,6 +99,14 @@ struct PackageInfoView: View {
         .sheet(isPresented: $showPlatformPicker) {
             PlatformPickerSheet(selectedPlatform: $selectedPlatform)
                 .presentationDetents([.medium, .large])
+        }
+        .onAppear {
+            if let name = prefillName, customName.isEmpty {
+                customName = name
+            }
+            if let location = prefillPickupLocation, userPickupLocation.isEmpty {
+                userPickupLocation = location
+            }
         }
     }
 
@@ -253,7 +267,7 @@ struct PackageInfoView: View {
             trackingNumber: trackingNumber,
             carrier: carrier,
             customName: customName.isEmpty ? nil : customName,
-            pickupCode: nil,
+            pickupCode: prefillPickupCode,
             pickupLocation: trackingResult.events.first?.location ?? carrier.defaultPickupLocation,
             status: trackingResult.currentStatus,
             latestDescription: trackingResult.events.first?.description,
@@ -285,6 +299,10 @@ struct PackageInfoView: View {
 
         // 同步到 Firestore
         FirebaseSyncService.shared.syncPackage(package)
+
+        // 更新 Widget
+        WidgetDataService.shared.updateWidgetData(packages: existingPackages + [package])
+        WidgetCenter.shared.reloadAllTimelines()
 
         onComplete()
     }

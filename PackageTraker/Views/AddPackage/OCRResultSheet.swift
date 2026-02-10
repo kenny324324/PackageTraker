@@ -16,18 +16,16 @@ struct OCRSelection {
 /// OCR 辨識結果顯示 Sheet
 struct OCRResultSheet: View {
     @Environment(\.dismiss) private var dismiss
-    
+
     let result: OCRResult
     let onSelect: (OCRSelection) -> Void
-    
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
                 if result.hasTrackingNumbers {
-                    // 有辨識到單號時，顯示候選清單
                     trackingNumbersView
                 } else {
-                    // 沒有辨識到單號時，顯示所有文字讓使用者選擇
                     allTextsView
                 }
             }
@@ -45,13 +43,13 @@ struct OCRResultSheet: View {
         }
         .preferredColorScheme(.dark)
     }
-    
+
     // MARK: - Tracking Numbers View
-    
+
     private var trackingNumbersView: some View {
         candidatesList
     }
-    
+
     private var candidatesList: some View {
         ScrollView {
             VStack(spacing: 12) {
@@ -60,7 +58,7 @@ struct OCRResultSheet: View {
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal)
-                
+
                 ForEach(result.trackingNumberCandidates) { candidate in
                     candidateRow(candidate)
                 }
@@ -68,7 +66,7 @@ struct OCRResultSheet: View {
             .padding(.vertical)
         }
     }
-    
+
     private func candidateRow(_ candidate: TrackingNumberCandidate) -> some View {
         Button {
             onSelect(OCRSelection(
@@ -78,7 +76,6 @@ struct OCRResultSheet: View {
             dismiss()
         } label: {
             HStack(spacing: 12) {
-                // 物流商 Logo
                 if let carrier = candidate.suggestedCarrier {
                     CarrierLogoView(carrier: carrier, size: 40)
                 } else {
@@ -90,25 +87,22 @@ struct OCRResultSheet: View {
                             .foregroundStyle(.secondary)
                     }
                 }
-                
+
                 VStack(alignment: .leading, spacing: 4) {
-                    // 單號
                     Text(candidate.trackingNumber)
                         .font(.system(.body, design: .monospaced))
                         .fontWeight(.medium)
                         .foregroundStyle(.primary)
-                    
-                    // 建議物流商
+
                     if let carrier = candidate.suggestedCarrier {
                         Text(String(format: String(localized: "ocr.possiblyCarrier"), carrier.displayName))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
                 }
-                
+
                 Spacer()
-                
-                // 選取箭頭
+
                 Image(systemName: "chevron.right")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -121,61 +115,104 @@ struct OCRResultSheet: View {
         .buttonStyle(.plain)
         .padding(.horizontal)
     }
-    
-    // MARK: - All Texts View
-    
+
+    // MARK: - All Texts View (Fallback)
+
     private var allTextsView: some View {
         VStack(spacing: 0) {
-            // 說明文字
-            Text(String(localized: "ocr.manualSelection"))
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding()
-            
+            VStack(spacing: 8) {
+                Image(systemName: "doc.text.magnifyingglass")
+                    .font(.system(size: 32))
+                    .foregroundStyle(.secondary)
+
+                Text(String(localized: "ocr.noResultTitle"))
+                    .font(.headline)
+                    .foregroundStyle(.white)
+
+                Text(String(localized: "ocr.noResultMessage"))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .padding()
+
             allTextsList
         }
     }
-    
+
+    /// 過濾短文字，高亮含數字序列的文字
+    private var filteredTexts: [RecognizedText] {
+        result.allRecognizedTexts
+            .filter { $0.text.count >= 5 }
+            .sorted { textRelevance($0) > textRelevance($1) }
+    }
+
+    /// 文字相關性評分（含數字越多，分數越高）
+    private func textRelevance(_ text: RecognizedText) -> Int {
+        let digitCount = text.text.filter(\.isNumber).count
+        let alphanumCount = text.text.filter(\.isLetter).count + digitCount
+        if digitCount >= 8 { return 100 + digitCount }
+        if digitCount >= 5 { return 50 + digitCount }
+        if alphanumCount >= 8 { return 30 + alphanumCount }
+        return digitCount
+    }
+
     private var allTextsList: some View {
         ScrollView {
             LazyVStack(spacing: 8) {
-                ForEach(result.allRecognizedTexts) { text in
+                ForEach(filteredTexts) { text in
                     textRow(text)
+                }
+
+                if filteredTexts.isEmpty {
+                    Text(String(localized: "ocr.noTextsFound"))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .padding(.vertical, 20)
                 }
             }
             .padding()
         }
     }
-    
+
     private func textRow(_ text: RecognizedText) -> some View {
-        Button {
-            // 清理文字後回傳
+        let hasDigitSequence = text.text.filter(\.isNumber).count >= 5
+
+        return Button {
             let cleanedText = text.text
                 .replacingOccurrences(of: " ", with: "")
                 .uppercased()
-            
+
+            let detected = CarrierDetector.detectBest(cleanedText)
+
             onSelect(OCRSelection(
                 trackingNumber: cleanedText,
-                suggestedCarrier: nil
+                suggestedCarrier: detected?.carrier
             ))
             dismiss()
         } label: {
             HStack {
+                if hasDigitSequence {
+                    Image(systemName: "number")
+                        .font(.caption)
+                        .foregroundStyle(.yellow)
+                        .frame(width: 20)
+                }
+
                 Text(text.text)
                     .font(.system(.body, design: .monospaced))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(hasDigitSequence ? Color.white : Color.secondary)
                     .lineLimit(1)
-                
+
                 Spacer()
-                
+
                 Image(systemName: "chevron.right")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-            .background(Color.secondaryCardBackground)
+            .background(hasDigitSequence ? Color.cardBackground : Color.secondaryCardBackground)
             .clipShape(RoundedRectangle(cornerRadius: 8))
         }
         .buttonStyle(.plain)

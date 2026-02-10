@@ -20,6 +20,14 @@
 				<string>com.googleusercontent.apps.148590699171-818pb3egia5prvvrel89h923e69dhul1</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>packagetraker</string>
+			</array>
+			<key>CFBundleURLName</key>
+			<string>com.kenny.PackageTraker</string>
+		</dict>
 	</array>
 	<key>GIDClientID</key>
 	<string>148590699171-818pb3egia5prvvrel89h923e69dhul1.apps.googleusercontent.com</string>

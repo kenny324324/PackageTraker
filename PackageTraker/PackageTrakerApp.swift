@@ -7,9 +7,11 @@
 
 import SwiftUI
 import SwiftData
+import StoreKit
 import Combine
 import BackgroundTasks
 import UserNotifications
+import WidgetKit
 import FirebaseCore
 import FirebaseAuth
 import FirebaseMessaging
@@ -44,6 +46,9 @@ struct PackageTrakerApp: App {
 
     // Firebase 認證服務
     @StateObject private var authService = FirebaseAuthService.shared
+
+    // 訂閱管理器
+    @StateObject private var subscriptionManager = SubscriptionManager.shared
 
     init() {
         // 初始化 Firebase
@@ -117,6 +122,14 @@ struct PackageTrakerApp: App {
             }
             .animation(.easeOut(duration: 0.4), value: appFlow) // 驅動覆蓋層的淡入淡出轉場
             .preferredColorScheme(.dark)
+            .onChange(of: subscriptionManager.currentTier) { _, newTier in
+                if newTier == .free {
+                    ThemeManager.shared.resetToDefaultIfNeeded()
+                }
+                // 同步訂閱層級到 Widget
+                WidgetDataService.shared.updateSubscriptionTier(newTier)
+                WidgetCenter.shared.reloadAllTimelines()
+            }
             .onChange(of: authService.isAuthenticated) { oldValue, newValue in
                 // 登出處理（登入由 SignInView 內部處理）
                 if oldValue && !newValue {
@@ -143,6 +156,16 @@ struct PackageTrakerApp: App {
     // MARK: - URL Handling
 
     private func handleIncomingURL(_ url: URL) {
+        // 處理 Widget Deep Link: packagetraker://package/{uuid}
+        if url.scheme == "packagetraker",
+           url.host == "package",
+           let uuidString = url.pathComponents.last,
+           let packageId = UUID(uuidString: uuidString) {
+            selectedTab = 0
+            pendingPackageId = packageId
+            return
+        }
+
         // 處理 Google OAuth 回調
         if url.scheme?.contains("googleusercontent") == true {
             _ = GmailAuthManager.shared.handleURL(url)

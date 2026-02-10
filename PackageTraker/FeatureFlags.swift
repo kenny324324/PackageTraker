@@ -15,4 +15,13 @@ struct FeatureFlags {
     /// - 下拉刷新時的郵件同步
     /// - 背景郵件同步任務
     static let emailAutoImportEnabled = false
+
+    /// 訂閱服務
+    static let subscriptionEnabled = true
+
+    /// AI 截圖辨識（Phase C）
+    static let aiVisionEnabled = false
+
+    /// iOS Widget（Phase D）
+    static let widgetEnabled = false
 }

@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import WidgetKit
 
 /// 包裹清單主頁
 struct PackageListView: View {
@@ -129,6 +130,8 @@ struct PackageListView: View {
         packageToDelete = nil
         // 從 Firestore 刪除
         FirebaseSyncService.shared.deletePackage(packageId)
+        // 更新 Widget
+        WidgetCenter.shared.reloadAllTimelines()
     }
 
     // MARK: - Views
