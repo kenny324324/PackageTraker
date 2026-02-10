@@ -101,12 +101,26 @@
 "settings.about" = "关于";
 "settings.developer" = "开发者";
 "settings.rateApp" = "给予评分";
+"settings.rateApp.title" = "评分取货吧";
+"settings.rateApp.description" = "如果你觉得取货吧对你有帮助，请帮我们写个好评，非常感谢 :)";
 "settings.reportIssue" = "反馈问题";
 "settings.privacyPolicy" = "隐私政策";
+"settings.otherApps" = "我们的其他作品";
+"settings.otherApps.get" = "获取";
+"settings.otherApps.findtoilets" = "快速找到附近厕所，出门更安心";
+"settings.otherApps.mish" = "极简阅读记录，打造专属书柜";
+"settings.otherApps.mino" = "每天的事，简单记";
 "settings.general" = "通用";
 "settings.themeColor" = "主题颜色";
 "settings.language" = "语言";
 "settings.hideDelivered" = "在首页隐藏已取货包裹";
+"settings.accountManagement" = "账号管理";
+"accountManagement.title" = "账号管理";
+"accountManagement.deleteAccount" = "删除账号";
+"accountManagement.deleteDescription" = "这将永久删除你的账号及所有相关数据。";
+"accountManagement.deleteConfirmTitle" = "确定要删除账号？";
+"accountManagement.deleteConfirmMessage" = "此操作无法恢复。你的所有包裹、设置和账号数据都会被永久删除。";
+"accountManagement.deleteSuccess" = "账号已成功删除";
 "settings.notifications" = "通知";
 "settings.pushNotification" = "推送通知";
 "settings.notificationSettings" = "推送设置";
@@ -324,6 +338,11 @@
 "account.registrationDate" = "注册时间";
 "account.status.normal" = "正常";
 "account.unknown" = "用户";
+"account.subscription.title" = "订阅管理";
+"account.subscription.currentPlan" = "当前方案";
+"account.subscription.manage" = "管理订阅";
+"account.subscription.upgrade" = "升级至 Pro";
+"account.subscription.restore" = "恢复购买";
 
 // Package Quota
 "settings.quota.title" = "免费包裹追踪额度";

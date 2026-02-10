@@ -21,13 +21,35 @@ struct AddPackageView: View {
     @State private var showOCRError = false
     @State private var ocrErrorMessage = ""
 
+    // AI 辨識相關狀態
+    @State private var aiPhotoItem: PhotosPickerItem?
+    @State private var isProcessingAI = false
+    @State private var aiResult: AIVisionResult?
+    @State private var showAIResultSheet = false
+    @State private var showAIError = false
+    @State private var aiErrorMessage = ""
+
+    // 訂閱相關
+    @State private var showPaywall = false
+
+    // AI 辨識結果中的額外欄位（傳遞到 PackageInfoView）
+    @State private var aiPickupLocation: String?
+    @State private var aiPickupCode: String?
+    @State private var aiPackageName: String?
+
     private let ocrService = TrackingNumberOCRService.shared
+    private let aiService = AIVisionService.shared
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     trackingNumberSection
+
+                    if FeatureFlags.aiVisionEnabled {
+                        aiPromotionSection
+                    }
+
                     carrierSelectionSection
                 }
                 .padding()
@@ -48,6 +70,13 @@ struct AddPackageView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(String(localized: "add.continue")) {
+                        // 檢查包裹數量限制
+                        let activeCount = existingPackages.filter { !$0.isArchived }.count
+                        if FeatureFlags.subscriptionEnabled && activeCount >= SubscriptionManager.shared.maxPackageCount {
+                            showPaywall = true
+                            return
+                        }
+
                         let normalized = trackingNumber.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
                         if existingPackages.contains(where: { $0.trackingNumber == normalized }) {
                             showDuplicateAlert = true
@@ -66,7 +95,10 @@ struct AddPackageView: View {
                         trackingNumber: trackingNumber.trimmingCharacters(in: .whitespacesAndNewlines).uppercased(),
                         carrier: carrier,
                         onComplete: { dismiss() },
-                        popToRoot: { showQueryPage = false }
+                        popToRoot: { showQueryPage = false },
+                        prefillName: aiPackageName,
+                        prefillPickupLocation: aiPickupLocation,
+                        prefillPickupCode: aiPickupCode
                     )
                 }
             }
@@ -88,10 +120,33 @@ struct AddPackageView: View {
                     .presentationDetents([.medium, .large])
                 }
             }
+            .sheet(isPresented: $showPaywall) {
+                PaywallView()
+            }
+            .sheet(isPresented: $showAIResultSheet) {
+                if let result = aiResult {
+                    AIVisionResultSheet(result: result) { selection in
+                        handleAISelection(selection)
+                    }
+                    .presentationDetents([.large])
+                }
+            }
+            .alert(String(localized: "ai.error.title"), isPresented: $showAIError) {
+                Button(String(localized: "common.confirm"), role: .cancel) { }
+            } message: {
+                Text(aiErrorMessage)
+            }
             .onChange(of: selectedPhotoItem) { _, newItem in
                 if let newItem {
                     Task {
                         await processSelectedImage(newItem)
+                    }
+                }
+            }
+            .onChange(of: aiPhotoItem) { _, newItem in
+                if let newItem {
+                    Task {
+                        await processAIImage(newItem)
                     }
                 }
             }
@@ -220,6 +275,153 @@ struct AddPackageView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+
+    // MARK: - AI Promotion
+
+    @ViewBuilder
+    private var aiPromotionSection: some View {
+        if SubscriptionManager.shared.hasAIAccess {
+            // Pro 用戶：直接開啟圖片選擇器
+            PhotosPicker(
+                selection: $aiPhotoItem,
+                matching: .images,
+                photoLibrary: .shared()
+            ) {
+                aiPromotionCardLabel
+            }
+            .buttonStyle(.plain)
+            .disabled(isProcessingAI)
+        } else {
+            // 免費用戶：顯示付費牆
+            Button { showPaywall = true } label: {
+                aiPromotionCardLabel
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private var aiPromotionCardLabel: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [.purple, .blue],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 44, height: 44)
+
+                Image(systemName: "sparkles")
+                    .font(.system(size: 20))
+                    .foregroundStyle(.white)
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Text(String(localized: "ai.card.title"))
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.white)
+
+                    if !SubscriptionManager.shared.hasAIAccess {
+                        Text("PRO")
+                            .font(.caption2)
+                            .fontWeight(.bold)
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(
+                                LinearGradient(
+                                    colors: [.orange, .purple],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .clipShape(Capsule())
+                    }
+                }
+
+                Text(String(localized: "ai.card.description"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
+
+            Spacer()
+
+            if isProcessingAI {
+                ProgressView()
+                    .tint(.white)
+            } else {
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(14)
+        .background(
+            LinearGradient(
+                colors: [Color.purple.opacity(0.15), Color.blue.opacity(0.10)],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Color.purple.opacity(0.3), lineWidth: 1)
+        )
+    }
+
+    // MARK: - AI Processing
+
+    private func processAIImage(_ item: PhotosPickerItem) async {
+        isProcessingAI = true
+
+        defer {
+            aiPhotoItem = nil
+            isProcessingAI = false
+        }
+
+        do {
+            guard let imageData = try await item.loadTransferable(type: Data.self),
+                  let uiImage = UIImage(data: imageData) else {
+                await MainActor.run {
+                    aiErrorMessage = String(localized: "error.imageLoadFailed")
+                    showAIError = true
+                }
+                return
+            }
+
+            let result = try await aiService.analyzePackageImage(uiImage)
+
+            await MainActor.run {
+                aiResult = result
+                showAIResultSheet = true
+            }
+        } catch {
+            await MainActor.run {
+                aiErrorMessage = error.localizedDescription
+                showAIError = true
+            }
+        }
+    }
+
+    private func handleAISelection(_ selection: AIVisionSelection) {
+        trackingNumber = selection.trackingNumber
+
+        if let carrier = selection.carrier,
+           Carrier.supportedCarriers.contains(carrier) {
+            selectedCarrier = carrier
+            selectedCategory = carrier.category
+        }
+
+        aiPickupLocation = selection.pickupLocation
+        aiPickupCode = selection.pickupCode
+        aiPackageName = selection.packageName
     }
 
     // MARK: - OCR

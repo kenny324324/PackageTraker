@@ -62,7 +62,7 @@ struct SettingsView: View {
     @State private var showPaywall = false
     @State private var showAccountDetail = false
     @State private var safariURL: IdentifiableURL?
-    @State private var cachedDisplayName: String? = nil
+    @AppStorage("cachedDisplayName") private var cachedDisplayName: String = ""
     @AppStorage("refreshInterval") private var refreshInterval: RefreshInterval = .thirtyMinutes
     @AppStorage("hideDeliveredPackages") private var hideDeliveredPackages = false
 
@@ -84,16 +84,34 @@ struct SettingsView: View {
                     // 通知設定
                     notificationSection
 
-                    // 資料管理
-                    dataManagementSection
+                    // 評分卡片
+                    rateAppSection
+
+                    // 支援區塊
+                    supportSection
 
                     // 關於區塊
                     aboutSection
+
+                    // 我們的其他作品
+                    otherAppsSection
 
                     #if DEBUG
                     // 開發者選項（僅 DEBUG 模式）
                     developerSection
                     #endif
+
+                    // 頁面底部 footer
+                    VStack(spacing: 4) {
+                        Text("Made By Kenny Studio")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Text("© 2025 Kenny Yu")
+                            .font(.caption2)
+                            .foregroundStyle(Color(.systemGray3))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 8)
                 }
                 .padding(.horizontal)
                 .padding(.top, 8)
@@ -227,10 +245,16 @@ struct SettingsView: View {
                     Text("PRO")
                         .font(.caption2)
                         .fontWeight(.bold)
-                        .foregroundStyle(.black)
+                        .foregroundStyle(.white)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
-                        .background(Color.yellow)
+                        .background(
+                            LinearGradient(
+                                colors: [.orange, .purple],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
                         .clipShape(Capsule())
                 }
             }
@@ -242,12 +266,31 @@ struct SettingsView: View {
         }
         .background(Color.secondaryCardBackground)
         .clipShape(RoundedRectangle(cornerRadius: 20))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(
+                    LinearGradient(
+                        colors: [.orange, .purple],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: subscriptionManager.isPro ? 2 : 0
+                )
+        )
+        .shadow(
+            color: subscriptionManager.isPro ? .purple.opacity(0.3) : .clear,
+            radius: 8, x: 0, y: 2
+        )
+        .shadow(
+            color: subscriptionManager.isPro ? .orange.opacity(0.2) : .clear,
+            radius: 12, x: 0, y: 0
+        )
     }
 
     /// 顯示名稱（優先順序：快取 > email username > 未知）
     private var displayName: String {
-        if let cached = cachedDisplayName, !cached.isEmpty {
-            return cached
+        if !cachedDisplayName.isEmpty {
+            return cachedDisplayName
         }
         if let email = authService.currentUser?.email {
             let username = email.components(separatedBy: "@").first ?? email
@@ -339,6 +382,84 @@ struct SettingsView: View {
         existingPackages.filter { !$0.isArchived }.count
     }
 
+    // MARK: - Rate App Section
+
+    private var rateAppSection: some View {
+        Button {
+            requestReview()
+        } label: {
+            HStack(alignment: .center, spacing: 16) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(String(localized: "settings.rateApp.title"))
+                        .font(.headline)
+                        .fontWeight(.bold)
+                        .foregroundStyle(.white)
+
+                    Text(String(localized: "settings.rateApp.description"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+
+                    // 星星
+                    HStack(spacing: 4) {
+                        ForEach(0..<5, id: \.self) { _ in
+                            Image(systemName: "star.fill")
+                                .font(.system(size: 18))
+                                .foregroundStyle(.yellow)
+                        }
+                    }
+                    .padding(.top, 2)
+                }
+
+                Spacer()
+
+                // App Store 3D icon
+                Image("AppStoreIcon")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 80, height: 80)
+            }
+            .padding(16)
+            .background(Color.secondaryCardBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 20))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - Support Section
+
+    private var supportSection: some View {
+        VStack(spacing: 0) {
+            // 回報問題
+            Button {
+                openFeedbackEmail()
+            } label: {
+                settingsRowButton(
+                    icon: "envelope.fill",
+                    iconBg: .green,
+                    title: String(localized: "settings.reportIssue")
+                )
+            }
+
+            Divider()
+                .background(Color.white.opacity(0.1))
+
+            // 隱私政策
+            Button {
+                openPrivacyPolicy()
+            } label: {
+                settingsRowButton(
+                    icon: "hand.raised.fill",
+                    iconBg: .teal,
+                    title: String(localized: "settings.privacyPolicy")
+                )
+            }
+        }
+        .background(Color.secondaryCardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+    }
+
     // MARK: - About Section
 
     private var aboutSection: some View {
@@ -357,7 +478,7 @@ struct SettingsView: View {
                         .scaledToFit()
                         .frame(width: 60, height: 60)
                         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    
+
                     VStack(alignment: .leading, spacing: 4) {
                         Text(AppConfiguration.appName)
                             .font(.headline)
@@ -366,67 +487,119 @@ struct SettingsView: View {
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
-                    
+
                     Spacer()
                 }
                 .padding(16)
-                
-                Divider()
-                    .background(Color.cardBackground)
-                
-                // 開發者
-                settingsRow(
-                    icon: "person.fill",
-                    iconColor: .white,
-                    title: String(localized: "settings.developer"),
-                    value: AppConfiguration.developerName
-                )
-
-                Divider()
-                    .background(Color.cardBackground)
-
-                // 給予評分
-                Button {
-                    requestReview()
-                } label: {
-                    settingsRowButton(
-                        icon: "star.fill",
-                        iconColor: .white,
-                        title: String(localized: "settings.rateApp")
-                    )
-                }
-
-                Divider()
-                    .background(Color.cardBackground)
-
-                // 回報問題
-                Button {
-                    openFeedbackEmail()
-                } label: {
-                    settingsRowButton(
-                        icon: "envelope.fill",
-                        iconColor: .white,
-                        title: String(localized: "settings.reportIssue")
-                    )
-                }
-                
-                Divider()
-                    .background(Color.cardBackground)
-                
-                // 隱私政策
-                Button {
-                    openPrivacyPolicy()
-                } label: {
-                    settingsRowButton(
-                        icon: "hand.raised.fill",
-                        iconColor: .white,
-                        title: String(localized: "settings.privacyPolicy")
-                    )
-                }
             }
             .background(Color.secondaryCardBackground)
             .clipShape(RoundedRectangle(cornerRadius: 20))
         }
+    }
+
+    // MARK: - Other Apps Section
+
+    private var otherAppsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(String(localized: "settings.otherApps"))
+                .font(.title2)
+                .fontWeight(.bold)
+                .foregroundStyle(.white)
+
+            VStack(spacing: 0) {
+                otherAppRow(
+                    iconName: "FindToiletsIcon",
+                    fallbackIcon: "mappin.and.ellipse",
+                    fallbackColor: .blue,
+                    name: "FindToilets",
+                    subtitle: String(localized: "settings.otherApps.findtoilets"),
+                    appStoreURL: "https://apps.apple.com/app/id6752564383"
+                )
+
+                Divider()
+                    .background(Color.white.opacity(0.1))
+
+                otherAppRow(
+                    iconName: "MishIcon",
+                    fallbackIcon: "book.fill",
+                    fallbackColor: .indigo,
+                    name: "Mish",
+                    subtitle: String(localized: "settings.otherApps.mish"),
+                    appStoreURL: "https://apps.apple.com/app/id6749848120"
+                )
+
+                Divider()
+                    .background(Color.white.opacity(0.1))
+
+                otherAppRow(
+                    iconName: "MinoIcon",
+                    fallbackIcon: "checklist",
+                    fallbackColor: Color.brown,
+                    name: "Mino",
+                    subtitle: String(localized: "settings.otherApps.mino"),
+                    appStoreURL: "https://apps.apple.com/app/id6746743276"
+                )
+            }
+            .background(Color.secondaryCardBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 20))
+        }
+    }
+
+    /// 其他 App 列
+    private func otherAppRow(iconName: String, fallbackIcon: String, fallbackColor: Color, name: String, subtitle: String, appStoreURL: String) -> some View {
+        Button {
+            if let url = URL(string: appStoreURL) {
+                UIApplication.shared.open(url)
+            }
+        } label: {
+            HStack(spacing: 14) {
+                // App Icon（優先用 Assets 圖片，沒有則用 SF Symbol 佔位）
+                Group {
+                    if UIImage(named: iconName) != nil {
+                        Image(iconName)
+                            .resizable()
+                            .scaledToFit()
+                    } else {
+                        Image(systemName: fallbackIcon)
+                            .font(.system(size: 22))
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .background(fallbackColor)
+                    }
+                }
+                .frame(width: 48, height: 48)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+                // 名稱 + 描述
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(name)
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.white)
+
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+
+                Spacer()
+
+                // 取得按鈕
+                Text(String(localized: "settings.otherApps.get"))
+                    .font(.subheadline)
+                    .fontWeight(.bold)
+                    .foregroundStyle(.blue)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 8)
+                    .background(Color(.systemGray4).opacity(0.5))
+                    .clipShape(Capsule())
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Developer Section (DEBUG only)
@@ -441,10 +614,7 @@ struct SettingsView: View {
 
             NavigationLink(destination: DeveloperOptionsView()) {
                 HStack(spacing: 12) {
-                    Image(systemName: "hammer.fill")
-                        .font(.system(size: 18))
-                        .foregroundStyle(.orange)
-                        .frame(width: 28)
+                    settingsIcon("hammer.fill", bgColor: .orange)
 
                     Text("開發者選項")
                         .foregroundStyle(.white)
@@ -479,41 +649,35 @@ struct SettingsView: View {
                 // 主題顏色
                 NavigationLink(destination: ThemeSettingsView()) {
                     HStack(spacing: 12) {
-                        Image(systemName: "paintpalette.fill")
-                            .font(.system(size: 18))
-                            .foregroundStyle(.white)
-                            .frame(width: 28)
-                        
+                        settingsIcon("paintpalette.fill", bgColor: .pink)
+
                         Text(String(localized: "settings.themeColor"))
                             .foregroundStyle(.white)
-                        
+
                         Spacer()
-                        
+
                         Circle()
                             .fill(themeManager.currentColor)
                             .frame(width: 24, height: 24)
                     }
                     .padding(16)
                 }
-                
+
                 Divider()
                     .background(Color.cardBackground)
-                
+
                 // 語言設定
                 Button {
                     openAppSettings()
                 } label: {
                     HStack(spacing: 12) {
-                        Image(systemName: "globe")
-                            .font(.system(size: 18))
-                            .foregroundStyle(.white)
-                            .frame(width: 28)
-                        
+                        settingsIcon("globe", bgColor: .blue)
+
                         Text(String(localized: "settings.language"))
                             .foregroundStyle(.white)
-                        
+
                         Spacer()
-                        
+
                         Text(currentLanguage)
                             .font(.subheadline)
                             .foregroundStyle(.white)
@@ -531,10 +695,29 @@ struct SettingsView: View {
                 // 隱藏已取貨包裹
                 settingsToggleRow(
                     icon: "eye.slash.fill",
-                    iconColor: .white,
+                    iconBg: .gray,
                     title: String(localized: "settings.hideDelivered"),
                     isOn: $hideDeliveredPackages
                 )
+
+                Divider()
+                    .background(Color.cardBackground)
+
+                // 帳號管理
+                NavigationLink(destination: AccountManagementView()) {
+                    HStack(spacing: 12) {
+                        settingsIcon("person.badge.minus", bgColor: .red)
+
+                        Text(String(localized: "settings.accountManagement"))
+                            .foregroundStyle(.white)
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(16)
+                }
             }
             .background(Color.secondaryCardBackground)
             .clipShape(RoundedRectangle(cornerRadius: 20))
@@ -560,7 +743,7 @@ struct SettingsView: View {
                 // 推播通知總開關
                 settingsToggleRow(
                     icon: "bell.fill",
-                    iconColor: .white,
+                    iconBg: .red,
                     title: String(localized: "settings.pushNotification"),
                     isOn: $notificationsEnabled
                 )
@@ -571,10 +754,7 @@ struct SettingsView: View {
                 // 推播設定
                 NavigationLink(destination: NotificationSettingsView()) {
                     HStack(spacing: 12) {
-                        Image(systemName: "bell.badge.fill")
-                            .font(.system(size: 18))
-                            .foregroundStyle(.white)
-                            .frame(width: 28)
+                        settingsIcon("bell.badge.fill", bgColor: .orange)
 
                         Text(String(localized: "settings.notificationSettings"))
                             .foregroundStyle(.white)
@@ -614,14 +794,11 @@ struct SettingsView: View {
                     showClearDataConfirmation = true
                 } label: {
                     HStack(spacing: 12) {
-                        Image(systemName: "trash.fill")
-                            .font(.system(size: 18))
-                            .foregroundStyle(.red)
-                            .frame(width: 28)
-                        
+                        settingsIcon("trash.fill", bgColor: .red)
+
                         Text(String(localized: "settings.clearData"))
                             .foregroundStyle(.red)
-                        
+
                         Spacer()
                     }
                     .padding(16)
@@ -633,47 +810,48 @@ struct SettingsView: View {
     }
     
     // MARK: - Helper Views
-    
-    private func settingsRow(icon: String, iconColor: Color, title: String, value: String) -> some View {
+
+    /// 圓角方形圖示
+    private func settingsIcon(_ icon: String, bgColor: Color) -> some View {
+        Image(systemName: icon)
+            .font(.system(size: 14, weight: .semibold))
+            .foregroundStyle(.white)
+            .frame(width: 30, height: 30)
+            .background(bgColor)
+            .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+    }
+
+    private func settingsRow(icon: String, iconBg: Color, title: String, value: String) -> some View {
         HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.system(size: 18))
-                .foregroundStyle(iconColor)
-                .frame(width: 28)
-            
+            settingsIcon(icon, bgColor: iconBg)
+
             Text(title)
                 .foregroundStyle(.white)
-            
+
             Spacer()
-            
+
             Text(value)
-                .foregroundStyle(Color.appAccent)
+                .foregroundStyle(.secondary)
         }
         .padding(16)
     }
-    
-    private func settingsRowButton(icon: String, iconColor: Color, title: String) -> some View {
+
+    private func settingsRowButton(icon: String, iconBg: Color, title: String) -> some View {
         HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.system(size: 18))
-                .foregroundStyle(iconColor)
-                .frame(width: 28)
-            
+            settingsIcon(icon, bgColor: iconBg)
+
             Text(title)
                 .foregroundStyle(.white)
-            
+
             Spacer()
         }
         .padding(16)
     }
-    
-    private func settingsToggleRow(icon: String, iconColor: Color, title: String, isOn: Binding<Bool>) -> some View {
+
+    private func settingsToggleRow(icon: String, iconBg: Color, title: String, isOn: Binding<Bool>) -> some View {
         HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.system(size: 18))
-                .foregroundStyle(iconColor)
-                .frame(width: 28)
-            
+            settingsIcon(icon, bgColor: iconBg)
+
             Toggle(title, isOn: isOn)
                 .tint(Color.appAccent)
         }
@@ -697,17 +875,9 @@ struct SettingsView: View {
 
     // MARK: - Actions
 
-    /// 從 Firestore 載入顯示名稱
+    /// 從 Firestore 載入顯示名稱（背景更新，不影響已快取的名稱）
     private func loadDisplayName() {
-        guard let userId = authService.currentUser?.uid else {
-            // 沒有登入，使用預設值
-            if cachedDisplayName == nil {
-                if let email = authService.currentUser?.email {
-                    cachedDisplayName = email.components(separatedBy: "@").first ?? email
-                }
-            }
-            return
-        }
+        guard let userId = authService.currentUser?.uid else { return }
 
         let db = Firestore.firestore()
         Task {
@@ -718,21 +888,19 @@ struct SettingsView: View {
                     await MainActor.run {
                         cachedDisplayName = nickname
                     }
-                } else {
-                    // 沒有暱稱，使用 email 前綴作為預設值
+                } else if cachedDisplayName.isEmpty {
+                    // Firestore 沒有暱稱且本地也沒快取，才用 email 前綴
                     await MainActor.run {
-                        if cachedDisplayName == nil {
-                            if let email = authService.currentUser?.email {
-                                cachedDisplayName = email.components(separatedBy: "@").first ?? email
-                            }
+                        if let email = authService.currentUser?.email {
+                            cachedDisplayName = email.components(separatedBy: "@").first ?? email
                         }
                     }
                 }
             } catch {
                 print("[Settings] Failed to load display name: \(error)")
-                // 載入失敗時使用預設值
+                // 載入失敗且本地沒快取時，才用 email 前綴
                 await MainActor.run {
-                    if cachedDisplayName == nil {
+                    if cachedDisplayName.isEmpty {
                         if let email = authService.currentUser?.email {
                             cachedDisplayName = email.components(separatedBy: "@").first ?? email
                         }

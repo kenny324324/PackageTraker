@@ -5,6 +5,7 @@ import SwiftData
 /// 開發者選項（僅 DEBUG 模式）
 struct DeveloperOptionsView: View {
     @Environment(\.modelContext) private var modelContext
+    @ObservedObject private var subscriptionManager = SubscriptionManager.shared
     @State private var apiStatus: String = ""
     @State private var isTestingAPI = false
 
@@ -117,6 +118,35 @@ struct DeveloperOptionsView: View {
                 }
             } header: {
                 Text("API 除錯")
+            }
+
+            // MARK: - 訂閱測試
+            Section {
+                HStack {
+                    Text("訂閱狀態")
+                    Spacer()
+                    Text(subscriptionManager.isPro ? "Pro" : "免費")
+                        .foregroundStyle(subscriptionManager.isPro ? .yellow : .secondary)
+                        .fontWeight(.semibold)
+                }
+
+                Button {
+                    subscriptionManager.debugSetTier(.pro)
+                } label: {
+                    Label("切換至 Pro", systemImage: "crown.fill")
+                }
+                .disabled(subscriptionManager.isPro)
+
+                Button {
+                    subscriptionManager.debugSetTier(.free)
+                } label: {
+                    Label("切換至免費", systemImage: "arrow.uturn.backward")
+                }
+                .disabled(!subscriptionManager.isPro)
+            } header: {
+                Text("訂閱測試")
+            } footer: {
+                Text("直接切換訂閱狀態，跳過 StoreKit 驗證。用於測試 Pro 功能與 UI 變化。")
             }
 
             // MARK: - 系統資訊

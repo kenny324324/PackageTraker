@@ -101,12 +101,26 @@
 "settings.about" = "About";
 "settings.developer" = "Developer";
 "settings.rateApp" = "Rate App";
+"settings.rateApp.title" = "Rate PackageTraker";
+"settings.rateApp.description" = "If you find PackageTraker helpful, please leave us a review. We'd really appreciate it :)";
 "settings.reportIssue" = "Report an Issue";
 "settings.privacyPolicy" = "Privacy Policy";
+"settings.otherApps" = "Our Other Apps";
+"settings.otherApps.get" = "GET";
+"settings.otherApps.findtoilets" = "Find nearby restrooms instantly";
+"settings.otherApps.mish" = "Minimalist reading journal & bookshelf";
+"settings.otherApps.mino" = "Simple to-do list for focused living";
 "settings.general" = "General";
 "settings.themeColor" = "Theme Color";
 "settings.language" = "Language";
 "settings.hideDelivered" = "Hide Picked Up Packages";
+"settings.accountManagement" = "Account Management";
+"accountManagement.title" = "Account Management";
+"accountManagement.deleteAccount" = "Delete Account";
+"accountManagement.deleteDescription" = "This will permanently delete your account and all associated data.";
+"accountManagement.deleteConfirmTitle" = "Delete Account?";
+"accountManagement.deleteConfirmMessage" = "This action cannot be undone. All your packages, settings, and account data will be permanently deleted.";
+"accountManagement.deleteSuccess" = "Account deleted successfully";
 "settings.notifications" = "Notifications";
 "settings.pushNotification" = "Push Notifications";
 "settings.notificationSettings" = "Notification Settings";
@@ -325,6 +339,11 @@
 "account.registrationDate" = "Registered";
 "account.status.normal" = "Active";
 "account.unknown" = "User";
+"account.subscription.title" = "Subscription";
+"account.subscription.currentPlan" = "Current Plan";
+"account.subscription.manage" = "Manage Subscription";
+"account.subscription.upgrade" = "Upgrade to Pro";
+"account.subscription.restore" = "Restore Purchases";
 
 // Package Quota
 "settings.quota.title" = "Free Package Tracking Quota";

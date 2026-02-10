@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import StoreKit
 import FirebaseAuth
 import FirebaseFirestore
 
@@ -13,12 +14,15 @@ import FirebaseFirestore
 struct AccountDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var authService = FirebaseAuthService.shared
+    @ObservedObject private var subscriptionManager = SubscriptionManager.shared
 
     @State private var showSignOutAlert = false
     @State private var showEditSheet = false
+    @State private var showPaywall = false
+    @State private var isRestoring = false
 
-    // 快取資料，避免登出轉場時消失
-    @State private var cachedDisplayName: String = ""
+    // 快取資料，使用 AppStorage 持久化避免閃爍
+    @AppStorage("cachedDisplayName") private var cachedDisplayName: String = ""
     @State private var cachedCreationDate: Date?
 
     var body: some View {
@@ -54,6 +58,11 @@ struct AccountDetailView: View {
                     }
                     .background(Color.secondaryCardBackground)
                     .clipShape(RoundedRectangle(cornerRadius: 20))
+
+                    // 訂閱管理區塊
+                    if FeatureFlags.subscriptionEnabled {
+                        subscriptionSection
+                    }
 
                     Spacer()
                 }
@@ -116,6 +125,9 @@ struct AccountDetailView: View {
             .sheet(isPresented: $showEditSheet) {
                 EditProfileSheet(displayName: $cachedDisplayName, onSave: saveNickname)
             }
+            .sheet(isPresented: $showPaywall) {
+                PaywallView()
+            }
             .alert(String(localized: "settings.signOut.confirmTitle"), isPresented: $showSignOutAlert) {
                 Button(String(localized: "common.cancel"), role: .cancel) {}
                 Button(String(localized: "settings.signOut"), role: .destructive) {
@@ -130,6 +142,132 @@ struct AccountDetailView: View {
             }
         }
         .preferredColorScheme(.dark)
+    }
+
+    // MARK: - Subscription Section
+
+    private var subscriptionSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(String(localized: "account.subscription.title"))
+                .font(.headline)
+                .foregroundStyle(.white)
+
+            VStack(spacing: 0) {
+                // 當前方案
+                HStack(spacing: 12) {
+                    Image(systemName: subscriptionManager.isPro ? "crown.fill" : "shippingbox.fill")
+                        .font(.system(size: 18))
+                        .foregroundStyle(subscriptionManager.isPro ? .yellow : .secondary)
+                        .frame(width: 28)
+
+                    Text(String(localized: "account.subscription.currentPlan"))
+                        .foregroundStyle(.white)
+
+                    Spacer()
+
+                    HStack(spacing: 6) {
+                        if !subscriptionManager.isPro {
+                            Text(String(localized: "settings.subscription.free"))
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(.white)
+                        }
+
+                        if subscriptionManager.isPro {
+                            Text("PRO")
+                                .font(.caption2)
+                                .fontWeight(.bold)
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(
+                                    LinearGradient(
+                                        colors: [.orange, .purple],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .clipShape(Capsule())
+                        }
+                    }
+                }
+                .padding(16)
+
+                Divider()
+                    .background(Color.white.opacity(0.1))
+
+                // 升級 / 管理訂閱
+                if subscriptionManager.isPro {
+                    // 已訂閱：管理訂閱（跳轉 Apple 訂閱管理頁面）
+                    Button {
+                        openSubscriptionManagement()
+                    } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: "gear")
+                                .font(.system(size: 18))
+                                .foregroundStyle(.white)
+                                .frame(width: 28)
+
+                            Text(String(localized: "account.subscription.manage"))
+                                .foregroundStyle(.white)
+
+                            Spacer()
+
+                            Image(systemName: "arrow.up.forward")
+                                .font(.system(size: 14))
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(16)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    // 免費用戶：升級按鈕
+                    Button {
+                        showPaywall = true
+                    } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: "crown.fill")
+                                .font(.system(size: 18))
+                                .foregroundStyle(.yellow)
+                                .frame(width: 28)
+
+                            Text(String(localized: "account.subscription.upgrade"))
+                                .foregroundStyle(.white)
+
+                            Spacer()
+
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(16)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+
+            }
+            .background(Color.secondaryCardBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 20))
+
+            // 恢復購買（小灰字，放在卡片外）
+            Button {
+                restorePurchases()
+            } label: {
+                HStack(spacing: 4) {
+                    if isRestoring {
+                        ProgressView()
+                            .scaleEffect(0.7)
+                    }
+                    Text(String(localized: "account.subscription.restore"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .disabled(isRestoring)
+            .frame(maxWidth: .infinity, alignment: .center)
+        }
     }
 
     // MARK: - Info Row
@@ -171,7 +309,7 @@ struct AccountDetailView: View {
             cachedCreationDate = authService.currentUser?.metadata.creationDate
         }
 
-        // 從 Firestore 載入暱稱
+        // 從 Firestore 載入暱稱（背景更新，不影響已快取的名稱）
         let db = Firestore.firestore()
         Task {
             do {
@@ -181,8 +319,8 @@ struct AccountDetailView: View {
                     await MainActor.run {
                         cachedDisplayName = nickname
                     }
-                } else {
-                    // 沒有暱稱，使用 email 前綴作為預設值
+                } else if cachedDisplayName.isEmpty {
+                    // Firestore 沒有暱稱且本地也沒快取，才用 email 前綴
                     await MainActor.run {
                         if let email = authService.currentUser?.email {
                             cachedDisplayName = email.components(separatedBy: "@").first ?? email
@@ -193,12 +331,13 @@ struct AccountDetailView: View {
                 }
             } catch {
                 print("[AccountDetail] Failed to load profile: \(error)")
-                // 載入失敗時使用預設值
-                await MainActor.run {
-                    if let email = authService.currentUser?.email {
-                        cachedDisplayName = email.components(separatedBy: "@").first ?? email
-                    } else {
-                        cachedDisplayName = String(localized: "account.unknown")
+                if cachedDisplayName.isEmpty {
+                    await MainActor.run {
+                        if let email = authService.currentUser?.email {
+                            cachedDisplayName = email.components(separatedBy: "@").first ?? email
+                        } else {
+                            cachedDisplayName = String(localized: "account.unknown")
+                        }
                     }
                 }
             }
@@ -223,9 +362,28 @@ struct AccountDetailView: View {
         }
     }
 
+    /// 開啟 Apple 訂閱管理頁面
+    private func openSubscriptionManagement() {
+        if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
+            UIApplication.shared.open(url)
+        }
+    }
+
+    /// 恢復購買
+    private func restorePurchases() {
+        isRestoring = true
+        Task {
+            await subscriptionManager.restorePurchases()
+            isRestoring = false
+        }
+    }
+
     private func signOut() {
         // 先關閉 sheet
         dismiss()
+
+        // 清除快取的顯示名稱
+        cachedDisplayName = ""
 
         // 清除 FCM Token
         Task {
