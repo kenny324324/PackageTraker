@@ -105,15 +105,17 @@ final class FirebaseAuthService: NSObject, ObservableObject {
             ]
 
             let data = userDoc?.data()
-            if data?["notificationSettings"] == nil {
-                updateData["notificationSettings"] = [
-                    "enabled": true,
-                    "arrivalNotification": true,
-                    "shippedNotification": true,
-                    "pickupReminder": true
-                ]
-            }
+            let existingSettings = data?["notificationSettings"] as? [String: Any] ?? [:]
 
+            // 補齊缺失的通知設置欄位（確保新增的 shippedNotification 也被初始化）
+            var mergedSettings: [String: Any] = [
+                "enabled": existingSettings["enabled"] ?? true,
+                "arrivalNotification": existingSettings["arrivalNotification"] ?? true,
+                "shippedNotification": existingSettings["shippedNotification"] ?? true,
+                "pickupReminder": existingSettings["pickupReminder"] ?? true
+            ]
+
+            updateData["notificationSettings"] = mergedSettings
             try? await userRef.updateData(updateData)
             return
         }

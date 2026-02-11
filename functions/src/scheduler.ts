@@ -112,6 +112,7 @@ export const packageTrackingScheduler = onSchedule(
 
             const updateData: Record<string, unknown> = {
               status: newStatus,
+              latestDescription: latestCheckpoint.status,
               lastUpdated: FieldValue.serverTimestamp(),
             };
 
