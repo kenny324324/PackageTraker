@@ -35,16 +35,19 @@ const statusTemplates: Record<string, Record<Lang, NotificationTemplate>> = {
   },
   arrivedAtStore: {
     "zh-Hant": {
-      title: "包裹已到達",
-      body: ({name, location}) => `${name} 已送達 ${location}`,
+      title: "包裹已到達，請盡快取貨",
+      body: ({name, location}) =>
+        location ? `${name} 已送達 ${location}，請記得取貨` : `${name} 已送達，請盡快取貨`,
     },
     "zh-Hans": {
-      title: "包裹已到达",
-      body: ({name, location}) => `${name} 已送达 ${location}`,
+      title: "包裹已到达，请尽快取货",
+      body: ({name, location}) =>
+        location ? `${name} 已送达 ${location}，请记得取货` : `${name} 已送达，请尽快取货`,
     },
     en: {
-      title: "Package Arrived",
-      body: ({name, location}) => `${name} is ready at ${location}`,
+      title: "Package Arrived - Pick Up Now",
+      body: ({name, location}) =>
+        location ? `${name} is ready at ${location}. Please pick it up soon` : `${name} is ready for pickup`,
     },
   },
 };

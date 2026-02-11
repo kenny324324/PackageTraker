@@ -10,6 +10,7 @@ import {getFirestore} from "firebase-admin/firestore";
 import {logger} from "firebase-functions/v2";
 import {sendPushNotification} from "./services/pushNotification";
 import {getNotificationText, normalizeLang} from "./i18n/notifications";
+import {getCarrierDisplayName} from "./utils/carrierNames";
 
 /** 需要推播的狀態清單 */
 const NOTIFIABLE_STATUSES = ["shipped", "arrivedAtStore"];
@@ -79,11 +80,18 @@ export const onPackageStatusChange = onDocumentUpdated(
 
     // 組裝推播內容
     const packageName = after.customName || after.trackingNumber;
-    const location =
+
+    // 優先使用具體門市名稱，否則使用 carrier 的中文顯示名稱
+    let location =
       after.pickupLocation ||
       after.userPickupLocation ||
       after.storeName ||
       "";
+
+    // 如果 location 為空或只是英文 carrier rawValue，使用中文顯示名稱
+    if (!location || location === after.carrier) {
+      location = getCarrierDisplayName(after.carrier, lang);
+    }
 
     const text = getNotificationText(after.status, lang, {
       name: packageName,
