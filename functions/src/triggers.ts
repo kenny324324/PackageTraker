@@ -2,7 +2,10 @@
  * triggers.ts
  *
  * Firestore Trigger：監聽包裹狀態變化，
- * 當狀態變為 shipped 或 arrivedAtStore 時發送多語系 FCM 推播通知。
+ * 當狀態變為 shipped、inTransit 或 arrivedAtStore 時發送多語系 FCM 推播通知。
+ * 
+ * 特殊處理：pending -> inTransit 的狀態變化會以「已出貨」通知發送，
+ * 解決某些物流直接跳過 shipped 狀態的問題。
  */
 
 import {onDocumentUpdated} from "firebase-functions/v2/firestore";
@@ -13,7 +16,7 @@ import {getNotificationText, normalizeLang} from "./i18n/notifications";
 import {getCarrierDisplayName} from "./utils/carrierNames";
 
 /** 需要推播的狀態清單 */
-const NOTIFIABLE_STATUSES = ["shipped", "arrivedAtStore"];
+const NOTIFIABLE_STATUSES = ["shipped", "inTransit", "arrivedAtStore"];
 
 export const onPackageStatusChange = onDocumentUpdated(
   {
@@ -70,7 +73,7 @@ export const onPackageStatusChange = onDocumentUpdated(
       logger.info("[Trigger] Arrival notifications disabled, skipping");
       return;
     }
-    if (after.status === "shipped" && !settings?.shippedNotification) {
+    if ((after.status === "shipped" || after.status === "inTransit") && !settings?.shippedNotification) {
       logger.info("[Trigger] Shipped notifications disabled, skipping");
       return;
     }
@@ -93,7 +96,14 @@ export const onPackageStatusChange = onDocumentUpdated(
       location = getCarrierDisplayName(after.carrier, lang);
     }
 
-    const text = getNotificationText(after.status, lang, {
+    // 特殊處理：pending -> inTransit 視為出貨通知
+    let notificationStatus = after.status;
+    if (after.status === "inTransit" && before.status === "pending") {
+      notificationStatus = "shipped";
+      logger.info("[Trigger] Treating pending->inTransit as shipped notification");
+    }
+
+    const text = getNotificationText(notificationStatus, lang, {
       name: packageName,
       location: location,
     });

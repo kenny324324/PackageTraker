@@ -1,0 +1,104 @@
+{
+  "version" : "1.0",
+  "products" : [
+    {
+      "displayPrice" : "60",
+      "familyShareable" : false,
+      "internalID" : "com.kenny.PackageTraker.pro.monthly",
+      "localizations" : [
+        {
+          "description" : "Get unlimited packages and all theme colors",
+          "displayName" : "PackageTraker Pro Monthly",
+          "locale" : "en"
+        },
+        {
+          "description" : "解鎖無限包裹追蹤和全部 8 種主題顏色",
+          "displayName" : "PackageTraker Pro 月費",
+          "locale" : "zh_Hant"
+        },
+        {
+          "description" : "解锁无限包裹追踪和全部 8 种主题颜色",
+          "displayName" : "PackageTraker Pro 月费",
+          "locale" : "zh_Hans"
+        }
+      ],
+      "price" : "60",
+      "productID" : "com.kenny.PackageTraker.pro.monthly",
+      "referenceName" : "Pro Monthly",
+      "subscription" : {
+        "groupID" : "group.com.kenny.PackageTraker.pro",
+        "internalID" : "sub.monthly",
+        "localizations" : [
+          {
+            "description" : "Renews monthly",
+            "displayName" : "Pro Monthly",
+            "locale" : "en"
+          },
+          {
+            "description" : "每個月自動續訂",
+            "displayName" : "Pro 月費",
+            "locale" : "zh_Hant"
+          },
+          {
+            "description" : "每个月自动续订",
+            "displayName" : "Pro 月费",
+            "locale" : "zh_Hans"
+          }
+        ],
+        "period" : "1m",
+        "referenceName" : "Pro Monthly Subscription"
+      },
+      "type" : "AutoRenewableSubscription"
+    },
+    {
+      "displayPrice" : "600",
+      "familyShareable" : false,
+      "internalID" : "com.kenny.PackageTraker.pro.yearly",
+      "localizations" : [
+        {
+          "description" : "Get unlimited packages and all theme colors",
+          "displayName" : "PackageTraker Pro Yearly",
+          "locale" : "en"
+        },
+        {
+          "description" : "解鎖無限包裹追蹤和全部 8 種主題顏色。省 NT$120",
+          "displayName" : "PackageTraker Pro 年費",
+          "locale" : "zh_Hant"
+        },
+        {
+          "description" : "解锁无限包裹追踪和全部 8 种主题颜色。省 NT$120",
+          "displayName" : "PackageTraker Pro 年费",
+          "locale" : "zh_Hans"
+        }
+      ],
+      "price" : "600",
+      "productID" : "com.kenny.PackageTraker.pro.yearly",
+      "referenceName" : "Pro Yearly",
+      "subscription" : {
+        "groupID" : "group.com.kenny.PackageTraker.pro",
+        "internalID" : "sub.yearly",
+        "localizations" : [
+          {
+            "description" : "Renews yearly",
+            "displayName" : "Pro Yearly",
+            "locale" : "en"
+          },
+          {
+            "description" : "每年自動續訂",
+            "displayName" : "Pro 年費",
+            "locale" : "zh_Hant"
+          },
+          {
+            "description" : "每年自动续订",
+            "displayName" : "Pro 年费",
+            "locale" : "zh_Hans"
+          }
+        ],
+        "period" : "1y",
+        "referenceName" : "Pro Yearly Subscription"
+      },
+      "type" : "AutoRenewableSubscription"
+    }
+  ],
+  "version" : "1.0"
+}

@@ -33,6 +33,20 @@ const statusTemplates: Record<string, Record<Lang, NotificationTemplate>> = {
       body: ({name}) => `${name} has been shipped and will arrive in a few days`,
     },
   },
+  inTransit: {
+    "zh-Hant": {
+      title: "包裹配送中",
+      body: ({name}) => `${name} 正在配送途中，預計幾天內送達`,
+    },
+    "zh-Hans": {
+      title: "包裹配送中",
+      body: ({name}) => `${name} 正在配送途中，预计几天内送达`,
+    },
+    en: {
+      title: "Package In Transit",
+      body: ({name}) => `${name} is now in transit and will arrive in a few days`,
+    },
+  },
   arrivedAtStore: {
     "zh-Hant": {
       title: "包裹已到達，可以取貨了",

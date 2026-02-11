@@ -25,6 +25,7 @@
 		3164BEB92F33153F00DD217B /* Family-Logo.png in Resources */ = {isa = PBXBuildFile; fileRef = 3164BEB32F33153F00DD217B /* Family-Logo.png */; };
 		3164BEBA2F33153F00DD217B /* OKMart-Logo.png in Resources */ = {isa = PBXBuildFile; fileRef = 3164BEB42F33153F00DD217B /* OKMart-Logo.png */; };
 		3164BEC62F333B6F00DD217B /* box.png in Resources */ = {isa = PBXBuildFile; fileRef = 3164BEC52F333B6F00DD217B /* box.png */; };
+		318658322F3C6F3F00CAC4AC /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 318658312F3C6F3F00CAC4AC /* StoreKit.framework */; };
 		31C141422F31EF6700EF85BE /* icon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 31C141412F31EF6700EF85BE /* icon.icon */; };
 		31FB3D652F39959A00104C5C /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 31FB3D642F39959A00104C5C /* FirebaseAuth */; };
 		31FB3D672F39959A00104C5C /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 31FB3D662F39959A00104C5C /* FirebaseFirestore */; };
@@ -68,6 +69,7 @@
 		3164BEB42F33153F00DD217B /* OKMart-Logo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OKMart-Logo.png"; sourceTree = "<group>"; };
 		3164BEB52F33153F00DD217B /* Shopee-Logo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Shopee-Logo.png"; sourceTree = "<group>"; };
 		3164BEC52F333B6F00DD217B /* box.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = box.png; sourceTree = "<group>"; };
+		318658312F3C6F3F00CAC4AC /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
 		31C141412F31EF6700EF85BE /* icon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = icon.icon; sourceTree = "<group>"; };
 		31F66DD92F309B9D0068C3FB /* PackageTraker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PackageTraker.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		31F66DE62F309B9E0068C3FB /* PackageTrakerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PackageTrakerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -119,6 +121,7 @@
 				31FB3D692F39959A00104C5C /* FirebaseMessaging in Frameworks */,
 				31FB3D652F39959A00104C5C /* FirebaseAuth in Frameworks */,
 				31FB3D672F39959A00104C5C /* FirebaseFirestore in Frameworks */,
+				318658322F3C6F3F00CAC4AC /* StoreKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -163,6 +166,14 @@
 			path = Logo;
 			sourceTree = "<group>";
 		};
+		318658302F3C6F3F00CAC4AC /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				318658312F3C6F3F00CAC4AC /* StoreKit.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		31F66DD02F309B9D0068C3FB = {
 			isa = PBXGroup;
 			children = (
@@ -174,6 +185,7 @@
 				31F66DDB2F309B9D0068C3FB /* PackageTraker */,
 				31F66DE92F309B9E0068C3FB /* PackageTrakerTests */,
 				31F66DF32F309B9E0068C3FB /* PackageTrakerUITests */,
+				318658302F3C6F3F00CAC4AC /* Frameworks */,
 				31F66DDA2F309B9D0068C3FB /* Products */,
 			);
 			sourceTree = "<group>";
@@ -522,6 +534,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = PackageTraker/PackageTraker.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 260210;
 				DEVELOPMENT_TEAM = 5353WH6FVX;
@@ -538,6 +551,7 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kenny.PackageTraker;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
@@ -554,6 +568,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = PackageTraker/PackageTraker.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 260210;
 				DEVELOPMENT_TEAM = 5353WH6FVX;
@@ -570,6 +585,7 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kenny.PackageTraker;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
