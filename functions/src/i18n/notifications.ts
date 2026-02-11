@@ -22,32 +22,32 @@ const statusTemplates: Record<string, Record<Lang, NotificationTemplate>> = {
   shipped: {
     "zh-Hant": {
       title: "包裹已出貨",
-      body: ({name}) => `${name} 已寄出`,
+      body: ({name}) => `${name} 已經寄出，預計幾天內送達`,
     },
     "zh-Hans": {
       title: "包裹已发货",
-      body: ({name}) => `${name} 已寄出`,
+      body: ({name}) => `${name} 已经寄出，预计几天内送达`,
     },
     en: {
       title: "Package Shipped",
-      body: ({name}) => `${name} has been shipped`,
+      body: ({name}) => `${name} has been shipped and will arrive in a few days`,
     },
   },
   arrivedAtStore: {
     "zh-Hant": {
-      title: "包裹已到達，請盡快取貨",
+      title: "包裹已到達，可以取貨了",
       body: ({name, location}) =>
-        location ? `${name} 已送達 ${location}，請記得取貨` : `${name} 已送達，請盡快取貨`,
+        location ? `${name} 已送達 ${location}，請記得前往取貨` : `${name} 已送達，請記得前往取貨`,
     },
     "zh-Hans": {
-      title: "包裹已到达，请尽快取货",
+      title: "包裹已到达，可以取货了",
       body: ({name, location}) =>
-        location ? `${name} 已送达 ${location}，请记得取货` : `${name} 已送达，请尽快取货`,
+        location ? `${name} 已送达 ${location}，请记得前往取货` : `${name} 已送达，请记得前往取货`,
     },
     en: {
-      title: "Package Arrived - Pick Up Now",
+      title: "Package Arrived - Ready for Pickup",
       body: ({name, location}) =>
-        location ? `${name} is ready at ${location}. Please pick it up soon` : `${name} is ready for pickup`,
+        location ? `${name} has arrived at ${location}. Please pick it up` : `${name} has arrived. Please pick it up`,
     },
   },
 };
@@ -70,32 +70,32 @@ interface DailyReminderTemplate {
 const dailyReminderTemplates: Record<Lang, DailyReminderTemplate> = {
   "zh-Hant": {
     single: {
-      title: "別讓包裹等太久",
+      title: "包裹提醒",
       body: ({name, location}) => `${name} 在 ${location} 等你取貨`,
     },
     multiple: {
-      title: "別讓包裹等太久",
-      body: (count) => `你有 ${count} 個包裹待取貨`,
+      title: "包裹提醒",
+      body: (count) => `你有 ${count} 個包裹等待取貨`,
     },
   },
   "zh-Hans": {
     single: {
-      title: "别让包裹等太久",
+      title: "包裹提醒",
       body: ({name, location}) => `${name} 在 ${location} 等你取货`,
     },
     multiple: {
-      title: "别让包裹等太久",
-      body: (count) => `你有 ${count} 个包裹待取货`,
+      title: "包裹提醒",
+      body: (count) => `你有 ${count} 个包裹等待取货`,
     },
   },
   en: {
     single: {
-      title: "Don't keep your package waiting",
+      title: "Package Reminder",
       body: ({name, location}) => `${name} is waiting at ${location}`,
     },
     multiple: {
-      title: "Don't keep your packages waiting",
-      body: (count) => `You have ${count} packages to pick up`,
+      title: "Package Reminder",
+      body: (count) => `You have ${count} packages waiting for pickup`,
     },
   },
 };
