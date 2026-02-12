@@ -69,6 +69,7 @@
 		3164BEB42F33153F00DD217B /* OKMart-Logo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OKMart-Logo.png"; sourceTree = "<group>"; };
 		3164BEB52F33153F00DD217B /* Shopee-Logo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Shopee-Logo.png"; sourceTree = "<group>"; };
 		3164BEC52F333B6F00DD217B /* box.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = box.png; sourceTree = "<group>"; };
+		3182A42C2F3D7C5C0038D096 /* Configuration.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = Configuration.storekit; sourceTree = "<group>"; };
 		318658312F3C6F3F00CAC4AC /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
 		31C141412F31EF6700EF85BE /* icon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = icon.icon; sourceTree = "<group>"; };
 		31F66DD92F309B9D0068C3FB /* PackageTraker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PackageTraker.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -177,6 +178,7 @@
 		31F66DD02F309B9D0068C3FB = {
 			isa = PBXGroup;
 			children = (
+				3182A42C2F3D7C5C0038D096 /* Configuration.storekit */,
 				31FB3D6A2F39967700104C5C /* GoogleService-Info.plist */,
 				3164BEC52F333B6F00DD217B /* box.png */,
 				3164BEB62F33153F00DD217B /* Logo */,

@@ -152,7 +152,7 @@ struct SettingsView: View {
             } message: {
                 Text(String(localized: "email.cannotOpenMessage") + " \(AppConfiguration.feedbackEmail)")
             }
-            .sheet(isPresented: $showPaywall) {
+            .fullScreenCover(isPresented: $showPaywall) {
                 PaywallView()
             }
             .sheet(isPresented: $showAccountDetail) {
@@ -225,9 +225,7 @@ struct SettingsView: View {
             // 下半部：訂閱方案資訊（灰底）
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(subscriptionManager.isPro
-                         ? String(localized: "settings.subscription.pro")
-                         : String(localized: "settings.subscription.free"))
+                    Text(subscriptionManager.subscriptionName)
                         .font(.subheadline)
                         .fontWeight(.semibold)
                         .foregroundStyle(.white)

@@ -125,7 +125,7 @@ struct AccountDetailView: View {
             .sheet(isPresented: $showEditSheet) {
                 EditProfileSheet(displayName: $cachedDisplayName, onSave: saveNickname)
             }
-            .sheet(isPresented: $showPaywall) {
+            .fullScreenCover(isPresented: $showPaywall) {
                 PaywallView()
             }
             .alert(String(localized: "settings.signOut.confirmTitle"), isPresented: $showSignOutAlert) {

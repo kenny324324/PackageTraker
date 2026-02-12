@@ -42,7 +42,7 @@ struct ThemeSettingsView: View {
         .navigationTitle(String(localized: "theme.title"))
         .navigationBarTitleDisplayMode(.inline)
         .preferredColorScheme(.dark)
-        .sheet(isPresented: $showPaywall) {
+        .fullScreenCover(isPresented: $showPaywall) {
             PaywallView()
         }
     }

@@ -363,7 +363,8 @@
 
 // Paywall
 "paywall.title" = "升級至 Pro";
-"paywall.headline" = "解鎖所有功能";
+"paywall.headline" = "取件吧 Pro";
+"paywall.subtitle" = "解鎖無廣告、無限追蹤等更多功能";
 "paywall.subheadline" = "無限包裹追蹤、AI 辨識、自訂主題與桌面小工具";
 "paywall.features" = "功能";
 "paywall.free" = "免費";
@@ -374,17 +375,33 @@
 "paywall.feature.ai" = "AI 辨識";
 "paywall.feature.widget" = "桌面小工具";
 "paywall.feature.push" = "推播通知";
+"paywall.feature.unlimitedTracking" = "無限次追蹤";
+"paywall.feature.pushNotifications" = "推播通知";
+"paywall.feature.icloudSync" = "iCloud 同步";
+"paywall.feature.widgets" = "主畫面小工具";
+"paywall.feature.aiScan" = "AI 掃描";
 "paywall.yearly" = "年繳";
 "paywall.monthly" = "月繳";
 "paywall.year" = "年";
 "paywall.month" = "月";
+"paywall.plan.lifetime" = "終身方案";
+"paywall.plan.yearly" = "年付方案";
+"paywall.plan.monthly" = "月付方案";
+"paywall.plan.oneTime" = "單次付費";
+"paywall.plan.lifetimeDesc" = "一次付清，永久擁有";
+"paywall.badge.bestValue" = "最超值";
+"paywall.trial" = "免費試用 3 天";
+"paywall.cancelAnytime" = "隨時可取消";
 "paywall.bestValue" = "最划算";
 "paywall.subscribe" = "立即訂閱";
+"paywall.button.lifetime" = "立即買斷";
+"paywall.button.trial" = "開始免費試用";
+"paywall.button.subscribe" = "立即訂閱";
 "paywall.restore" = "恢復購買";
 "paywall.restoreSuccess" = "已恢復購買";
 "paywall.error" = "購買失敗";
 "paywall.loadingProducts" = "載入方案中...";
-"paywall.termsNote" = "付款將從您的 Apple ID 帳號扣款。訂閱將自動續訂，除非在到期前 24 小時取消。";
+"paywall.termsNote" = "自動續訂訂閱，隨時可取消。";
 "paywall.terms" = "服務條款";
 "paywall.privacy" = "隱私政策";
 

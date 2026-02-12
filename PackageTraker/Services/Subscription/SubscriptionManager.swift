@@ -27,6 +27,9 @@ class SubscriptionManager: ObservableObject {
     /// 當前訂閱層級
     @Published private(set) var currentTier: SubscriptionTier = .free
 
+    /// 當前訂閱產品 ID（用於顯示 Monthly/Yearly）
+    @Published private(set) var currentProductID: String?
+
     /// StoreKit 產品（月費 / 年費）
     @Published private(set) var products: [Product] = []
 
@@ -43,6 +46,26 @@ class SubscriptionManager: ObservableObject {
     var hasAIAccess: Bool { isPro }
     var hasAllThemes: Bool { isPro }
 
+    /// 訂閱名稱（顯示用）
+    var subscriptionName: String {
+        if !isPro {
+            return String(localized: "settings.subscription.free")
+        }
+
+        if let productID = currentProductID {
+            if productID == SubscriptionProductID.monthly.rawValue {
+                return "Pro Monthly"
+            } else if productID == SubscriptionProductID.yearly.rawValue {
+                return "Pro Yearly"
+            } else if productID == SubscriptionProductID.lifetime.rawValue {
+                return "Pro Lifetime"
+            }
+        }
+
+        // 舊用戶或未知產品，顯示通用 Pro
+        return String(localized: "settings.subscription.pro")
+    }
+
     /// 月費產品
     var monthlyProduct: Product? {
         products.first { $0.id == SubscriptionProductID.monthly.rawValue }
@@ -51,6 +74,11 @@ class SubscriptionManager: ObservableObject {
     /// 年費產品
     var yearlyProduct: Product? {
         products.first { $0.id == SubscriptionProductID.yearly.rawValue }
+    }
+
+    /// 買斷產品
+    var lifetimeProduct: Product? {
+        products.first { $0.id == SubscriptionProductID.lifetime.rawValue }
     }
 
     // MARK: - Private
@@ -65,6 +93,9 @@ class SubscriptionManager: ObservableObject {
            let tier = SubscriptionTier(rawValue: cached) {
             currentTier = tier
         }
+
+        // 讀取產品 ID 快取
+        currentProductID = UserDefaults.standard.string(forKey: "subscriptionProductID")
 
         // 啟動交易監聽
         transactionListener = listenForTransactions()
@@ -86,11 +117,16 @@ class SubscriptionManager: ObservableObject {
     func loadProducts() async {
         do {
             let ids = SubscriptionProductID.allCases.map(\.rawValue)
+            print("[Subscription] Requesting products: \(ids)")
             let storeProducts = try await Product.products(for: Set(ids))
             // 月費排前面
             products = storeProducts.sorted { $0.price < $1.price }
+            print("[Subscription] ✅ Loaded \(products.count) products:")
+            for product in products {
+                print("  - \(product.id): \(product.displayPrice)")
+            }
         } catch {
-            print("[Subscription] Failed to load products: \(error.localizedDescription)")
+            print("[Subscription] ❌ Failed to load products: \(error.localizedDescription)")
         }
     }
 
@@ -107,6 +143,7 @@ class SubscriptionManager: ObservableObject {
                 let transaction = try checkVerified(verification)
                 await updateTier(from: transaction)
                 await transaction.finish()
+                print("[Subscription] Purchase successful: \(transaction.productID)")
                 return true
 
             case .userCancelled:
@@ -137,19 +174,23 @@ class SubscriptionManager: ObservableObject {
     /// 驗證當前權益
     func checkEntitlements() async {
         var hasPro = false
+        var productID: String?
 
         for await result in StoreTransaction.currentEntitlements {
             if let transaction = try? checkVerified(result) {
                 if SubscriptionProductID.allCases.map(\.rawValue).contains(transaction.productID) {
                     hasPro = true
+                    productID = transaction.productID
                 }
             }
         }
 
         let newTier: SubscriptionTier = hasPro ? .pro : .free
-        if currentTier != newTier {
+        if currentTier != newTier || currentProductID != productID {
             currentTier = newTier
+            currentProductID = productID
             persistTier(newTier)
+            persistProductID(productID)
             syncToFirestore(newTier)
         }
     }
@@ -158,20 +199,24 @@ class SubscriptionManager: ObservableObject {
 
     #if DEBUG
     /// 開發測試用：直接設定訂閱層級（跳過 StoreKit）
-    func debugSetTier(_ tier: SubscriptionTier) {
+    func debugSetTier(_ tier: SubscriptionTier, productID: String? = nil) {
         currentTier = tier
+        currentProductID = productID
         persistTier(tier)
+        persistProductID(productID)
         syncToFirestore(tier)
-        print("[Subscription] Debug set tier: \(tier.rawValue)")
+        print("[Subscription] Debug set tier: \(tier.rawValue), productID: \(productID ?? "nil")")
     }
     #endif
 
     /// 模擬購買成功（在 StoreKit 產品尚未設定時使用）
-    func mockPurchase() {
+    func mockPurchase(productID: String = SubscriptionProductID.yearly.rawValue) {
         currentTier = .pro
+        currentProductID = productID
         persistTier(.pro)
+        persistProductID(productID)
         syncToFirestore(.pro)
-        print("[Subscription] Mock purchase succeeded")
+        print("[Subscription] Mock purchase succeeded: \(productID)")
     }
 
     // MARK: - Private Methods
@@ -205,27 +250,38 @@ class SubscriptionManager: ObservableObject {
         if productIds.contains(transaction.productID) {
             if transaction.revocationDate != nil {
                 // 已撤銷
-                setTier(.free)
+                setTier(.free, productID: nil)
             } else if transaction.expirationDate != nil,
                       transaction.expirationDate! < Date() {
                 // 已過期
-                setTier(.free)
+                setTier(.free, productID: nil)
             } else {
-                setTier(.pro)
+                setTier(.pro, productID: transaction.productID)
             }
         }
     }
 
-    private func setTier(_ tier: SubscriptionTier) {
-        guard currentTier != tier else { return }
+    private func setTier(_ tier: SubscriptionTier, productID: String?) {
+        guard currentTier != tier || currentProductID != productID else { return }
         currentTier = tier
+        currentProductID = productID
         persistTier(tier)
+        persistProductID(productID)
         syncToFirestore(tier)
     }
 
     /// 本地快取
     private func persistTier(_ tier: SubscriptionTier) {
         UserDefaults.standard.set(tier.rawValue, forKey: "subscriptionTier")
+    }
+
+    /// 本地快取產品 ID
+    private func persistProductID(_ productID: String?) {
+        if let productID {
+            UserDefaults.standard.set(productID, forKey: "subscriptionProductID")
+        } else {
+            UserDefaults.standard.removeObject(forKey: "subscriptionProductID")
+        }
     }
 
     /// 同步到 Firestore（fire-and-forget）

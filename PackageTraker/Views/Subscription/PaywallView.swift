@@ -20,28 +20,93 @@ struct PaywallView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 28) {
-                    headerSection
-                    featureComparisonSection
-                    productCardsSection
-                    purchaseButton
-                    footerSection
+            ZStack {
+                // 背景
+                Color.appBackground.ignoresSafeArea()
+
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 32) {
+                        // Header
+                        headerSection
+                            .padding(.top, 20)
+
+                        // 功能列表 (Grid)
+                        featureGridSection
+                            .padding(.horizontal, 20)
+
+                        // 訂閱方案選擇
+                        planSelectionSection
+                    }
+                    .padding(.bottom, 200) // Space for bottom button area
                 }
-                .padding(.horizontal)
-                .padding(.top, 8)
-                .padding(.bottom, 40)
+
+                // 固定在底部的訂閱按鈕
+                VStack(spacing: 0) {
+                    Spacer()
+                    
+                    // 底部區域背景
+                    VStack(spacing: 0) {
+                        // Terms text
+                        Text(String(localized: "paywall.termsNote"))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .padding(.bottom, 16)
+                        
+                        subscribeButton
+                        
+                        // Restore Purchase Button
+                        Button {
+                            isRestoring = true
+                            Task {
+                                await subscriptionManager.restorePurchases()
+                                isRestoring = false
+                                if subscriptionManager.isPro {
+                                    showRestoreSuccess = true
+                                }
+                            }
+                        } label: {
+                            if isRestoring {
+                                ProgressView()
+                                    .tint(.secondary)
+                                    .scaleEffect(0.8)
+                            } else {
+                                Text(String(localized: "paywall.restore"))
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                                    .foregroundStyle(.white.opacity(0.4))
+                            }
+                        }
+                        .disabled(isRestoring)
+                        .padding(.top, 16)
+                    }
+                    .padding(20)
+                    .background(
+                        Group {
+                            if #available(iOS 26, *) {
+                                Rectangle()
+                                    .fill(.clear)
+                                    .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+                            } else {
+                                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                                    .fill(.ultraThinMaterial)
+                            }
+                        }
+                    )
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 16)
+                    .shadow(color: .black.opacity(0.2), radius: 20, x: 0, y: 10)
+                }
             }
-            .adaptiveBackground()
             .navigationTitle(String(localized: "paywall.title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .topBarLeading) {
                     Button {
                         dismiss()
                     } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
+                        Image(systemName: "xmark")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(.white.opacity(0.8))
                     }
                 }
             }
@@ -60,296 +125,333 @@ struct PaywallView: View {
                 }
             }
             .onAppear {
-                // 預設選年費
+                // 預設選 Lifetime
                 if selectedProduct == nil {
-                    selectedProduct = subscriptionManager.yearlyProduct ?? subscriptionManager.monthlyProduct
+                    selectedProduct = subscriptionManager.lifetimeProduct
+                        ?? subscriptionManager.yearlyProduct
+                        ?? subscriptionManager.monthlyProduct
                 }
             }
         }
         .preferredColorScheme(.dark)
     }
 
-    // MARK: - Header
+    // MARK: - Header Section
 
     private var headerSection: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "crown.fill")
-                .font(.system(size: 48))
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [.yellow, .orange],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
+        VStack(spacing: 16) {
+            // Premium Icon
+            ZStack {
+                // Glow effect
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.yellow.opacity(0.3), Color.orange.opacity(0.1)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
                     )
-                )
+                    .frame(width: 140, height: 140)
+                    .blur(radius: 20)
 
-            Text(String(localized: "paywall.headline"))
-                .font(.title2)
-                .fontWeight(.bold)
-                .foregroundStyle(.white)
+                // Icon
+                Image("SplashIcon")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 100, height: 100)
+                    .shadow(color: .orange.opacity(0.3), radius: 5, x: 0, y: 2)
+            }
 
-            Text(String(localized: "paywall.subheadline"))
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-        }
-        .padding(.top, 16)
-    }
-
-    // MARK: - Feature Comparison
-
-    private var featureComparisonSection: some View {
-        VStack(spacing: 0) {
-            // 標題列
-            HStack {
-                Text(String(localized: "paywall.features"))
-                    .font(.headline)
-                    .foregroundStyle(.white)
-                Spacer()
-                Text(String(localized: "paywall.free"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .frame(width: 50)
-                Text(String(localized: "paywall.pro"))
-                    .font(.caption)
+            VStack(spacing: 8) {
+                Text(String(localized: "paywall.headline"))
+                    .font(.largeTitle)
                     .fontWeight(.bold)
-                    .foregroundStyle(.yellow)
-                    .frame(width: 50)
-            }
-            .padding(16)
-
-            Divider().background(Color.white.opacity(0.1))
-
-            featureRow(String(localized: "paywall.feature.packages"), free: "5", pro: "∞")
-            Divider().background(Color.white.opacity(0.1))
-            featureRow(String(localized: "paywall.feature.themes"), free: "1", pro: "8")
-            Divider().background(Color.white.opacity(0.1))
-            featureRow(String(localized: "paywall.feature.ocr"), freeCheck: true, proCheck: true)
-            Divider().background(Color.white.opacity(0.1))
-            featureRow(String(localized: "paywall.feature.ai"), freeCheck: false, proCheck: true)
-            Divider().background(Color.white.opacity(0.1))
-            featureRow(String(localized: "paywall.feature.widget"), freeCheck: false, proCheck: true)
-            Divider().background(Color.white.opacity(0.1))
-            featureRow(String(localized: "paywall.feature.push"), freeCheck: true, proCheck: true)
-        }
-        .background(Color.secondaryCardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-    }
-
-    private func featureRow(_ title: String, free: String? = nil, pro: String? = nil, freeCheck: Bool? = nil, proCheck: Bool? = nil) -> some View {
-        HStack {
-            Text(title)
-                .font(.subheadline)
-                .foregroundStyle(.white)
-
-            Spacer()
-
-            if let free = free {
-                Text(free)
-                    .font(.subheadline)
+                    .foregroundStyle(.white)
+                
+                Text(String(localized: "paywall.subtitle"))
+                    .font(.body)
                     .foregroundStyle(.secondary)
-                    .frame(width: 50)
-            } else if let check = freeCheck {
-                Image(systemName: check ? "checkmark" : "xmark")
-                    .font(.caption)
-                    .foregroundStyle(check ? .green : .secondary.opacity(0.5))
-                    .frame(width: 50)
-            }
-
-            if let pro = pro {
-                Text(pro)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.yellow)
-                    .frame(width: 50)
-            } else if let check = proCheck {
-                Image(systemName: check ? "checkmark" : "xmark")
-                    .font(.caption)
-                    .foregroundStyle(check ? .green : .secondary.opacity(0.5))
-                    .frame(width: 50)
-            }
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-    }
-
-    // MARK: - Product Cards
-
-    private var productCardsSection: some View {
-        VStack(spacing: 12) {
-            if let yearly = subscriptionManager.yearlyProduct {
-                productCard(yearly, badge: String(localized: "paywall.bestValue"))
-            }
-            if let monthly = subscriptionManager.monthlyProduct {
-                productCard(monthly, badge: nil)
-            }
-
-            if subscriptionManager.products.isEmpty {
-                Text(String(localized: "paywall.loadingProducts"))
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .padding(.vertical, 20)
+                    .multilineTextAlignment(.center)
             }
         }
     }
 
-    private func productCard(_ product: Product, badge: String?) -> some View {
+    // MARK: - Plan Selection Section
+
+    private var planSelectionSection: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 16) {
+                // Lifetime (Special Design)
+                if let lifetime = subscriptionManager.lifetimeProduct {
+                    lifetimePlanCard(product: lifetime)
+                }
+
+                // Yearly
+                if let yearly = subscriptionManager.yearlyProduct {
+                    standardPlanCard(product: yearly, badge: String(localized: "paywall.badge.bestValue"), subtitle: String(localized: "paywall.trial"))
+                }
+
+                // Monthly
+                if let monthly = subscriptionManager.monthlyProduct {
+                    standardPlanCard(product: monthly, badge: nil, subtitle: String(localized: "paywall.cancelAnytime"))
+                }
+            }
+            .padding(.horizontal, 20)
+        }
+    }
+    
+    // MARK: - Lifetime Card
+    
+    private func lifetimePlanCard(product: Product) -> some View {
         let isSelected = selectedProduct?.id == product.id
 
         return Button {
-            withAnimation(.easeInOut(duration: 0.2)) {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                 selectedProduct = product
             }
         } label: {
-            HStack(spacing: 16) {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 8) {
-                        Text(product.id == SubscriptionProductID.yearly.rawValue
-                             ? String(localized: "paywall.yearly")
-                             : String(localized: "paywall.monthly"))
-                            .font(.headline)
-                            .foregroundStyle(.white)
+            VStack(alignment: .leading, spacing: 6) {
+                // Header with radio button
+                HStack(alignment: .top) {
+                    Text(String(localized: "paywall.plan.lifetime"))
+                        .font(.subheadline)
+                        .fontWeight(.bold)
+                        .foregroundStyle(.black)
 
-                        if let badge {
-                            Text(badge)
-                                .font(.caption2)
-                                .fontWeight(.bold)
-                                .foregroundStyle(.black)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 3)
-                                .background(Color.yellow)
-                                .clipShape(Capsule())
+                    Spacer()
+
+                    // Radio button
+                    ZStack {
+                        Circle()
+                            .stroke(isSelected ? Color.black : Color.black.opacity(0.3), lineWidth: 2)
+                            .frame(width: 20, height: 20)
+
+                        if isSelected {
+                            Circle()
+                                .fill(Color.black)
+                                .frame(width: 12, height: 12)
                         }
                     }
-
-                    Text(product.displayPrice + periodSuffix(product))
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
                 }
 
-                Spacer()
+                // One-time badge
+                Text(String(localized: "paywall.plan.oneTime"))
+                    .font(.system(size: 10))
+                    .fontWeight(.semibold)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 1)
+                    .background(Color.black.opacity(0.2))
+                    .clipShape(Capsule())
+                    .foregroundStyle(.black)
 
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .font(.title2)
-                    .foregroundStyle(isSelected ? .yellow : .secondary)
+                // Description
+                Text(String(localized: "paywall.plan.lifetimeDesc"))
+                    .font(.system(size: 11))
+                    .foregroundStyle(.black.opacity(0.7))
+                    .lineLimit(2)
+
+                // Price
+                Text(product.displayPrice)
+                    .font(.title3)
+                    .fontWeight(.bold)
+                    .foregroundStyle(.black)
             }
-            .padding(16)
-            .background(isSelected ? Color.yellow.opacity(0.08) : Color.secondaryCardBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .frame(width: 140)
+            .padding(14)
+            .background(
+                LinearGradient(
+                    colors: [Color(hex: "FFD700"), Color(hex: "FFA500")],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 20))
             .overlay(
-                RoundedRectangle(cornerRadius: 14)
-                    .stroke(isSelected ? Color.yellow.opacity(0.5) : .clear, lineWidth: 2)
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(Color.white.opacity(0.3), lineWidth: 1)
+            )
+            .shadow(color: .orange.opacity(isSelected ? 0.4 : 0), radius: 10, x: 0, y: 5)
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - Standard Plan Card
+    
+    private func standardPlanCard(product: Product, badge: String?, subtitle: String) -> some View {
+        let isSelected = selectedProduct?.id == product.id
+        let title = product.id == SubscriptionProductID.yearly.rawValue
+            ? String(localized: "paywall.plan.yearly")
+            : String(localized: "paywall.plan.monthly")
+
+        return Button {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                selectedProduct = product
+            }
+        } label: {
+            VStack(alignment: .leading, spacing: 6) {
+                // Header with radio button
+                HStack(alignment: .top) {
+                    Text(title)
+                        .font(.subheadline)
+                        .fontWeight(.bold)
+                        .foregroundStyle(.white)
+
+                    Spacer()
+
+                    // Radio
+                    ZStack {
+                        Circle()
+                            .stroke(isSelected ? Color.yellow : Color.gray.opacity(0.3), lineWidth: 2)
+                            .frame(width: 20, height: 20)
+
+                        if isSelected {
+                            Circle()
+                                .fill(Color.yellow)
+                                .frame(width: 12, height: 12)
+                        }
+                    }
+                }
+
+                // Badge or placeholder (to maintain consistent height)
+                if let badge {
+                    Text(badge)
+                        .font(.system(size: 10))
+                        .fontWeight(.bold)
+                        .foregroundStyle(.black)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 1)
+                        .background(Color.yellow)
+                        .clipShape(Capsule())
+                } else {
+                    // Transparent placeholder
+                    Text(" ")
+                        .font(.system(size: 10))
+                        .fontWeight(.bold)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 1)
+                        .opacity(0)
+                }
+
+                // Description
+                Text(subtitle)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+
+                // Price with period on the right
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Text(product.displayPrice)
+                        .font(.title3)
+                        .fontWeight(.bold)
+                        .foregroundStyle(.white)
+
+                    Text("/ \(title.lowercased())")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+
+                    Spacer()
+                }
+            }
+            .frame(width: 140)
+            .padding(14)
+            .background(Color.secondaryCardBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 20))
+            .overlay(
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(isSelected ? Color.yellow : Color.clear, lineWidth: 2)
             )
         }
         .buttonStyle(.plain)
     }
 
-    private func periodSuffix(_ product: Product) -> String {
-        if product.id == SubscriptionProductID.yearly.rawValue {
-            return " / " + String(localized: "paywall.year")
+    // MARK: - Feature List Section (Grid)
+
+    private var featureGridSection: some View {
+        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
+            featureItem(icon: "shippingbox.fill", title: String(localized: "paywall.feature.unlimitedTracking"))
+            featureItem(icon: "bell.badge.fill", title: String(localized: "paywall.feature.pushNotifications"))
+            featureItem(icon: "icloud.fill", title: String(localized: "paywall.feature.icloudSync"))
+            featureItem(icon: "apps.iphone", title: String(localized: "paywall.feature.widgets"))
+            featureItem(icon: "paintpalette.fill", title: String(localized: "paywall.feature.themes"))
+            featureItem(icon: "scanner", title: String(localized: "paywall.feature.aiScan"))
         }
-        return " / " + String(localized: "paywall.month")
+    }
+    
+    private func featureItem(icon: String, title: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 16))
+                .foregroundStyle(.yellow)
+                .frame(width: 24, height: 24)
+                .background(Color.yellow.opacity(0.1))
+                .clipShape(Circle())
+            
+            Text(title)
+                .font(.caption)
+                .fontWeight(.medium)
+                .foregroundStyle(.white.opacity(0.9))
+            
+            Spacer()
+        }
+        .padding(12)
+        .background(Color.white.opacity(0.05))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
-    // MARK: - Purchase Button
+    // MARK: - Subscribe Button
 
-    private var purchaseButton: some View {
-        VStack(spacing: 12) {
-            Button {
-                if let product = selectedProduct {
-                    // 有 StoreKit 產品：正式購買流程
-                    Task {
-                        let success = await subscriptionManager.purchase(product)
-                        if success { dismiss() }
-                        if subscriptionManager.errorMessage != nil { showError = true }
-                    }
-                } else {
-                    // 沒有 StoreKit 產品：mock 購買
-                    subscriptionManager.mockPurchase()
-                    dismiss()
-                }
-            } label: {
-                HStack {
-                    if subscriptionManager.isPurchasing {
-                        ProgressView()
-                            .tint(.black)
-                    }
-                    Text(String(localized: "paywall.subscribe"))
-                        .fontWeight(.bold)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(
-                    LinearGradient(
-                        colors: [.yellow, .orange],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
-                .foregroundStyle(.black)
-                .clipShape(RoundedRectangle(cornerRadius: 14))
-            }
-            .disabled(subscriptionManager.isPurchasing)
-
-            // 恢復購買
-            Button {
-                isRestoring = true
+    private var subscribeButton: some View {
+        Button {
+            if let product = selectedProduct {
                 Task {
-                    await subscriptionManager.restorePurchases()
-                    isRestoring = false
-                    if subscriptionManager.isPro {
-                        showRestoreSuccess = true
-                    }
+                    let success = await subscriptionManager.purchase(product)
+                    if success { dismiss() }
+                    if subscriptionManager.errorMessage != nil { showError = true }
                 }
-            } label: {
-                if isRestoring {
+            } else {
+                subscriptionManager.mockPurchase()
+                dismiss()
+            }
+        } label: {
+            ZStack {
+                if subscriptionManager.isPurchasing {
                     ProgressView()
-                        .scaleEffect(0.8)
+                        .tint(.black)
                 } else {
-                    Text(String(localized: "paywall.restore"))
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                    Text(actionButtonTitle)
+                        .fontWeight(.bold)
+                        .font(.headline)
                 }
             }
-            .disabled(isRestoring)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .background(
+                LinearGradient(
+                    colors: [.yellow, .orange],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
+            .foregroundStyle(.black)
+            .clipShape(Capsule())
         }
+        .disabled(subscriptionManager.isPurchasing)
     }
-
-    // MARK: - Footer
-
-    private var footerSection: some View {
-        VStack(spacing: 8) {
-            Text(String(localized: "paywall.termsNote"))
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-
-            HStack(spacing: 16) {
-                Button {
-                    if let url = URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/") {
-                        UIApplication.shared.open(url)
-                    }
-                } label: {
-                    Text(String(localized: "paywall.terms"))
-                        .font(.caption2)
-                        .foregroundStyle(.blue)
-                }
-
-                Button {
-                    if let url = URL(string: "https://ripe-cereal-4f9.notion.site/Privacy-Policy-302341fcbfde81d589a2e4ba6713b911") {
-                        UIApplication.shared.open(url)
-                    }
-                } label: {
-                    Text(String(localized: "paywall.privacy"))
-                        .font(.caption2)
-                        .foregroundStyle(.blue)
-                }
-            }
+    
+    private var actionButtonTitle: String {
+        guard let product = selectedProduct else { return String(localized: "paywall.button.subscribe") }
+        if product.id == SubscriptionProductID.lifetime.rawValue {
+            return String(localized: "paywall.button.lifetime")
+        } else if product.id == SubscriptionProductID.yearly.rawValue {
+            return String(localized: "paywall.button.trial")
+        } else {
+            return String(localized: "paywall.button.subscribe")
         }
     }
 }
 
-// MARK: - Preview
+// Helper for Hex Colors
+// (Moved to Extensions/Color+Theme.swift)
 
 #Preview {
     PaywallView()

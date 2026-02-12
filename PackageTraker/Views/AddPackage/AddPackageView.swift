@@ -120,7 +120,7 @@ struct AddPackageView: View {
                     .presentationDetents([.medium, .large])
                 }
             }
-            .sheet(isPresented: $showPaywall) {
+            .fullScreenCover(isPresented: $showPaywall) {
                 PaywallView()
             }
             .sheet(isPresented: $showAIResultSheet) {

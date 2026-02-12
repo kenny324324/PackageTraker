@@ -17,4 +17,5 @@ enum SubscriptionTier: String, Codable {
 enum SubscriptionProductID: String, CaseIterable {
     case monthly = "com.kenny.PackageTraker.pro.monthly"
     case yearly = "com.kenny.PackageTraker.pro.yearly"
+    case lifetime = "com.kenny.PackageTraker.pro.lifetime"
 }
