@@ -100,7 +100,7 @@
             }
           ],
           "productID" : "com.kenny.PackageTraker.pro.yearly",
-          "recurringSubscriptionPeriod" : "P1M",
+          "recurringSubscriptionPeriod" : "P1Y",
           "referenceName" : "Pro Yearly",
           "subscriptionGroupID" : "915FCA84",
           "type" : "RecurringSubscription",
