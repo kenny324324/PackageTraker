@@ -248,7 +248,7 @@ struct SettingsView: View {
                         .padding(.vertical, 3)
                         .background(
                             LinearGradient(
-                                colors: [.orange, .purple],
+                                colors: [.yellow, .orange],
                                 startPoint: .leading,
                                 endPoint: .trailing
                             )
@@ -268,7 +268,7 @@ struct SettingsView: View {
             RoundedRectangle(cornerRadius: 20)
                 .stroke(
                     LinearGradient(
-                        colors: [.orange, .purple],
+                        colors: [.yellow, .orange],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),
@@ -276,11 +276,11 @@ struct SettingsView: View {
                 )
         )
         .shadow(
-            color: subscriptionManager.isPro ? .purple.opacity(0.3) : .clear,
+            color: subscriptionManager.isPro ? .yellow.opacity(0.2) : .clear,
             radius: 8, x: 0, y: 2
         )
         .shadow(
-            color: subscriptionManager.isPro ? .orange.opacity(0.2) : .clear,
+            color: subscriptionManager.isPro ? .orange.opacity(0.3) : .clear,
             radius: 12, x: 0, y: 0
         )
     }

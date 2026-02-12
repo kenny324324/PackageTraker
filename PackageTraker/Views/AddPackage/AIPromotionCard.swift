@@ -57,7 +57,7 @@ struct AIPromotionCard: View {
                                 .padding(.vertical, 2)
                                 .background(
                                     LinearGradient(
-                                        colors: [.orange, .purple],
+                                        colors: [.yellow, .orange],
                                         startPoint: .leading,
                                         endPoint: .trailing
                                     )

@@ -364,11 +364,26 @@
 // Paywall
 "paywall.title" = "升级至 Pro";
 "paywall.headline" = "取件吧 Pro";
-"paywall.subtitle" = "解锁无广告、无限追踪等更多功能";
+"paywall.subtitle" = "无限包裹追踪、AI 识别、自定义主题与桌面小组件";
 "paywall.subheadline" = "无限包裹追踪、AI 识别、自定义主题与桌面小组件";
 "paywall.features" = "功能";
 "paywall.free" = "免费";
 "paywall.pro" = "Pro";
+"paywall.comparison.title" = "功能比较";
+"paywall.comparison.free" = "免费版";
+"paywall.comparison.pro" = "Pro 版";
+"paywall.comparison.packages" = "包裹数量";
+"paywall.comparison.packages.free" = "最多 5 个";
+"paywall.comparison.packages.pro" = "无限制";
+"paywall.comparison.themes" = "主题颜色";
+"paywall.comparison.themes.free" = "1 种";
+"paywall.comparison.themes.pro" = "全部解锁";
+"paywall.comparison.ai" = "AI 截图识别";
+"paywall.comparison.ai.free" = "—";
+"paywall.comparison.ai.pro" = "✓";
+"paywall.comparison.widget" = "桌面小组件";
+"paywall.comparison.widget.free" = "小型";
+"paywall.comparison.widget.pro" = "全尺寸";
 "paywall.feature.packages" = "包裹数量";
 "paywall.feature.themes" = "主题颜色";
 "paywall.feature.ocr" = "截图识别";

@@ -30,8 +30,8 @@ struct PaywallView: View {
                         headerSection
                             .padding(.top, 20)
 
-                        // 功能列表 (Grid)
-                        featureGridSection
+                        // 功能比較表
+                        featureComparisonSection
                             .padding(.horizontal, 20)
 
                         // 訂閱方案選擇
@@ -364,38 +364,127 @@ struct PaywallView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - Feature List Section (Grid)
+    // MARK: - Feature Comparison Section
 
-    private var featureGridSection: some View {
-        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
-            featureItem(icon: "shippingbox.fill", title: String(localized: "paywall.feature.unlimitedTracking"))
-            featureItem(icon: "bell.badge.fill", title: String(localized: "paywall.feature.pushNotifications"))
-            featureItem(icon: "icloud.fill", title: String(localized: "paywall.feature.icloudSync"))
-            featureItem(icon: "apps.iphone", title: String(localized: "paywall.feature.widgets"))
-            featureItem(icon: "paintpalette.fill", title: String(localized: "paywall.feature.themes"))
-            featureItem(icon: "scanner", title: String(localized: "paywall.feature.aiScan"))
+    private var featureComparisonSection: some View {
+        VStack(spacing: 0) {
+            // Title
+            Text(String(localized: "paywall.comparison.title"))
+                .font(.headline)
+                .fontWeight(.bold)
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 16)
+
+            // Comparison Table
+            VStack(spacing: 0) {
+                // Header Row
+                HStack(spacing: 0) {
+                    Text("")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.leading, 16)
+
+                    Text(String(localized: "paywall.comparison.free"))
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.secondary)
+                        .frame(width: 80)
+
+                    Text(String(localized: "paywall.comparison.pro"))
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.yellow)
+                        .frame(width: 80)
+                }
+                .padding(.vertical, 12)
+                .background(Color.white.opacity(0.03))
+
+                Divider().background(Color.white.opacity(0.1))
+
+                // Feature Rows
+                comparisonRow(
+                    icon: "shippingbox.fill",
+                    feature: String(localized: "paywall.comparison.packages"),
+                    freeValue: String(localized: "paywall.comparison.packages.free"),
+                    proValue: String(localized: "paywall.comparison.packages.pro")
+                )
+
+                Divider().background(Color.white.opacity(0.1))
+
+                comparisonRow(
+                    icon: "paintpalette.fill",
+                    feature: String(localized: "paywall.comparison.themes"),
+                    freeValue: String(localized: "paywall.comparison.themes.free"),
+                    proValue: String(localized: "paywall.comparison.themes.pro")
+                )
+
+                Divider().background(Color.white.opacity(0.1))
+
+                comparisonRow(
+                    icon: "sparkles",
+                    feature: String(localized: "paywall.comparison.ai"),
+                    freeValue: String(localized: "paywall.comparison.ai.free"),
+                    proValue: String(localized: "paywall.comparison.ai.pro"),
+                    isCheckmark: true
+                )
+
+                Divider().background(Color.white.opacity(0.1))
+
+                comparisonRow(
+                    icon: "apps.iphone",
+                    feature: String(localized: "paywall.comparison.widget"),
+                    freeValue: String(localized: "paywall.comparison.widget.free"),
+                    proValue: String(localized: "paywall.comparison.widget.pro")
+                )
+            }
+            .background(Color.white.opacity(0.05))
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
+            )
         }
     }
-    
-    private func featureItem(icon: String, title: String) -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: icon)
-                .font(.system(size: 16))
-                .foregroundStyle(.yellow)
-                .frame(width: 24, height: 24)
-                .background(Color.yellow.opacity(0.1))
-                .clipShape(Circle())
-            
-            Text(title)
+
+    private func comparisonRow(icon: String, feature: String, freeValue: String, proValue: String, isCheckmark: Bool = false) -> some View {
+        HStack(spacing: 0) {
+            // Feature name with icon
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.system(size: 14))
+                    .foregroundStyle(.yellow)
+                    .frame(width: 20)
+
+                Text(feature)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundStyle(.white)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.leading, 16)
+
+            // Free value
+            Text(freeValue)
                 .font(.caption)
-                .fontWeight(.medium)
-                .foregroundStyle(.white.opacity(0.9))
-            
-            Spacer()
+                .foregroundStyle(.secondary)
+                .frame(width: 80)
+
+            // Pro value
+            if isCheckmark {
+                Text(proValue)
+                    .font(.body)
+                    .foregroundStyle(.yellow)
+                    .frame(width: 80)
+            } else {
+                Text(proValue)
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.yellow)
+                    .frame(width: 80)
+            }
         }
-        .padding(12)
-        .background(Color.white.opacity(0.05))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .padding(.vertical, 16)
     }
 
     // MARK: - Subscribe Button

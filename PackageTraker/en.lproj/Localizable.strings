@@ -365,11 +365,26 @@
 // Paywall
 "paywall.title" = "Upgrade to Pro";
 "paywall.headline" = "Unlock Pickup Pro";
-"paywall.subtitle" = "Remove ads, unlimited tracking, and more.";
+"paywall.subtitle" = "Unlimited tracking, AI recognition, themes, and widgets";
 "paywall.subheadline" = "Track unlimited packages with AI recognition, custom themes, and widgets";
 "paywall.features" = "Features";
 "paywall.free" = "Free";
 "paywall.pro" = "Pro";
+"paywall.comparison.title" = "Feature Comparison";
+"paywall.comparison.free" = "Free";
+"paywall.comparison.pro" = "Pro";
+"paywall.comparison.packages" = "Package Limit";
+"paywall.comparison.packages.free" = "Up to 5";
+"paywall.comparison.packages.pro" = "Unlimited";
+"paywall.comparison.themes" = "Themes";
+"paywall.comparison.themes.free" = "1 Theme";
+"paywall.comparison.themes.pro" = "All Unlocked";
+"paywall.comparison.ai" = "AI Screenshot";
+"paywall.comparison.ai.free" = "—";
+"paywall.comparison.ai.pro" = "✓";
+"paywall.comparison.widget" = "Home Widget";
+"paywall.comparison.widget.free" = "Small";
+"paywall.comparison.widget.pro" = "All Sizes";
 "paywall.feature.packages" = "Packages";
 "paywall.feature.themes" = "Premium Themes";
 "paywall.feature.ocr" = "Screenshot OCR";

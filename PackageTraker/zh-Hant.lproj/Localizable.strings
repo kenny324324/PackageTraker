@@ -364,8 +364,23 @@
 // Paywall
 "paywall.title" = "升級至 Pro";
 "paywall.headline" = "取件吧 Pro";
-"paywall.subtitle" = "解鎖無廣告、無限追蹤等更多功能";
+"paywall.subtitle" = "無限包裹追蹤、AI 辨識、自訂主題與桌面小工具";
 "paywall.subheadline" = "無限包裹追蹤、AI 辨識、自訂主題與桌面小工具";
+"paywall.comparison.title" = "功能比較";
+"paywall.comparison.free" = "免費版";
+"paywall.comparison.pro" = "Pro 版";
+"paywall.comparison.packages" = "包裹數量";
+"paywall.comparison.packages.free" = "最多 5 個";
+"paywall.comparison.packages.pro" = "無限制";
+"paywall.comparison.themes" = "主題顏色";
+"paywall.comparison.themes.free" = "1 種";
+"paywall.comparison.themes.pro" = "全部解鎖";
+"paywall.comparison.ai" = "AI 截圖辨識";
+"paywall.comparison.ai.free" = "—";
+"paywall.comparison.ai.pro" = "✓";
+"paywall.comparison.widget" = "桌面小工具";
+"paywall.comparison.widget.free" = "小型";
+"paywall.comparison.widget.pro" = "全尺寸";
 "paywall.features" = "功能";
 "paywall.free" = "免費";
 "paywall.pro" = "Pro";
