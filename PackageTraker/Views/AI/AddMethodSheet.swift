@@ -8,7 +8,6 @@
 import SwiftUI
 import SwiftData
 import PhotosUI
-import FluidGradient
 
 /// 新增包裹方式選擇 Sheet
 struct AddMethodSheet: View {
@@ -22,47 +21,57 @@ struct AddMethodSheet: View {
     @State private var contentHeight: CGFloat = 0
 
     private var adaptiveSheetHeight: CGFloat {
-        max(210, min(300, contentHeight + 92))
+        max(184, min(248, contentHeight + 80))
     }
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 12) {
+            VStack(spacing: 10) {
                 // AI 掃描按鈕
                 PhotosPicker(selection: $aiPhotoItem, matching: .images) {
                     ZStack {
-                        FluidGradient(
-                            blobs: [
-                                Color(red: 0.5, green: 0.2, blue: 0.8),
-                                Color(red: 0.2, green: 0.4, blue: 0.9),
-                                Color(red: 0.9, green: 0.3, blue: 0.7)
+                        LinearGradient(
+                            stops: [
+                                .init(color: Color(red: 0.24, green: 0.56, blue: 1.00), location: 0.00), // blue
+                                .init(color: Color(red: 0.62, green: 0.36, blue: 0.95), location: 0.36), // purple
+                                .init(color: Color(red: 0.98, green: 0.23, blue: 0.38), location: 0.72), // red
+                                .init(color: Color(red: 1.00, green: 0.53, blue: 0.18), location: 1.00) // orange
                             ],
-                            highlights: [
-                                .white.opacity(0.25),
-                                Color(red: 0.7, green: 0.55, blue: 1.0),
-                                Color(red: 0.55, green: 0.75, blue: 1.0)
-                            ],
-                            speed: 1.0,
-                            blur: 0.8
+                            startPoint: .leading,
+                            endPoint: .trailing
                         )
-                        .overlay(Color.black.opacity(0.14))
+                        .padding(-10)
+                        .saturation(0.80)
+                        .contrast(1.16)
+                        .brightness(0.10)
 
-                        HStack(spacing: 12) {
-                            Image(systemName: "camera.viewfinder")
-                                .font(.title3)
+                        Color.black.opacity(0.26)
+
+                        HStack(spacing: 10) {
+                            Image(systemName: "apple.intelligence")
+                                .font(.system(size: 18, weight: .semibold))
                                 .foregroundStyle(.white)
+                                .shadow(color: .black.opacity(0.5), radius: 2, x: 0, y: 1)
 
                             Text(String(localized: "addMethod.aiScan.title"))
-                                .font(.headline)
+                                .font(.system(size: 17, weight: .semibold))
                                 .foregroundStyle(.white)
-
-                            Spacer()
+                                .shadow(color: .black.opacity(0.5), radius: 2, x: 0, y: 1)
                         }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 14)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 6)
                     }
-                    .frame(height: 70)
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .frame(height: 56)
+                    .clipShape(Capsule())
+                    .overlay(
+                        Capsule()
+                            .strokeBorder(Color.white.opacity(0.18), lineWidth: 0.9)
+                    )
+                    .modifier(AILiquidGlassCapsuleModifier())
+                    .shadow(color: Color(red: 0.19, green: 0.62, blue: 1.00).opacity(0.44), radius: 16, x: -8, y: 0)
+                    .shadow(color: Color(red: 0.54, green: 0.42, blue: 1.00).opacity(0.30), radius: 15, x: 0, y: 0)
+                    .shadow(color: Color(red: 1.00, green: 0.54, blue: 0.26).opacity(0.34), radius: 15, x: 8, y: 0)
                 }
                 .buttonStyle(.plain)
 
@@ -70,27 +79,20 @@ struct AddMethodSheet: View {
                 Button {
                     showManualAdd = true
                 } label: {
-                    HStack(spacing: 12) {
-                        Image(systemName: "keyboard")
-                            .font(.title3)
-                        Text(String(localized: "addMethod.manualInput"))
-                            .font(.subheadline)
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 14)
-                    .frame(maxWidth: .infinity)
-                    .background(Color.secondaryCardBackground)
-                    .foregroundStyle(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    Text(String(localized: "addMethod.manualInput"))
+                        .font(.system(size: 15, weight: .medium))
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.vertical, 6)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .foregroundStyle(.white.opacity(0.9))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 2)
+                .accessibilityLabel(String(localized: "addMethod.manualInput"))
             }
             .padding(.horizontal)
-            .padding(.top, 6)
+            .padding(.top, 2)
             .background {
                 GeometryReader { proxy in
                     Color.clear
@@ -159,6 +161,19 @@ private struct AddMethodContentHeightPreferenceKey: PreferenceKey {
 
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value = nextValue()
+    }
+}
+
+private struct AILiquidGlassCapsuleModifier: ViewModifier {
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(iOS 26, *) {
+            content
+                .glassEffect(.clear.interactive(), in: Capsule())
+        } else {
+            content
+                .background(.ultraThinMaterial, in: Capsule())
+        }
     }
 }
 
