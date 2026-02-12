@@ -1,7 +1,7 @@
 /**
  * dailyReminder.ts
  *
- * 每日取貨提醒：每天台北時間 10:00 (UTC 02:00)
+ * 每日取貨提醒：每天台北時間 10:00
  * 查詢所有用戶中狀態為 arrivedAtStore 且未取貨的包裹，
  * 彙整後發送一則 FCM 推播提醒。
  */
@@ -14,7 +14,7 @@ import {getDailyReminderText, normalizeLang} from "./i18n/notifications";
 
 export const dailyPickupReminder = onSchedule(
   {
-    schedule: "0 2 * * *", // UTC 02:00 = 台北 10:00
+    schedule: "0 10 * * *", // 台北時間 10:00
     timeZone: "Asia/Taipei",
     region: "asia-east1",
     timeoutSeconds: 300,

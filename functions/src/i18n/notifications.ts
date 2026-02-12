@@ -84,32 +84,35 @@ interface DailyReminderTemplate {
 const dailyReminderTemplates: Record<Lang, DailyReminderTemplate> = {
   "zh-Hant": {
     single: {
-      title: "包裹提醒",
-      body: ({name, location}) => `${name} 在 ${location} 等你取貨`,
+      title: "每日取貨提醒",
+      body: ({name, location}) =>
+        location ? `每日提醒：${name} 在 ${location} 等你取貨` : `每日提醒：${name} 正在等待取貨`,
     },
     multiple: {
-      title: "包裹提醒",
-      body: (count) => `你有 ${count} 個包裹等待取貨`,
+      title: "每日取貨提醒",
+      body: (count) => `每日提醒：你有 ${count} 個包裹等待取貨`,
     },
   },
   "zh-Hans": {
     single: {
-      title: "包裹提醒",
-      body: ({name, location}) => `${name} 在 ${location} 等你取货`,
+      title: "每日取货提醒",
+      body: ({name, location}) =>
+        location ? `每日提醒：${name} 在 ${location} 等你取货` : `每日提醒：${name} 正在等待取货`,
     },
     multiple: {
-      title: "包裹提醒",
-      body: (count) => `你有 ${count} 个包裹等待取货`,
+      title: "每日取货提醒",
+      body: (count) => `每日提醒：你有 ${count} 个包裹等待取货`,
     },
   },
   en: {
     single: {
-      title: "Package Reminder",
-      body: ({name, location}) => `${name} is waiting at ${location}`,
+      title: "Daily Pickup Reminder",
+      body: ({name, location}) =>
+        location ? `Daily reminder: ${name} is waiting at ${location}` : `Daily reminder: ${name} is waiting for pickup`,
     },
     multiple: {
-      title: "Package Reminder",
-      body: (count) => `You have ${count} packages waiting for pickup`,
+      title: "Daily Pickup Reminder",
+      body: (count) => `Daily reminder: you have ${count} packages waiting for pickup`,
     },
   },
 };
