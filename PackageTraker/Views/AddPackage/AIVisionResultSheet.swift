@@ -198,6 +198,8 @@ struct AIVisionResultSheet: View {
             pickupCode: "1234",
             packageName: "藍牙耳機",
             estimatedDelivery: "2026-02-12",
+            purchasePlatform: nil,
+            amount: nil,
             confidence: 0.95
         ),
         onConfirm: { _ in }

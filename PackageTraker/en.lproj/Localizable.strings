@@ -442,6 +442,31 @@
 "ai.error.parseFailed" = "Unable to parse AI result";
 "ai.error.sdkNotAvailable" = "AI service unavailable";
 
+// AddMethodSheet
+"addMethod.title" = "Add Package";
+"addMethod.aiScan.title" = "AI Screenshot Recognition";
+"addMethod.aiScan.subtitle" = "Take a photo or select screenshot to auto-detect package info";
+"addMethod.manualInput" = "Manual Entry";
+"addMethod.cancel" = "Cancel";
+"addMethod.retry" = "Retry";
+"addMethod.loading.aiRecognition" = "AI Analyzing";
+"addMethod.loading.aiRecognitionDesc" = "Analyzing screenshot...";
+"addMethod.loading.apiVerification" = "Verifying Package";
+"addMethod.loading.apiVerificationDesc" = "Querying tracking info...";
+
+// AIQuickAddSheet
+"ai.quickAdd.title" = "Confirm Package Info";
+"ai.quickAdd.quickAdd" = "Quick Add";
+"ai.quickAdd.manualAdjust" = "Manual Adjust";
+"ai.quickAdd.success" = "Package Added";
+"ai.quickAdd.error" = "Add Failed";
+"ai.quickAdd.status" = "Package Status";
+"ai.quickAdd.storeName" = "Pickup Store";
+"ai.quickAdd.pickupLocation" = "Pickup Location";
+
+// Empty State (additional)
+"empty.addButtonHint" = "AI scan or manual entry";
+
 // Widget
 "widget.displayName" = "Package Tracker";
 "widget.description" = "View your package tracking status at a glance";

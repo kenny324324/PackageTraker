@@ -441,6 +441,31 @@
 "ai.error.parseFailed" = "无法解析 AI 结果";
 "ai.error.sdkNotAvailable" = "AI 服务不可用";
 
+// AddMethodSheet
+"addMethod.title" = "选择新增方式";
+"addMethod.aiScan.title" = "AI智慧截图识别";
+"addMethod.aiScan.subtitle" = "拍照或选择截图，自动识别包裹信息";
+"addMethod.manualInput" = "手动输入单号";
+"addMethod.cancel" = "取消";
+"addMethod.retry" = "重试";
+"addMethod.loading.aiRecognition" = "AI 识别中";
+"addMethod.loading.aiRecognitionDesc" = "正在分析截图内容...";
+"addMethod.loading.apiVerification" = "验证包裹信息";
+"addMethod.loading.apiVerificationDesc" = "正在查询物流信息...";
+
+// AIQuickAddSheet
+"ai.quickAdd.title" = "确认包裹信息";
+"ai.quickAdd.quickAdd" = "一键新增";
+"ai.quickAdd.manualAdjust" = "手动调整";
+"ai.quickAdd.success" = "已新增包裹";
+"ai.quickAdd.error" = "新增失败";
+"ai.quickAdd.status" = "包裹状态";
+"ai.quickAdd.storeName" = "取件门市";
+"ai.quickAdd.pickupLocation" = "取件地点";
+
+// Empty State (additional)
+"empty.addButtonHint" = "AI 扫描或手动输入";
+
 // Widget
 "widget.displayName" = "包裹追踪";
 "widget.description" = "随时查看包裹追踪状态";

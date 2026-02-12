@@ -441,6 +441,31 @@
 "ai.error.parseFailed" = "無法解析 AI 結果";
 "ai.error.sdkNotAvailable" = "AI 服務不可用";
 
+// AddMethodSheet
+"addMethod.title" = "選擇新增方式";
+"addMethod.aiScan.title" = "AI智慧截圖辨識";
+"addMethod.aiScan.subtitle" = "拍照或選擇截圖，自動辨識包裹資訊";
+"addMethod.manualInput" = "手動輸入單號";
+"addMethod.cancel" = "取消";
+"addMethod.retry" = "重試";
+"addMethod.loading.aiRecognition" = "AI 辨識中";
+"addMethod.loading.aiRecognitionDesc" = "正在分析截圖內容...";
+"addMethod.loading.apiVerification" = "驗證包裹資訊";
+"addMethod.loading.apiVerificationDesc" = "正在查詢物流資訊...";
+
+// AIQuickAddSheet
+"ai.quickAdd.title" = "確認包裹資訊";
+"ai.quickAdd.quickAdd" = "一鍵新增";
+"ai.quickAdd.manualAdjust" = "手動調整";
+"ai.quickAdd.success" = "已新增包裹";
+"ai.quickAdd.error" = "新增失敗";
+"ai.quickAdd.status" = "包裹狀態";
+"ai.quickAdd.storeName" = "取件門市";
+"ai.quickAdd.pickupLocation" = "取件地點";
+
+// Empty State (additional)
+"empty.addButtonHint" = "AI 掃描或手動輸入";
+
 // Widget
 "widget.displayName" = "包裹追蹤";
 "widget.description" = "隨時查看包裹追蹤狀態";

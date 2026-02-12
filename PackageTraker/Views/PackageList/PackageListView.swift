@@ -17,6 +17,7 @@ struct PackageListView: View {
 
     @Query private var linkedAccounts: [LinkedEmailAccount]
 
+    @State private var showAddMethodSheet = false
     @State private var showAddPackage = false
     @State private var selectedPackage: Package?
     @State private var emailSyncStatus: String?
@@ -59,7 +60,7 @@ struct PackageListView: View {
         NavigationStack {
             Group {
                 if filteredPackages.isEmpty {
-                    EmptyPackageListView(onAddPackage: { showAddPackage = true })
+                    EmptyPackageListView(onAddPackage: { showAddMethodSheet = true })
                 } else {
                     packageListContent
                 }
@@ -73,8 +74,14 @@ struct PackageListView: View {
                     addButton
                 }
             }
+            .sheet(isPresented: $showAddMethodSheet, onDismiss: {
+                Task {
+                    await refreshPendingPackages()
+                }
+            }) {
+                AddMethodSheet()
+            }
             .sheet(isPresented: $showAddPackage, onDismiss: {
-                // 新增完畢後，自動刷新所有 pending 且無事件的包裹
                 Task {
                     await refreshPendingPackages()
                 }
@@ -424,7 +431,7 @@ struct PackageListView: View {
     }
 
     private var addButton: some View {
-        Button(action: { showAddPackage = true }) {
+        Button(action: { showAddMethodSheet = true }) {
             Image(systemName: "plus")
                 .foregroundStyle(.white)
         }
@@ -442,8 +449,21 @@ struct EmptyPackageListView: View {
         } description: {
             Text(String(localized: "empty.description"))
         } actions: {
-            Button(String(localized: "empty.addButton")) {
+            Button {
                 onAddPackage()
+            } label: {
+                Label {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(String(localized: "empty.addButton"))
+                            .font(.headline)
+                        Text(String(localized: "empty.addButtonHint"))
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.8))
+                    }
+                } icon: {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.title2)
+                }
             }
             .buttonStyle(.borderedProminent)
             .tint(.appAccent)

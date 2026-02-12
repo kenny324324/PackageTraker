@@ -30,6 +30,7 @@
 		31FB3D652F39959A00104C5C /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 31FB3D642F39959A00104C5C /* FirebaseAuth */; };
 		31FB3D672F39959A00104C5C /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 31FB3D662F39959A00104C5C /* FirebaseFirestore */; };
 		31FB3D692F39959A00104C5C /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 31FB3D682F39959A00104C5C /* FirebaseMessaging */; };
+		32A4D1B92F5B8C4100F6AA01 /* FluidGradient in Frameworks */ = {isa = PBXBuildFile; productRef = 32A4D1BA2F5B8C4100F6AA01 /* FluidGradient */; };
 		31FB3D6B2F39967700104C5C /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 31FB3D6A2F39967700104C5C /* GoogleService-Info.plist */; };
 /* End PBXBuildFile section */
 
@@ -119,6 +120,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				32A4D1B92F5B8C4100F6AA01 /* FluidGradient in Frameworks */,
 				31FB3D692F39959A00104C5C /* FirebaseMessaging in Frameworks */,
 				31FB3D652F39959A00104C5C /* FirebaseAuth in Frameworks */,
 				31FB3D672F39959A00104C5C /* FirebaseFirestore in Frameworks */,
@@ -223,6 +225,7 @@
 			);
 			name = PackageTraker;
 			packageProductDependencies = (
+				32A4D1BA2F5B8C4100F6AA01 /* FluidGradient */,
 				31FB3D642F39959A00104C5C /* FirebaseAuth */,
 				31FB3D662F39959A00104C5C /* FirebaseFirestore */,
 				31FB3D682F39959A00104C5C /* FirebaseMessaging */,
@@ -312,6 +315,7 @@
 			mainGroup = 31F66DD02F309B9D0068C3FB;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				32A4D1BB2F5B8C4100F6AA01 /* XCRemoteSwiftPackageReference "FluidGradient" */,
 				31F66E402F31A6030068C3FB /* XCRemoteSwiftPackageReference "SwiftSoup" */,
 				31FB3D632F39959A00104C5C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 			);
@@ -724,6 +728,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		32A4D1BB2F5B8C4100F6AA01 /* XCRemoteSwiftPackageReference "FluidGradient" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Cindori/FluidGradient.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
 		31F66E402F31A6030068C3FB /* XCRemoteSwiftPackageReference "SwiftSoup" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/scinfu/SwiftSoup.git";
@@ -743,6 +755,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		32A4D1BA2F5B8C4100F6AA01 /* FluidGradient */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 32A4D1BB2F5B8C4100F6AA01 /* XCRemoteSwiftPackageReference "FluidGradient" */;
+			productName = FluidGradient;
+		};
 		31FB3D642F39959A00104C5C /* FirebaseAuth */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 31FB3D632F39959A00104C5C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;

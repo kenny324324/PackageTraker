@@ -15,6 +15,8 @@ struct AIVisionResult: Codable {
     let pickupCode: String?
     let packageName: String?
     let estimatedDelivery: String?
+    let purchasePlatform: String?
+    let amount: String?
     let confidence: Double?
 
     /// 嘗試模糊比對物流商名稱
@@ -45,6 +47,39 @@ struct AIVisionResult: Codable {
         }
 
         return nil
+    }
+
+    /// 嘗試比對購買平台
+    var detectedPlatform: String? {
+        guard let platform = purchasePlatform else { return nil }
+        let lowered = platform.lowercased()
+
+        let mappings: [(keywords: [String], name: String)] = [
+            (["shopee", "蝦皮"], "蝦皮購物"),
+            (["taobao", "淘寶"], "淘寶"),
+            (["pchome"], "PChome 24h"),
+            (["momo"], "momo購物網"),
+            (["yahoo"], "Yahoo購物中心"),
+            (["amazon"], "Amazon"),
+        ]
+
+        for mapping in mappings {
+            for keyword in mapping.keywords {
+                if lowered.contains(keyword) {
+                    return mapping.name
+                }
+            }
+        }
+
+        return platform
+    }
+
+    /// 數字金額
+    var numericAmount: Double? {
+        guard let amount = amount else { return nil }
+        // 移除非數字字元（保留小數點）
+        let cleaned = amount.filter { $0.isNumber || $0 == "." }
+        return Double(cleaned)
     }
 }
 
