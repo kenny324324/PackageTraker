@@ -14,6 +14,9 @@ export interface PushPayload {
   data?: Record<string, string>;
 }
 
+/** Firestore 中 fcmTokens map 的型別 */
+export type FcmTokensMap = Record<string, {token: string; lastActive?: unknown}>;
+
 /**
  * 發送 FCM 推播通知到指定設備。
  * @returns true 如果發送成功，false 如果 token 無效（應清除）
@@ -61,5 +64,96 @@ export async function sendPushNotification(
 
     logger.error("Failed to send push notification:", error);
     return false;
+  }
+}
+
+/**
+ * 從 userData 中提取所有 FCM tokens（支援新 map 格式 + 舊單一 token 格式）。
+ */
+export function extractAllTokens(
+  userData: Record<string, unknown>
+): {tokens: string[]; deviceIds: string[]} {
+  const fcmTokens = userData.fcmTokens as FcmTokensMap | undefined;
+  const legacyToken = userData.fcmToken as string | undefined;
+
+  if (fcmTokens && Object.keys(fcmTokens).length > 0) {
+    const deviceIds = Object.keys(fcmTokens);
+    const tokens = deviceIds.map((id) => fcmTokens[id].token);
+    return {tokens, deviceIds};
+  }
+
+  if (legacyToken) {
+    return {tokens: [legacyToken], deviceIds: ["legacy"]};
+  }
+
+  return {tokens: [], deviceIds: []};
+}
+
+/**
+ * 發送推播到用戶的所有裝置。
+ * @returns 失效的 deviceId 清單（caller 應清理這些 token）
+ */
+export async function sendPushToAllDevices(
+  userData: Record<string, unknown>,
+  payload: PushPayload
+): Promise<string[]> {
+  const {tokens, deviceIds} = extractAllTokens(userData);
+
+  if (tokens.length === 0) {
+    return [];
+  }
+
+  // 只有一個 token 時用原本的單筆發送
+  if (tokens.length === 1) {
+    const success = await sendPushNotification(tokens[0], payload);
+    return success ? [] : [deviceIds[0]];
+  }
+
+  // 多 token 用 multicast
+  const message = {
+    notification: {
+      title: payload.title,
+      body: payload.body,
+    },
+    data: payload.data || {},
+    apns: {
+      headers: {
+        "apns-priority": "10",
+      },
+      payload: {
+        aps: {
+          sound: "default",
+          badge: 1,
+          "content-available": 1,
+        },
+      },
+    },
+    tokens,
+  };
+
+  try {
+    const response = await getMessaging().sendEachForMulticast(message);
+    logger.info(
+      `[Push] Multicast: ${response.successCount} success, ` +
+      `${response.failureCount} failures`
+    );
+
+    const failedDeviceIds: string[] = [];
+    response.responses.forEach((resp, i) => {
+      if (!resp.success) {
+        const errorCode = (resp.error as {code?: string})?.code;
+        if (
+          errorCode === "messaging/invalid-registration-token" ||
+          errorCode === "messaging/registration-token-not-registered"
+        ) {
+          failedDeviceIds.push(deviceIds[i]);
+        }
+      }
+    });
+
+    return failedDeviceIds;
+  } catch (error) {
+    logger.error("[Push] Multicast failed:", error);
+    return [];
   }
 }

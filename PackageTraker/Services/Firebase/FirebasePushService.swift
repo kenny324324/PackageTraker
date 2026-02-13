@@ -2,7 +2,7 @@
 //  FirebasePushService.swift
 //  PackageTraker
 //
-//  FCM Token 管理：註冊推播、上傳/清除 Token
+//  FCM Token 管理：註冊推播、上傳/清除 Token（支援多裝置）
 //
 
 import Foundation
@@ -19,6 +19,11 @@ final class FirebasePushService: NSObject, ObservableObject {
     @Published var fcmToken: String?
 
     private let db = Firestore.firestore()
+
+    /// 當前裝置的唯一 ID（同 app 同裝置固定）
+    private var deviceId: String {
+        UIDevice.current.identifierForVendor?.uuidString ?? "unknown"
+    }
 
     private override init() {
         super.init()
@@ -37,7 +42,7 @@ final class FirebasePushService: NSObject, ObservableObject {
         UIApplication.shared.registerForRemoteNotifications()
     }
 
-    // MARK: - 上傳 Token
+    // MARK: - 上傳 Token（多裝置：寫入 fcmTokens map）
 
     func uploadToken() async {
         guard let userId = Auth.auth().currentUser?.uid,
@@ -47,25 +52,28 @@ final class FirebasePushService: NSObject, ObservableObject {
 
         do {
             try await db.collection("users").document(userId).setData([
-                "fcmToken": token,
+                "fcmTokens.\(deviceId)": [
+                    "token": token,
+                    "lastActive": FieldValue.serverTimestamp()
+                ],
                 "lastActive": FieldValue.serverTimestamp()
             ], merge: true)
-            print("[FCM] ✅ Token uploaded")
+            print("[FCM] ✅ Token uploaded for device \(deviceId)")
         } catch {
             print("[FCM] ❌ Failed to upload token: \(error.localizedDescription)")
         }
     }
 
-    // MARK: - 清除 Token（登出時呼叫）
+    // MARK: - 清除 Token（登出時只刪除當前裝置）
 
     func clearToken() async {
         guard let userId = Auth.auth().currentUser?.uid else { return }
 
         do {
             try await db.collection("users").document(userId).updateData([
-                "fcmToken": FieldValue.delete()
+                "fcmTokens.\(deviceId)": FieldValue.delete()
             ])
-            print("[FCM] ✅ Token cleared from Firestore")
+            print("[FCM] ✅ Token cleared for device \(deviceId)")
         } catch {
             print("[FCM] ❌ Failed to clear token: \(error.localizedDescription)")
         }

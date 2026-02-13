@@ -156,11 +156,21 @@ struct SplashView: View {
         // 冷啟動時重新註冊 FCM 推播（背景執行）
         Task { await FirebasePushService.shared.registerForPushNotifications() }
 
-        // 階段 1: SwiftData 預載
+        // 階段 0.5: 下載用戶偏好設定（訂閱層級、通知設定、主題等）
+        await FirebaseSyncService.shared.downloadUserPreferences()
+
+        // 階段 1: 從 Firestore 下載雲端包裹（新裝置或其他裝置的變更）
+        let downloadCount = await FirebaseSyncService.shared.downloadAllPackages(into: modelContext)
+        if downloadCount > 0 {
+            print("[Splash] Downloaded \(downloadCount) packages from cloud")
+        }
+        await animateProgress(to: 0.15)
+
+        // 階段 2: SwiftData 預載
         await animateProgress(to: 0.3)
         let activePackages = await preloadPackageData()
 
-        // 階段 2: API 刷新（帶 10 秒 timeout）
+        // 階段 3: API 刷新（帶 10 秒 timeout）
         if !activePackages.isEmpty {
             isSyncing = true
             await refreshService.refreshAllWithTimeout(
@@ -173,10 +183,13 @@ struct SplashView: View {
         }
         // 進度由 .onChange(of: refreshService.batchProgress) 驅動
 
-        // 階段 2.5: 首次登入 Firestore 同步（背景執行，不阻塞啟動）
-        Task { await performInitialSyncIfNeeded() }
+        // 階段 3.5: 啟動即時監聽器
+        FirebaseSyncService.shared.startListening(modelContext: modelContext)
 
-        // 階段 3: 完成
+        // 階段 3.5b: 補傳本地有但 Firestore 沒有的包裹（背景執行）
+        Task { await FirebaseSyncService.shared.uploadMissingPackages(from: modelContext) }
+
+        // 階段 4: 完成
         await animateProgress(to: 1.0)
 
         // 短暫延遲後進入主畫面
@@ -185,18 +198,6 @@ struct SplashView: View {
         await MainActor.run {
             onLoadingComplete()
         }
-    }
-
-    private func performInitialSyncIfNeeded() async {
-        guard let uid = FirebaseAuthService.shared.currentUser?.uid else { return }
-        let key = "hasPerformedInitialSync_\(uid)"
-        guard !UserDefaults.standard.bool(forKey: key) else { return }
-
-        let descriptor = FetchDescriptor<Package>()
-        guard let allPackages = try? modelContext.fetch(descriptor) else { return }
-
-        await FirebaseSyncService.shared.syncAllPackages(allPackages)
-        UserDefaults.standard.set(true, forKey: key)
     }
 
     private func animateProgress(to value: Double) async {

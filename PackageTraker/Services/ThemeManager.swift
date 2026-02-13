@@ -23,6 +23,8 @@ class ThemeManager: ObservableObject {
                 return
             }
             selectedThemeRawValue = newValue.rawValue
+            // 同步到 Firestore
+            FirebaseSyncService.shared.syncUserPreferences(theme: newValue.rawValue)
         }
     }
 

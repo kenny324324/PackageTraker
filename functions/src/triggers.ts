@@ -9,9 +9,9 @@
  */
 
 import {onDocumentUpdated} from "firebase-functions/v2/firestore";
-import {getFirestore} from "firebase-admin/firestore";
+import {getFirestore, FieldValue} from "firebase-admin/firestore";
 import {logger} from "firebase-functions/v2";
-import {sendPushNotification} from "./services/pushNotification";
+import {sendPushToAllDevices, extractAllTokens} from "./services/pushNotification";
 import {getNotificationText, normalizeLang} from "./i18n/notifications";
 import {getCarrierDisplayName} from "./utils/carrierNames";
 
@@ -56,7 +56,8 @@ export const onPackageStatusChange = onDocumentUpdated(
     const userDoc = await db.collection("users").doc(userId).get();
     const userData = userDoc.data();
 
-    if (!userData || !userData.fcmToken) {
+    const {tokens} = extractAllTokens(userData || {});
+    if (!userData || tokens.length === 0) {
       logger.info("[Trigger] No FCM token, skipping");
       return;
     }
@@ -113,7 +114,7 @@ export const onPackageStatusChange = onDocumentUpdated(
       return;
     }
 
-    const success = await sendPushNotification(userData.fcmToken, {
+    const failedDeviceIds = await sendPushToAllDevices(userData, {
       title: text.title,
       body: text.body,
       data: {
@@ -123,14 +124,26 @@ export const onPackageStatusChange = onDocumentUpdated(
       },
     });
 
-    if (success) {
-      // 更新 lastNotifiedStatus 防止重複推播
-      await event.data.after.ref.update({
-        lastNotifiedStatus: after.status,
-      });
-      logger.info(`[Trigger] Push sent to user ${userId} (${after.status}, ${lang})`);
-    } else {
-      logger.warn(`[Trigger] Failed to send push to user ${userId}`);
+    // 清理失效的 token
+    if (failedDeviceIds.length > 0) {
+      const updates: Record<string, FieldValue> = {};
+      for (const id of failedDeviceIds) {
+        if (id !== "legacy") {
+          updates[`fcmTokens.${id}`] = FieldValue.delete();
+        } else {
+          updates["fcmToken"] = FieldValue.delete();
+        }
+      }
+      if (Object.keys(updates).length > 0) {
+        await db.collection("users").doc(userId).update(updates);
+        logger.info(`[Trigger] Cleaned ${failedDeviceIds.length} invalid tokens`);
+      }
     }
+
+    // 更新 lastNotifiedStatus 防止重複推播
+    await event.data.after.ref.update({
+      lastNotifiedStatus: after.status,
+    });
+    logger.info(`[Trigger] Push sent to user ${userId} (${after.status}, ${lang})`);
   }
 );

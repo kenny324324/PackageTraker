@@ -7,9 +7,9 @@
  */
 
 import {onSchedule} from "firebase-functions/v2/scheduler";
-import {getFirestore} from "firebase-admin/firestore";
+import {getFirestore, FieldValue} from "firebase-admin/firestore";
 import {logger} from "firebase-functions/v2";
-import {sendPushNotification} from "./services/pushNotification";
+import {sendPushToAllDevices, extractAllTokens} from "./services/pushNotification";
 import {getDailyReminderText, normalizeLang} from "./i18n/notifications";
 
 export const dailyPickupReminder = onSchedule(
@@ -36,8 +36,9 @@ export const dailyPickupReminder = onSchedule(
       const userId = userDoc.id;
       const userData = userDoc.data();
 
-      // 檢查 FCM Token
-      if (!userData.fcmToken) {
+      // 檢查 FCM Token（支援新 map + 舊單一格式）
+      const {tokens} = extractAllTokens(userData);
+      if (tokens.length === 0) {
         continue;
       }
 
@@ -84,7 +85,7 @@ export const dailyPickupReminder = onSchedule(
       // 取得推播文字
       const text = getDailyReminderText(lang, packageInfos);
 
-      const success = await sendPushNotification(userData.fcmToken, {
+      const failedDeviceIds = await sendPushToAllDevices(userData, {
         title: text.title,
         body: text.body,
         data: {
@@ -93,13 +94,27 @@ export const dailyPickupReminder = onSchedule(
         },
       });
 
-      if (success) {
-        totalSent++;
-        logger.info(
-          `[DailyReminder] Sent to user ${userId}: ` +
-          `${pendingPackages.length} packages (${lang})`
-        );
+      // 清理失效的 token
+      if (failedDeviceIds.length > 0) {
+        const updates: Record<string, FieldValue> = {};
+        for (const id of failedDeviceIds) {
+          if (id !== "legacy") {
+            updates[`fcmTokens.${id}`] = FieldValue.delete();
+          } else {
+            updates["fcmToken"] = FieldValue.delete();
+          }
+        }
+        if (Object.keys(updates).length > 0) {
+          await db.collection("users").doc(userId).update(updates);
+          logger.info(`[DailyReminder] Cleaned ${failedDeviceIds.length} invalid tokens`);
+        }
       }
+
+      totalSent++;
+      logger.info(
+        `[DailyReminder] Sent to user ${userId}: ` +
+        `${pendingPackages.length} packages (${lang})`
+      );
     }
 
     logger.info(

@@ -195,6 +195,14 @@ class SubscriptionManager: ObservableObject {
         }
     }
 
+    /// 從 Firestore 下載的層級（作為 StoreKit 驗證前的初始值）
+    func applyFirestoreTier(_ tier: SubscriptionTier) {
+        if currentTier != tier {
+            currentTier = tier
+            persistTier(tier)
+        }
+    }
+
     // MARK: - Debug Methods
 
     #if DEBUG

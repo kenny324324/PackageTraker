@@ -133,6 +133,8 @@ struct PackageTrakerApp: App {
             .onChange(of: authService.isAuthenticated) { oldValue, newValue in
                 // 登出處理（登入由 SignInView 內部處理）
                 if oldValue && !newValue {
+                    // 停止 Firestore 即時監聽器
+                    FirebaseSyncService.shared.stopListening()
                     withAnimation(.easeOut(duration: 0.4)) {
                         selectedTab = 0 // 重置 tab
                         appFlow = .signIn

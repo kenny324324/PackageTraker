@@ -180,6 +180,12 @@ struct SettingsView: View {
                     syncNotificationSettingsToFirestore()
                 }
             }
+            .onChange(of: hideDeliveredPackages) { _, newValue in
+                FirebaseSyncService.shared.syncUserPreferences(hideDeliveredPackages: newValue)
+            }
+            .onChange(of: refreshInterval) { _, newValue in
+                FirebaseSyncService.shared.syncUserPreferences(refreshInterval: newValue.rawValue)
+            }
         }
         .preferredColorScheme(.dark)
     }
