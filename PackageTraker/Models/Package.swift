@@ -1,5 +1,6 @@
 import Foundation
 import SwiftData
+import CryptoKit
 
 /// 包裹資料模型（SwiftData）
 @Model
@@ -207,6 +208,21 @@ final class TrackingEvent {
         self.statusRawValue = status.rawValue
         self.eventDescription = description
         self.location = location
+    }
+
+    // MARK: - Deterministic ID
+
+    /// 根據內容產生確定性 UUID，避免同一事件在 Firestore 中產生重複文件
+    static func deterministicId(trackingNumber: String, timestamp: Date, description: String) -> UUID {
+        let key = "\(trackingNumber)|\(Int(timestamp.timeIntervalSince1970))|\(description)"
+        let hash = SHA256.hash(data: Data(key.utf8))
+        var bytes = Array(hash.prefix(16))
+        bytes[6] = (bytes[6] & 0x0F) | 0x50  // UUID version 5
+        bytes[8] = (bytes[8] & 0x3F) | 0x80  // variant
+        return UUID(uuid: (bytes[0], bytes[1], bytes[2], bytes[3],
+                           bytes[4], bytes[5], bytes[6], bytes[7],
+                           bytes[8], bytes[9], bytes[10], bytes[11],
+                           bytes[12], bytes[13], bytes[14], bytes[15]))
     }
 
     // MARK: - Computed Properties

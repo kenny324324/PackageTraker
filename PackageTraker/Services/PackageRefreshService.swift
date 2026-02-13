@@ -196,8 +196,15 @@ final class PackageRefreshService {
             package.trackTwRelationId = relationId
         }
 
+        // 使用確定性 UUID：同一事件在每次刷新時產生相同 ID，避免 Firestore 重複文件
         let newEvents = result.events.map { eventDTO in
+            let deterministicId = TrackingEvent.deterministicId(
+                trackingNumber: package.trackingNumber,
+                timestamp: eventDTO.timestamp,
+                description: eventDTO.description
+            )
             let event = TrackingEvent(
+                id: deterministicId,
                 timestamp: eventDTO.timestamp,
                 status: eventDTO.status,
                 description: eventDTO.description,

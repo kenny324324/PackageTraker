@@ -14,8 +14,23 @@ export interface PushPayload {
   data?: Record<string, string>;
 }
 
-/** Firestore 中 fcmTokens map 的型別 */
-export type FcmTokensMap = Record<string, {token: string; lastActive?: unknown}>;
+/** 推播類型，對應裝置通知設定的開關 */
+export type NotificationType = "arrival" | "shipped" | "pickupReminder";
+
+/** 裝置通知設定 */
+interface DeviceNotificationSettings {
+  enabled?: boolean;
+  arrivalNotification?: boolean;
+  shippedNotification?: boolean;
+  pickupReminder?: boolean;
+}
+
+/** Firestore 中 fcmTokens map 的型別（含裝置通知設定） */
+export type FcmTokensMap = Record<string, {
+  token: string;
+  lastActive?: unknown;
+  notificationSettings?: DeviceNotificationSettings;
+}>;
 
 /**
  * 發送 FCM 推播通知到指定設備。
@@ -69,19 +84,37 @@ export async function sendPushNotification(
 
 /**
  * 從 userData 中提取所有 FCM tokens（支援新 map 格式 + 舊單一 token 格式）。
+ * 若指定 notificationType，會根據各裝置的通知設定過濾。
  */
 export function extractAllTokens(
-  userData: Record<string, unknown>
+  userData: Record<string, unknown>,
+  notificationType?: NotificationType
 ): {tokens: string[]; deviceIds: string[]} {
   const fcmTokens = userData.fcmTokens as FcmTokensMap | undefined;
   const legacyToken = userData.fcmToken as string | undefined;
 
   if (fcmTokens && Object.keys(fcmTokens).length > 0) {
-    const deviceIds = Object.keys(fcmTokens);
-    const tokens = deviceIds.map((id) => fcmTokens[id].token);
+    const deviceIds: string[] = [];
+    const tokens: string[] = [];
+
+    for (const id of Object.keys(fcmTokens)) {
+      const device = fcmTokens[id];
+      // 如果裝置有通知設定且指定了通知類型，依設定過濾
+      if (notificationType && device.notificationSettings) {
+        const s = device.notificationSettings;
+        if (s.enabled === false) continue;
+        if (notificationType === "arrival" && s.arrivalNotification === false) continue;
+        if (notificationType === "shipped" && s.shippedNotification === false) continue;
+        if (notificationType === "pickupReminder" && s.pickupReminder === false) continue;
+      }
+      deviceIds.push(id);
+      tokens.push(device.token);
+    }
+
     return {tokens, deviceIds};
   }
 
+  // 舊格式 legacy token：無法判斷裝置設定，一律發送
   if (legacyToken) {
     return {tokens: [legacyToken], deviceIds: ["legacy"]};
   }
@@ -90,14 +123,15 @@ export function extractAllTokens(
 }
 
 /**
- * 發送推播到用戶的所有裝置。
+ * 發送推播到用戶的所有裝置（依 notificationType 過濾各裝置設定）。
  * @returns 失效的 deviceId 清單（caller 應清理這些 token）
  */
 export async function sendPushToAllDevices(
   userData: Record<string, unknown>,
-  payload: PushPayload
+  payload: PushPayload,
+  notificationType?: NotificationType
 ): Promise<string[]> {
-  const {tokens, deviceIds} = extractAllTokens(userData);
+  const {tokens, deviceIds} = extractAllTokens(userData, notificationType);
 
   if (tokens.length === 0) {
     return [];

@@ -6,13 +6,9 @@
 //
 
 import SwiftUI
-import FirebaseAuth
-import FirebaseFirestore
 
 /// 推播通知細項設定
 struct NotificationSettingsView: View {
-    @ObservedObject private var authService = FirebaseAuthService.shared
-
     @AppStorage("arrivalNotificationEnabled") private var arrivalNotificationEnabled = false
     @AppStorage("shippedNotificationEnabled") private var shippedNotificationEnabled = false
     @AppStorage("pickupReminderEnabled") private var pickupReminderEnabled = false
@@ -62,13 +58,13 @@ struct NotificationSettingsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .preferredColorScheme(.dark)
         .onChange(of: arrivalNotificationEnabled) { _, _ in
-            syncNotificationSettingsToFirestore()
+            FirebasePushService.shared.syncDeviceNotificationSettings()
         }
         .onChange(of: shippedNotificationEnabled) { _, _ in
-            syncNotificationSettingsToFirestore()
+            FirebasePushService.shared.syncDeviceNotificationSettings()
         }
         .onChange(of: pickupReminderEnabled) { _, _ in
-            syncNotificationSettingsToFirestore()
+            FirebasePushService.shared.syncDeviceNotificationSettings()
         }
     }
 
@@ -85,31 +81,6 @@ struct NotificationSettingsView: View {
                 .tint(Color.appAccent)
         }
         .padding(16)
-    }
-
-    // MARK: - Firestore Sync
-
-    /// 將通知設定同步到 Firestore（fire-and-forget）
-    private func syncNotificationSettingsToFirestore() {
-        guard let userId = authService.currentUser?.uid else { return }
-
-        let db = Firestore.firestore()
-        let settings: [String: Any] = [
-            "notificationSettings": [
-                "arrivalNotification": arrivalNotificationEnabled,
-                "shippedNotification": shippedNotificationEnabled,
-                "pickupReminder": pickupReminderEnabled
-            ]
-        ]
-
-        Task {
-            do {
-                try await db.collection("users").document(userId).setData(settings, merge: true)
-                print("[NotificationSettings] Settings synced to Firestore")
-            } catch {
-                print("[NotificationSettings] Failed to sync: \(error.localizedDescription)")
-            }
-        }
     }
 }
 

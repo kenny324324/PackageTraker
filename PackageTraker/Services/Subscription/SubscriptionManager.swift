@@ -195,11 +195,13 @@ class SubscriptionManager: ObservableObject {
         }
     }
 
-    /// 從 Firestore 下載的層級（作為 StoreKit 驗證前的初始值）
-    func applyFirestoreTier(_ tier: SubscriptionTier) {
-        if currentTier != tier {
+    /// 從 Firestore 下載的層級與產品 ID（作為 StoreKit 驗證前的初始值）
+    func applyFirestoreTier(_ tier: SubscriptionTier, productID: String? = nil) {
+        if currentTier != tier || currentProductID != productID {
             currentTier = tier
+            currentProductID = productID
             persistTier(tier)
+            persistProductID(productID)
         }
     }
 
@@ -296,12 +298,19 @@ class SubscriptionManager: ObservableObject {
     private func syncToFirestore(_ tier: SubscriptionTier) {
         guard let uid = Auth.auth().currentUser?.uid else { return }
         let db = Firestore.firestore()
+        let pid = currentProductID
         Task {
             do {
-                try await db.collection("users").document(uid).setData([
+                var data: [String: Any] = [
                     "subscriptionTier": tier.rawValue
-                ], merge: true)
-                print("[Subscription] Synced tier to Firestore: \(tier.rawValue)")
+                ]
+                if let pid {
+                    data["subscriptionProductID"] = pid
+                } else {
+                    data["subscriptionProductID"] = FieldValue.delete()
+                }
+                try await db.collection("users").document(uid).setData(data, merge: true)
+                print("[Subscription] Synced tier to Firestore: \(tier.rawValue), productID: \(pid ?? "nil")")
             } catch {
                 print("[Subscription] Failed to sync tier: \(error.localizedDescription)")
             }

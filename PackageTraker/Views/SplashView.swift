@@ -189,6 +189,9 @@ struct SplashView: View {
         // 階段 3.5b: 補傳本地有但 Firestore 沒有的包裹（背景執行）
         Task { await FirebaseSyncService.shared.uploadMissingPackages(from: modelContext) }
 
+        // 階段 3.5c: 一次性清理歷史重複事件
+        Task { await FirebaseSyncService.shared.deduplicateEventsIfNeeded(in: modelContext) }
+
         // 階段 4: 完成
         await animateProgress(to: 1.0)
 

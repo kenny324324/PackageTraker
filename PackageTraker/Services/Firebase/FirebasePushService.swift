@@ -42,7 +42,7 @@ final class FirebasePushService: NSObject, ObservableObject {
         UIApplication.shared.registerForRemoteNotifications()
     }
 
-    // MARK: - 上傳 Token（多裝置：寫入 fcmTokens map）
+    // MARK: - 上傳 Token（多裝置：寫入 fcmTokens map，含裝置通知設定）
 
     func uploadToken() async {
         guard let userId = Auth.auth().currentUser?.uid,
@@ -50,17 +50,50 @@ final class FirebasePushService: NSObject, ObservableObject {
             return
         }
 
+        let defaults = UserDefaults.standard
         do {
             try await db.collection("users").document(userId).setData([
                 "fcmTokens.\(deviceId)": [
                     "token": token,
-                    "lastActive": FieldValue.serverTimestamp()
+                    "lastActive": FieldValue.serverTimestamp(),
+                    "notificationSettings": [
+                        "enabled": defaults.bool(forKey: "notificationsEnabled"),
+                        "arrivalNotification": defaults.bool(forKey: "arrivalNotificationEnabled"),
+                        "shippedNotification": defaults.bool(forKey: "shippedNotificationEnabled"),
+                        "pickupReminder": defaults.bool(forKey: "pickupReminderEnabled")
+                    ]
                 ],
                 "lastActive": FieldValue.serverTimestamp()
             ], merge: true)
             print("[FCM] ✅ Token uploaded for device \(deviceId)")
         } catch {
             print("[FCM] ❌ Failed to upload token: \(error.localizedDescription)")
+        }
+    }
+
+    // MARK: - 同步裝置通知設定到 Firestore
+
+    /// 將當前裝置的通知設定同步到 fcmTokens map 中
+    func syncDeviceNotificationSettings() {
+        guard let userId = Auth.auth().currentUser?.uid else { return }
+
+        let defaults = UserDefaults.standard
+        let settings: [String: Any] = [
+            "enabled": defaults.bool(forKey: "notificationsEnabled"),
+            "arrivalNotification": defaults.bool(forKey: "arrivalNotificationEnabled"),
+            "shippedNotification": defaults.bool(forKey: "shippedNotificationEnabled"),
+            "pickupReminder": defaults.bool(forKey: "pickupReminderEnabled")
+        ]
+
+        Task {
+            do {
+                try await db.collection("users").document(userId).setData([
+                    "fcmTokens.\(deviceId).notificationSettings": settings
+                ], merge: true)
+                print("[FCM] ✅ Device notification settings synced")
+            } catch {
+                print("[FCM] ❌ Failed to sync notification settings: \(error.localizedDescription)")
+            }
         }
     }
 

@@ -55,12 +55,20 @@ final class FirebaseSyncService: ObservableObject {
             (id: event.id.uuidString, data: eventToFirestoreData(event))
         }
 
+        let currentEventIds = Set(eventsData.map { $0.id })
+
         Task {
             do {
-                let batch = db.batch()
                 let packageRef = db.collection("users").document(userId)
                     .collection("packages").document(packageDocId)
 
+                // 查詢 Firestore 現有 events，刪除不再存在的舊文件（修復歷史重複問題）
+                let existingEvents = try await packageRef.collection("events").getDocuments()
+                let staleIds = existingEvents.documents
+                    .map { $0.documentID }
+                    .filter { !currentEventIds.contains($0) }
+
+                let batch = db.batch()
                 batch.setData(packageData, forDocument: packageRef, merge: true)
 
                 for event in eventsData {
@@ -68,7 +76,16 @@ final class FirebaseSyncService: ObservableObject {
                     batch.setData(event.data, forDocument: eventRef)
                 }
 
+                // 刪除過時的 event 文件
+                for staleId in staleIds {
+                    let staleRef = packageRef.collection("events").document(staleId)
+                    batch.deleteDocument(staleRef)
+                }
+
                 try await batch.commit()
+                if !staleIds.isEmpty {
+                    print("[Sync] 🧹 Cleaned up \(staleIds.count) stale event docs")
+                }
                 print("[Sync] ✅ Package synced: \(packageData["trackingNumber"] ?? "")")
             } catch {
                 print("[Sync] ❌ Failed to sync package: \(error.localizedDescription)")
@@ -140,6 +157,58 @@ final class FirebaseSyncService: ObservableObject {
         }
 
         print("[Sync] ✅ Bulk sync completed")
+    }
+
+    // MARK: - 一次性事件去重清理
+
+    /// 清理本地 SwiftData 中重複的 events，並同步清理 Firestore
+    /// 只執行一次（透過 UserDefaults flag 控制）
+    func deduplicateEventsIfNeeded(in modelContext: ModelContext) async {
+        let key = "hasDeduplicatedEvents_v1"
+        guard !UserDefaults.standard.bool(forKey: key) else { return }
+
+        let descriptor = FetchDescriptor<Package>()
+        guard let allPackages = try? modelContext.fetch(descriptor) else { return }
+
+        var totalCleaned = 0
+
+        for package in allPackages {
+            let originalCount = package.events.count
+            var seen = Set<String>()
+            var uniqueEvents: [TrackingEvent] = []
+
+            // 按時間降序去重，保留最新的
+            let sorted = package.events.sorted { $0.timestamp > $1.timestamp }
+            for event in sorted {
+                let dedupeKey = "\(Int(event.timestamp.timeIntervalSince1970))|\(event.eventDescription)"
+                if seen.insert(dedupeKey).inserted {
+                    // 重新計算確定性 ID
+                    event.id = TrackingEvent.deterministicId(
+                        trackingNumber: package.trackingNumber,
+                        timestamp: event.timestamp,
+                        description: event.eventDescription
+                    )
+                    uniqueEvents.append(event)
+                } else {
+                    event.package = nil
+                }
+            }
+
+            if uniqueEvents.count < originalCount {
+                package.events = uniqueEvents
+                totalCleaned += (originalCount - uniqueEvents.count)
+
+                // 同步清理 Firestore
+                syncPackage(package)
+            }
+        }
+
+        try? modelContext.save()
+        UserDefaults.standard.set(true, forKey: key)
+
+        if totalCleaned > 0 {
+            print("[Sync] 🧹 Deduplicated \(totalCleaned) duplicate events across all packages")
+        }
     }
 
     // MARK: - 補傳遺漏的包裹
@@ -254,28 +323,18 @@ final class FirebaseSyncService: ObservableObject {
             let doc = try await db.collection("users").document(userId).getDocument()
             guard let data = doc.data() else { return }
 
-            // 訂閱層級
+            // 訂閱層級 + 產品 ID（monthly/yearly/lifetime）
             if let tier = data["subscriptionTier"] as? String,
                let subTier = SubscriptionTier(rawValue: tier) {
                 UserDefaults.standard.set(tier, forKey: "subscriptionTier")
-                await SubscriptionManager.shared.applyFirestoreTier(subTier)
+                let productID = data["subscriptionProductID"] as? String
+                if let productID {
+                    UserDefaults.standard.set(productID, forKey: "subscriptionProductID")
+                }
+                await SubscriptionManager.shared.applyFirestoreTier(subTier, productID: productID)
             }
 
-            // 通知設定
-            if let ns = data["notificationSettings"] as? [String: Any] {
-                if let v = ns["enabled"] as? Bool {
-                    UserDefaults.standard.set(v, forKey: "notificationsEnabled")
-                }
-                if let v = ns["arrivalNotification"] as? Bool {
-                    UserDefaults.standard.set(v, forKey: "arrivalNotificationEnabled")
-                }
-                if let v = ns["shippedNotification"] as? Bool {
-                    UserDefaults.standard.set(v, forKey: "shippedNotificationEnabled")
-                }
-                if let v = ns["pickupReminder"] as? Bool {
-                    UserDefaults.standard.set(v, forKey: "pickupReminderEnabled")
-                }
-            }
+            // 通知設定：per-device，不跨裝置同步（各裝置獨立管理）
 
             // 使用者偏好（主題、刷新間隔、隱藏已送達）
             if let prefs = data["preferences"] as? [String: Any] {
@@ -499,17 +558,23 @@ final class FirebaseSyncService: ObservableObject {
                 .order(by: "timestamp", descending: true)
                 .getDocuments()
 
-            // 清除現有 events → 重新寫入
+            // 清除現有 events → 重新寫入（含去重）
             for event in package.events {
                 event.package = nil
             }
             package.events.removeAll()
 
+            var seenKeys = Set<String>()
             for doc in eventsSnapshot.documents {
                 let data = doc.data()
                 guard let timestamp = (data["timestamp"] as? Timestamp)?.dateValue(),
                       let statusRaw = data["status"] as? String,
                       let description = data["description"] as? String else { continue }
+
+                // 依 timestamp + description 去重（防止歷史重複文件）
+                let dedupeKey = "\(Int(timestamp.timeIntervalSince1970))|\(description)"
+                guard !seenKeys.contains(dedupeKey) else { continue }
+                seenKeys.insert(dedupeKey)
 
                 let eventId = UUID(uuidString: doc.documentID) ?? UUID()
                 let event = TrackingEvent(

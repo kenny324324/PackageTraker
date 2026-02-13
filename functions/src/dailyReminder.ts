@@ -42,12 +42,7 @@ export const dailyPickupReminder = onSchedule(
         continue;
       }
 
-      // 檢查通知設定
-      const settings = userData.notificationSettings;
-      if (!settings?.enabled || !settings?.pickupReminder) {
-        totalSkipped++;
-        continue;
-      }
+      // 通知設定改為 per-device，由 sendPushToAllDevices 過濾
 
       // 查詢該用戶的待取包裹
       const packagesSnapshot = await db
@@ -92,7 +87,7 @@ export const dailyPickupReminder = onSchedule(
           type: "dailyReminder",
           count: String(pendingPackages.length),
         },
-      });
+      }, "pickupReminder");
 
       // 清理失效的 token
       if (failedDeviceIds.length > 0) {

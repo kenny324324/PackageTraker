@@ -30,8 +30,8 @@
 		31FB3D652F39959A00104C5C /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 31FB3D642F39959A00104C5C /* FirebaseAuth */; };
 		31FB3D672F39959A00104C5C /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 31FB3D662F39959A00104C5C /* FirebaseFirestore */; };
 		31FB3D692F39959A00104C5C /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 31FB3D682F39959A00104C5C /* FirebaseMessaging */; };
-		32A4D1B92F5B8C4100F6AA01 /* FluidGradient in Frameworks */ = {isa = PBXBuildFile; productRef = 32A4D1BA2F5B8C4100F6AA01 /* FluidGradient */; };
 		31FB3D6B2F39967700104C5C /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 31FB3D6A2F39967700104C5C /* GoogleService-Info.plist */; };
+		32A4D1B92F5B8C4100F6AA01 /* FluidGradient in Frameworks */ = {isa = PBXBuildFile; productRef = 32A4D1BA2F5B8C4100F6AA01 /* FluidGradient */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -542,7 +542,7 @@
 				CODE_SIGN_ENTITLEMENTS = PackageTraker/PackageTraker.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 260210;
+				CURRENT_PROJECT_VERSION = 260213;
 				DEVELOPMENT_TEAM = 5353WH6FVX;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -576,7 +576,7 @@
 				CODE_SIGN_ENTITLEMENTS = PackageTraker/PackageTraker.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 260210;
+				CURRENT_PROJECT_VERSION = 260213;
 				DEVELOPMENT_TEAM = 5353WH6FVX;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -607,7 +607,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 260210;
+				CURRENT_PROJECT_VERSION = 260213;
 				DEVELOPMENT_TEAM = 5353WH6FVX;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
@@ -629,7 +629,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 260210;
+				CURRENT_PROJECT_VERSION = 260213;
 				DEVELOPMENT_TEAM = 5353WH6FVX;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
@@ -650,7 +650,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 260210;
+				CURRENT_PROJECT_VERSION = 260213;
 				DEVELOPMENT_TEAM = 5353WH6FVX;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
@@ -670,7 +670,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 260210;
+				CURRENT_PROJECT_VERSION = 260213;
 				DEVELOPMENT_TEAM = 5353WH6FVX;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
@@ -728,14 +728,6 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		32A4D1BB2F5B8C4100F6AA01 /* XCRemoteSwiftPackageReference "FluidGradient" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/Cindori/FluidGradient.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.0.0;
-			};
-		};
 		31F66E402F31A6030068C3FB /* XCRemoteSwiftPackageReference "SwiftSoup" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/scinfu/SwiftSoup.git";
@@ -752,14 +744,17 @@
 				minimumVersion = 12.9.0;
 			};
 		};
+		32A4D1BB2F5B8C4100F6AA01 /* XCRemoteSwiftPackageReference "FluidGradient" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Cindori/FluidGradient.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		32A4D1BA2F5B8C4100F6AA01 /* FluidGradient */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 32A4D1BB2F5B8C4100F6AA01 /* XCRemoteSwiftPackageReference "FluidGradient" */;
-			productName = FluidGradient;
-		};
 		31FB3D642F39959A00104C5C /* FirebaseAuth */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 31FB3D632F39959A00104C5C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
@@ -774,6 +769,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 31FB3D632F39959A00104C5C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseMessaging;
+		};
+		32A4D1BA2F5B8C4100F6AA01 /* FluidGradient */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 32A4D1BB2F5B8C4100F6AA01 /* XCRemoteSwiftPackageReference "FluidGradient" */;
+			productName = FluidGradient;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

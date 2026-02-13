@@ -172,12 +172,12 @@ struct SettingsView: View {
                             showNotificationDeniedAlert = true
                             return
                         }
-                        syncNotificationSettingsToFirestore()
+                        FirebasePushService.shared.syncDeviceNotificationSettings()
                     }
                 } else if !newValue && oldValue {
                     // 用戶關閉通知，取消所有通知
                     NotificationService.shared.cancelAllNotifications()
-                    syncNotificationSettingsToFirestore()
+                    FirebasePushService.shared.syncDeviceNotificationSettings()
                 }
             }
             .onChange(of: hideDeliveredPackages) { _, newValue in
@@ -1011,29 +1011,7 @@ struct SettingsView: View {
         }
     }
 
-    /// 將通知設定同步到 Firestore（fire-and-forget）
-    private func syncNotificationSettingsToFirestore() {
-        guard let userId = authService.currentUser?.uid else { return }
-
-        let db = Firestore.firestore()
-        let settings: [String: Any] = [
-            "notificationSettings": [
-                "enabled": notificationsEnabled,
-                "arrivalNotification": arrivalNotificationEnabled,
-                "shippedNotification": shippedNotificationEnabled,
-                "pickupReminder": pickupReminderEnabled
-            ]
-        ]
-
-        Task {
-            do {
-                try await db.collection("users").document(userId).setData(settings, merge: true)
-                print("[Settings] Notification settings synced to Firestore")
-            } catch {
-                print("[Settings] Failed to sync notification settings: \(error.localizedDescription)")
-            }
-        }
-    }
+    // Notification settings are now per-device, synced via FirebasePushService.syncDeviceNotificationSettings()
 }
 
 // MARK: - Previews

@@ -11,7 +11,11 @@
 import {onDocumentUpdated} from "firebase-functions/v2/firestore";
 import {getFirestore, FieldValue} from "firebase-admin/firestore";
 import {logger} from "firebase-functions/v2";
-import {sendPushToAllDevices, extractAllTokens} from "./services/pushNotification";
+import {
+  sendPushToAllDevices,
+  extractAllTokens,
+  NotificationType,
+} from "./services/pushNotification";
 import {getNotificationText, normalizeLang} from "./i18n/notifications";
 import {getCarrierDisplayName} from "./utils/carrierNames";
 
@@ -56,27 +60,19 @@ export const onPackageStatusChange = onDocumentUpdated(
     const userDoc = await db.collection("users").doc(userId).get();
     const userData = userDoc.data();
 
+    // 先確認有任何裝置 token 存在
     const {tokens} = extractAllTokens(userData || {});
     if (!userData || tokens.length === 0) {
       logger.info("[Trigger] No FCM token, skipping");
       return;
     }
 
-    // 檢查通知設定
-    const settings = userData.notificationSettings;
-    if (!settings?.enabled) {
-      logger.info("[Trigger] Notifications disabled, skipping");
-      return;
-    }
-
-    // 根據狀態檢查對應的通知開關
-    if (after.status === "arrivedAtStore" && !settings?.arrivalNotification) {
-      logger.info("[Trigger] Arrival notifications disabled, skipping");
-      return;
-    }
-    if ((after.status === "shipped" || after.status === "inTransit") && !settings?.shippedNotification) {
-      logger.info("[Trigger] Shipped notifications disabled, skipping");
-      return;
+    // 決定通知類型（per-device 過濾會在 sendPushToAllDevices 中處理）
+    let notificationType: NotificationType | undefined;
+    if (after.status === "arrivedAtStore") {
+      notificationType = "arrival";
+    } else if (after.status === "shipped" || after.status === "inTransit") {
+      notificationType = "shipped";
     }
 
     // 取得用戶語系
@@ -122,7 +118,7 @@ export const onPackageStatusChange = onDocumentUpdated(
         trackingNumber: after.trackingNumber || "",
         status: after.status,
       },
-    });
+    }, notificationType);
 
     // 清理失效的 token
     if (failedDeviceIds.length > 0) {

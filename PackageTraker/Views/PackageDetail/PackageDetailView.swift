@@ -15,9 +15,15 @@ struct PackageDetailView: View {
     @State private var isRefreshing = false
     @State private var showEditSheet = false
 
-    /// 追蹤事件（按時間降序排列）
+    /// 追蹤事件（按時間降序排列，去重）
     private var events: [TrackingEvent] {
-        package.events.sorted { $0.timestamp > $1.timestamp }
+        var seen = Set<String>()
+        return package.events
+            .sorted { $0.timestamp > $1.timestamp }
+            .filter { event in
+                let key = "\(Int(event.timestamp.timeIntervalSince1970))|\(event.eventDescription)"
+                return seen.insert(key).inserted
+            }
     }
 
     /// 是否從 hero 動畫進入（有 namespace 表示從首頁進入）
