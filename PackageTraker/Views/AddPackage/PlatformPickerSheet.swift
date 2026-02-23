@@ -8,6 +8,7 @@ struct PlatformPickerSheet: View {
     @State private var searchText = ""
     @State private var customInput = ""
     @State private var showCustomInput = false
+    @FocusState private var isSearchFieldFocused: Bool
     
     /// 過濾後的平台列表
     private var filteredPlatforms: [String] {
@@ -22,6 +23,10 @@ struct PlatformPickerSheet: View {
                 
                 // 平台列表
                 platformList
+            }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                isSearchFieldFocused = false
             }
             .adaptiveBackground()
             .navigationTitle(String(localized: "platform.title"))
@@ -47,6 +52,7 @@ struct PlatformPickerSheet: View {
 
             TextField(String(localized: "platform.searchPlaceholder"), text: $searchText)
                 .textFieldStyle(.plain)
+                .focused($isSearchFieldFocused)
             
             if !searchText.isEmpty {
                 Button {
@@ -83,6 +89,10 @@ struct PlatformPickerSheet: View {
             }
             .padding(.horizontal)
             .padding(.bottom)
+        }
+        .scrollDismissesKeyboard(.interactively)
+        .onTapGesture {
+            isSearchFieldFocused = false
         }
     }
     

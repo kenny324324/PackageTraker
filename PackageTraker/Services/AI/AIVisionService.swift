@@ -7,6 +7,8 @@
 
 import Foundation
 import UIKit
+import FirebaseAuth
+import FirebaseFirestore
 
 /// AI 截圖辨識服務
 @MainActor
@@ -22,6 +24,8 @@ class AIVisionService {
 
     private let modelName = "gemini-2.5-flash"
     private let maxImageDimension: CGFloat = 1024
+    private let quotaAlertCooldown: TimeInterval = 30 * 60
+    private let quotaAlertLastReportedAtKey = "ai.quotaAlert.lastReportedAt"
 
     // MARK: - System Prompt
 
@@ -126,15 +130,19 @@ class AIVisionService {
             ],
             "generationConfig": [
                 "temperature": 0.1,
-                "maxOutputTokens": 2048,  // 增加到 2048，確保 JSON 完整
-                "responseMimeType": "application/json"
+                "maxOutputTokens": 2048,
+                "responseMimeType": "application/json",
+                "thinkingConfig": [
+                    "thinkingBudget": 0  // 關閉思考模式，這是簡單的 JSON 提取任務
+                ]
             ]
         ]
 
         let jsonData = try JSONSerialization.data(withJSONObject: requestBody)
 
         print("🚀 [AIVisionService] 呼叫 Gemini API: \(modelName)")
-        print("📤 [AIVisionService] Request URL: \(url)")
+        print("📤 [AIVisionService] Request URL: \(maskedURLString(url))")
+        print("📦 [AIVisionService] Request body size: \(jsonData.count) bytes (\(String(format: "%.1f", Double(jsonData.count) / 1024.0)) KB)")
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -142,11 +150,22 @@ class AIVisionService {
         request.httpBody = jsonData
         request.timeoutInterval = 30
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        // 建立乾淨的 URLSession，避免 Firebase SDK URL protocol 干擾
+        let cleanConfig = URLSessionConfiguration.ephemeral
+        cleanConfig.protocolClasses = []  // 跳過所有自定義 URL protocol
+        cleanConfig.timeoutIntervalForRequest = 30
+        cleanConfig.timeoutIntervalForResource = 60
+        let cleanSession = URLSession(configuration: cleanConfig)
+
+        print("🌐 [AIVisionService] 開始 POST 請求 (cleanSession, timeout=30s)...")
+        let (data, response) = try await withHardTimeout(seconds: 25) {
+            try await cleanSession.data(for: request)
+        }
+        print("✅ [AIVisionService] POST 請求完成")
 
         guard let httpResponse = response as? HTTPURLResponse else {
             print("❌ [AIVisionService] Invalid response type")
-            throw AIVisionError.apiError("Invalid response")
+            throw AIVisionError.apiError(statusCode: nil, rawMessage: "Invalid response")
         }
 
         print("📥 [AIVisionService] HTTP Status: \(httpResponse.statusCode)")
@@ -156,7 +175,20 @@ class AIVisionService {
 
         guard httpResponse.statusCode == 200 else {
             print("❌ [AIVisionService] API Error: \(responseBody.prefix(500))")
-            throw AIVisionError.apiError("HTTP \(httpResponse.statusCode): \(responseBody.prefix(200))")
+            let rawBody = String(responseBody.prefix(1000))
+            let apiError = AIVisionError.apiError(
+                statusCode: httpResponse.statusCode,
+                rawMessage: rawBody
+            )
+
+            if apiError.isQuotaExceeded {
+                reportQuotaExceededIfNeeded(
+                    statusCode: httpResponse.statusCode,
+                    responseBody: rawBody
+                )
+            }
+
+            throw apiError
         }
 
         // 解析 Gemini 回應
@@ -240,4 +272,83 @@ class AIVisionService {
             throw AIVisionError.parseError
         }
     }
+
+    /// 當 AI 配額不足時，背景上報到 Firestore 供後端通知（含 30 分鐘節流）
+    private func reportQuotaExceededIfNeeded(statusCode: Int, responseBody: String) {
+        let now = Date().timeIntervalSince1970
+        let lastSent = UserDefaults.standard.double(forKey: quotaAlertLastReportedAtKey)
+        guard now - lastSent >= quotaAlertCooldown else { return }
+
+        guard let userId = Auth.auth().currentUser?.uid else {
+            print("⚠️ [AIVisionService] Skip quota alert reporting: user not authenticated")
+            return
+        }
+
+        UserDefaults.standard.set(now, forKey: quotaAlertLastReportedAtKey)
+
+        let payload: [String: Any] = [
+            "type": "aiQuotaExceeded",
+            "statusCode": statusCode,
+            "source": "ios",
+            "model": modelName,
+            "userId": userId,
+            "locale": Locale.preferredLanguages.first ?? "unknown",
+            "appVersion": AppConfiguration.appVersion,
+            "buildNumber": AppConfiguration.buildNumber,
+            "message": String(responseBody.prefix(500)),
+            "createdAt": FieldValue.serverTimestamp()
+        ]
+
+        Task {
+            do {
+                try await Firestore.firestore()
+                    .collection("users")
+                    .document(userId)
+                    .collection("systemAlerts")
+                    .document()
+                    .setData(payload)
+                print("📣 [AIVisionService] Quota alert reported to Firestore")
+            } catch {
+                print("⚠️ [AIVisionService] Failed to report quota alert: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    /// 硬超時保護：避免 TCP black-hole 導致 URLSession timeout 無法觸發
+    private func withHardTimeout<T: Sendable>(
+        seconds: TimeInterval,
+        operation: @Sendable @escaping () async throws -> T
+    ) async throws -> T {
+        try await withThrowingTaskGroup(of: T.self) { group in
+            group.addTask {
+                try await operation()
+            }
+            group.addTask {
+                try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+                print("⏱️ [AIVisionService] Hard timeout after \(seconds)s")
+                throw URLError(.timedOut)
+            }
+            guard let result = try await group.next() else {
+                throw URLError(.unknown)
+            }
+            group.cancelAll()
+            return result
+        }
+    }
+
+    private func maskedURLString(_ url: URL) -> String {
+        guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
+            return url.absoluteString
+        }
+
+        components.queryItems = components.queryItems?.map { item in
+            if item.name.lowercased() == "key" {
+                return URLQueryItem(name: item.name, value: "***")
+            }
+            return item
+        }
+
+        return components.string ?? url.absoluteString
+    }
+
 }

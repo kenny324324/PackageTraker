@@ -12,3 +12,4 @@ initializeApp();
 export {packageTrackingScheduler} from "./scheduler";
 export {onPackageStatusChange} from "./triggers";
 export {dailyPickupReminder} from "./dailyReminder";
+export {onSystemAlertCreated} from "./alertEmail";

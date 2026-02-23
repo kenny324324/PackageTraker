@@ -20,6 +20,8 @@ struct PackageInfoView: View {
     var prefillName: String? = nil
     var prefillPickupLocation: String? = nil
     var prefillPickupCode: String? = nil
+    var prefillPlatform: String? = nil
+    var prefillAmount: String? = nil
 
     @State private var customName = ""
     @State private var selectedPaymentMethod: PaymentMethod?
@@ -68,10 +70,9 @@ struct PackageInfoView: View {
                 Button {
                     popToRoot()
                 } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "chevron.left")
-                        Text(String(localized: "add.title"))
-                    }
+                    Image(systemName: "chevron.left")
+                        .font(.headline)
+                        .fontWeight(.semibold)
                 }
                 .foregroundStyle(.white)
             }
@@ -106,6 +107,12 @@ struct PackageInfoView: View {
             }
             if let location = prefillPickupLocation, userPickupLocation.isEmpty {
                 userPickupLocation = location
+            }
+            if let platform = prefillPlatform, selectedPlatform.isEmpty {
+                selectedPlatform = platform
+            }
+            if let amount = prefillAmount, amountText.isEmpty {
+                amountText = amount
             }
         }
     }

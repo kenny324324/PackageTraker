@@ -254,6 +254,9 @@
 "platform.use" = "使用「%@」";
 "platform.custom" = "自订";
 
+// Carrier Picker
+"carrier.searchPlaceholder" = "搜索物流商";
+
 // Section
 "section.empty" = "暂无包裹";
 
@@ -438,6 +441,8 @@
 "ai.error.subscriptionRequired" = "AI 识别需要 Pro 订阅";
 "ai.error.apiKeyMissing" = "AI 服务未配置";
 "ai.error.apiFailed" = "AI 服务错误";
+"ai.error.quotaExceeded" = "目前 AI 识别服务暂时忙碌，请稍后再试。";
+"ai.error.serviceUnavailable" = "目前 AI 识别服务暂时不可用，请稍后再试。";
 "ai.error.parseFailed" = "无法解析 AI 结果";
 "ai.error.sdkNotAvailable" = "AI 服务不可用";
 
@@ -462,6 +467,8 @@
 "ai.quickAdd.status" = "包裹状态";
 "ai.quickAdd.storeName" = "取件门市";
 "ai.quickAdd.pickupLocation" = "取件地点";
+"ai.quickAdd.nextStep" = "下一步";
+"ai.quickAdd.trackingTimeline" = "物流追踪";
 
 // Empty State (additional)
 "empty.addButtonHint" = "AI 扫描或手动输入";

@@ -2,150 +2,36 @@
 //  AIQuickAddSheet.swift
 //  PackageTraker
 //
-//  AI 辨識結果快速新增包裹 Sheet
+//  AI 辨識結果確認頁 — 仿 PackageDetailView 佈局，下一步前往 PackageInfoView
 //
 
 import SwiftUI
 import SwiftData
-import WidgetKit
 
-/// AI 快速新增包裹 Sheet
+/// AI 辨識結果確認頁
 struct AIQuickAddSheet: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query private var existingPackages: [Package]
-
     let aiResult: AIVisionResult
     let trackingResult: TrackingResult
     let relationId: String
     let onDismiss: () -> Void
 
-    // 可編輯欄位（從 AI 結果初始化）
-    @State private var editedName: String
-    @State private var editedPickupLocation: String
-    @State private var editedPickupCode: String
-    @State private var editedAmount: String
-    @State private var editedPlatform: String
-
-    @State private var isSaving = false
-    @State private var showSuccess = false
-    @State private var showError = false
-    @State private var errorMessage = ""
-    @State private var showManualAdjust = false
-    @State private var showDuplicateAlert = false
-
-    init(aiResult: AIVisionResult, trackingResult: TrackingResult, relationId: String, onDismiss: @escaping () -> Void) {
-        self.aiResult = aiResult
-        self.trackingResult = trackingResult
-        self.relationId = relationId
-        self.onDismiss = onDismiss
-        _editedName = State(initialValue: aiResult.packageName ?? "")
-        _editedPickupLocation = State(initialValue: aiResult.pickupLocation ?? "")
-        _editedPickupCode = State(initialValue: aiResult.pickupCode ?? "")
-        _editedAmount = State(initialValue: aiResult.amount ?? "")
-        _editedPlatform = State(initialValue: aiResult.purchasePlatform ?? "")
-    }
+    @State private var showPackageInfo = false
+    @State private var editedTrackingNumber = ""
+    @State private var editedCarrier: Carrier = .other
+    @State private var showEditSheet = false
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                // 單號（唯讀）
-                infoCard(
-                    title: String(localized: "ai.field.trackingNumber"),
-                    trailing: { ConfidenceBadge(confidence: aiResult.confidence) }
-                ) {
-                    Text(aiResult.trackingNumber ?? "")
-                        .font(.system(.body, design: .monospaced))
-                        .foregroundStyle(.white)
-                }
+            VStack(alignment: .leading, spacing: 24) {
+                // 頂部：包裹資訊卡片
+                packageInfoCard
 
-                // 物流商（唯讀）
-                infoCard(title: String(localized: "ai.field.carrier")) {
-                    if let carrier = aiResult.detectedCarrier {
-                        HStack(spacing: 10) {
-                            CarrierLogoView(carrier: carrier, size: 28)
-                            Text(carrier.displayName)
-                                .foregroundStyle(.white)
-                        }
-                    } else {
-                        Text(aiResult.carrier ?? String(localized: "ai.field.unknown"))
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                // 包裹狀態（API）
-                infoCard(title: String(localized: "ai.quickAdd.status")) {
-                    HStack(spacing: 8) {
-                        Circle()
-                            .fill(trackingResult.currentStatus.color)
-                            .frame(width: 10, height: 10)
-                        Text(trackingResult.currentStatus.displayName)
-                            .foregroundStyle(.white)
-                    }
-                }
-
-                // 取件門市（API）
-                if let storeName = trackingResult.storeName {
-                    infoCard(title: String(localized: "ai.quickAdd.storeName")) {
-                        Text(storeName)
-                            .foregroundStyle(.white)
-                    }
-                }
-
-                // 取件期限（API）
-                if let deadline = trackingResult.pickupDeadline {
-                    infoCard(title: String(localized: "detail.pickupDeadline")) {
-                        Text(deadline)
-                            .foregroundStyle(.white)
-                    }
-                }
-
-                Divider()
-                    .padding(.vertical, 4)
-
-                // 可編輯：包裹名稱
-                editableCard(title: String(localized: "ai.field.packageName"),
-                             placeholder: String(localized: "add.productNamePlaceholder"),
-                             text: $editedName)
-
-                // 可編輯：取件地點
-                editableCard(title: String(localized: "ai.quickAdd.pickupLocation"),
-                             placeholder: String(localized: "add.pickupLocationPlaceholder"),
-                             text: $editedPickupLocation)
-
-                // 可編輯：取件碼
-                if !editedPickupCode.isEmpty || aiResult.pickupCode != nil {
-                    editableCard(title: String(localized: "ai.field.pickupCode"),
-                                 placeholder: "",
-                                 text: $editedPickupCode)
-                }
-
-                // 可編輯：購買平台
-                if !editedPlatform.isEmpty || aiResult.purchasePlatform != nil {
-                    editableCard(title: String(localized: "add.platform"),
-                                 placeholder: String(localized: "add.platformPlaceholder"),
-                                 text: $editedPlatform)
-                }
-
-                // 可編輯：金額
-                if !editedAmount.isEmpty || aiResult.amount != nil {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(String(localized: "add.amount"))
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        HStack {
-                            Text("$")
-                                .foregroundStyle(.secondary)
-                            TextField(String(localized: "add.amountPlaceholder"), text: $editedAmount)
-                                .keyboardType(.decimalPad)
-                        }
-                        .adaptiveInputStyle()
-                    }
-                    .padding(.horizontal)
-                }
+                // 物流追蹤歷程
+                trackingTimelineSection
             }
-            .padding(.vertical)
+            .padding()
+            .padding(.bottom, 80)
         }
-        .scrollDismissesKeyboard(.interactively)
         .adaptiveBackground()
         .navigationTitle(String(localized: "ai.quickAdd.title"))
         .navigationBarTitleDisplayMode(.inline)
@@ -155,202 +41,334 @@ struct AIQuickAddSheet: View {
                 Button(String(localized: "common.cancel")) {
                     onDismiss()
                 }
-                .foregroundStyle(.white)
-                .disabled(isSaving)
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(String(localized: "ai.quickAdd.nextStep")) {
+                    showPackageInfo = true
+                }
             }
         }
         .safeAreaInset(edge: .bottom) {
-            bottomButtons
+            bottomToolbar
         }
-        .fullScreenCover(isPresented: $showManualAdjust) {
-            NavigationStack {
-                PackageQueryView(
-                    trackingNumber: aiResult.trackingNumber ?? "",
-                    carrier: aiResult.detectedCarrier ?? .other,
-                    onComplete: { onDismiss() },
-                    popToRoot: { showManualAdjust = false },
-                    prefillName: editedName.isEmpty ? nil : editedName,
-                    prefillPickupLocation: editedPickupLocation.isEmpty ? nil : editedPickupLocation,
-                    prefillPickupCode: editedPickupCode.isEmpty ? nil : editedPickupCode
-                )
-            }
+        .navigationDestination(isPresented: $showPackageInfo) {
+            PackageInfoView(
+                trackingNumber: editedTrackingNumber,
+                carrier: editedCarrier,
+                trackingResult: trackingResult,
+                relationId: relationId,
+                onComplete: { onDismiss() },
+                popToRoot: { showPackageInfo = false },
+                prefillName: aiResult.packageName,
+                prefillPickupLocation: aiResult.pickupLocation,
+                prefillPickupCode: aiResult.pickupCode,
+                prefillPlatform: aiResult.detectedPlatform,
+                prefillAmount: aiResult.amount
+            )
         }
-        .alert(String(localized: "ai.quickAdd.error"), isPresented: $showError) {
-            Button(String(localized: "common.confirm"), role: .cancel) { }
-        } message: {
-            Text(errorMessage)
+        .sheet(isPresented: $showEditSheet) {
+            AIEditSheet(
+                carrier: $editedCarrier
+            )
         }
-        .alert(String(localized: "error.duplicateTitle"), isPresented: $showDuplicateAlert) {
-            Button(String(localized: "common.confirm"), role: .cancel) { }
-        } message: {
-            Text(String(localized: "error.duplicateMessage"))
+        .onAppear {
+            editedTrackingNumber = aiResult.trackingNumber ?? ""
+            // 以 API 追蹤結果的物流商為準（已經過 CarrierDetector 交叉驗證）
+            editedCarrier = trackingResult.carrier
         }
-        .overlay {
-            if showSuccess {
-                AISuccessAnimation()
-            }
-        }
-        .interactiveDismissDisabled(isSaving)
         .preferredColorScheme(.dark)
     }
 
-    // MARK: - Bottom Buttons
+    // MARK: - Package Info Card
 
-    private var bottomButtons: some View {
-        VStack(spacing: 12) {
-            // 一鍵新增（主按鈕）
-            Button {
-                Task { await quickAdd() }
-            } label: {
+    private var carrierDisplayTitle: String {
+        if let storeName = trackingResult.storeName, !storeName.isEmpty {
+            if editedCarrier == .sevenEleven {
+                return "\(editedCarrier.displayName) \(storeName)"
+            } else if editedCarrier == .familyMart {
+                return storeName
+            }
+        }
+        return editedCarrier.displayName
+    }
+
+    private var packageInfoCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // 物流商與狀態
+            HStack {
+                CarrierLogoView(carrier: editedCarrier, size: 56)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(carrierDisplayTitle)
+                        .font(.headline)
+
+                    Text(editedTrackingNumber)
+                        .font(.subheadline)
+                        .foregroundStyle(.white)
+                }
+
+                Spacer()
+
+                StatusIconBadge(status: trackingResult.currentStatus)
+            }
+
+            // 取貨地點
+            if let storeName = trackingResult.storeName {
                 HStack {
-                    if isSaving {
-                        ProgressView()
-                            .tint(.white)
-                    } else {
-                        Image(systemName: "checkmark.circle.fill")
-                        Text(String(localized: "ai.quickAdd.quickAdd"))
+                    Image(systemName: "mappin.circle.fill")
+                        .foregroundStyle(.secondary)
+                    Text(storeName)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            // 取件期限
+            if let deadline = trackingResult.pickupDeadline {
+                HStack(spacing: 4) {
+                    Image(systemName: "calendar")
+                        .foregroundStyle(.secondary)
+                        .font(.caption)
+                    Text("\(String(localized: "detail.deadline")) \(deadline)")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .adaptiveCardStyle()
+    }
+
+    // MARK: - Tracking Timeline
+
+    private var trackingTimelineSection: some View {
+        Group {
+            if !trackingResult.events.isEmpty {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text(String(localized: "ai.quickAdd.trackingTimeline"))
+                        .font(.headline)
+
+                    VStack(spacing: 0) {
+                        let sortedEvents = trackingResult.events
+                            .sorted { $0.timestamp > $1.timestamp }
+                        ForEach(Array(sortedEvents.enumerated()), id: \.offset) { index, event in
+                            TimelineEventRow(
+                                event: event,
+                                isFirst: index == 0,
+                                isLast: index == sortedEvents.count - 1
+                            )
+                        }
+                    }
+                    .adaptiveCardStyle()
+                }
+            }
+        }
+    }
+
+    // MARK: - Bottom Toolbar
+
+    private var bottomToolbar: some View {
+        HStack {
+            Spacer()
+
+            Button {
+                showEditSheet = true
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "pencil")
+                        .font(.title3)
+                    Text(String(localized: "detail.edit"))
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                }
+                .foregroundStyle(.white)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 14)
+            }
+            .adaptiveCapsuleButtonStyle()
+        }
+        .padding(.horizontal, 24)
+        .padding(.vertical, 12)
+    }
+}
+
+// MARK: - AI Edit Sheet
+
+private struct AIEditSheet: View {
+    @Binding var carrier: Carrier
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var showCarrierPicker = false
+
+    // 暫存編輯值，取消時不影響原值
+    @State private var tempCarrier: Carrier = .other
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 24) {
+                // 物流商
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(String(localized: "ai.field.carrier"))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+
+                    Button {
+                        showCarrierPicker = true
+                    } label: {
+                        HStack(spacing: 12) {
+                            CarrierLogoView(carrier: tempCarrier, size: 36)
+                            Text(tempCarrier.displayName)
+                                .foregroundStyle(.white)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(.white)
+                        }
+                    }
+                    .adaptiveInteractiveCardStyle()
+                }
+
+                Spacer()
+            }
+            .padding()
+            .navigationTitle(String(localized: "detail.edit"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button(String(localized: "common.cancel")) {
+                        dismiss()
                     }
                 }
-                .fontWeight(.bold)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(
-                    LinearGradient(
-                        colors: [
-                            Color(red: 0.5, green: 0.2, blue: 0.8),
-                            Color(red: 0.2, green: 0.4, blue: 0.9)
-                        ],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
-                .foregroundStyle(.white)
-                .clipShape(RoundedRectangle(cornerRadius: 14))
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(String(localized: "common.done")) {
+                        carrier = tempCarrier
+                        dismiss()
+                    }
+                }
             }
-            .disabled(isSaving)
-
-            // 手動調整（次按鈕）
-            Button {
-                showManualAdjust = true
-            } label: {
-                Text(String(localized: "ai.quickAdd.manualAdjust"))
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-            .disabled(isSaving)
         }
-        .padding(.horizontal)
-        .padding(.vertical, 12)
-        .background(.ultraThinMaterial)
-    }
-
-    // MARK: - Card Views
-
-    private func infoCard<Content: View, Trailing: View>(
-        title: String,
-        @ViewBuilder trailing: () -> Trailing = { EmptyView() },
-        @ViewBuilder content: () -> Content
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(title)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                trailing()
-            }
-            content()
+        .presentationDetents([.medium])
+        .interactiveDismissDisabled()
+        .preferredColorScheme(.dark)
+        .onAppear {
+            tempCarrier = carrier
         }
-        .padding()
-        .background(Color.cardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .padding(.horizontal)
-    }
-
-    private func editableCard(title: String, placeholder: String, text: Binding<String>) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-            TextField(placeholder, text: text)
-                .adaptiveInputStyle()
-        }
-        .padding(.horizontal)
-    }
-
-    // MARK: - Quick Add
-
-    private func quickAdd() async {
-        // 重複檢查
-        let trackingNumber = aiResult.trackingNumber ?? ""
-        if existingPackages.contains(where: { $0.trackingNumber == trackingNumber }) {
-            showDuplicateAlert = true
-            return
-        }
-
-        isSaving = true
-
-        do {
-            guard let carrier = aiResult.detectedCarrier else {
-                throw AIVisionError.parseError
-            }
-
-            let package = Package(
-                trackingNumber: trackingNumber,
-                carrier: carrier,
-                customName: editedName.isEmpty ? nil : editedName,
-                pickupCode: editedPickupCode.isEmpty ? nil : editedPickupCode,
-                pickupLocation: trackingResult.events.first?.location ?? carrier.defaultPickupLocation,
-                status: trackingResult.currentStatus,
-                latestDescription: trackingResult.events.first?.description,
-                amount: Double(editedAmount),
-                purchasePlatform: editedPlatform.isEmpty ? nil : editedPlatform,
-                userPickupLocation: editedPickupLocation.isEmpty ? nil : editedPickupLocation
+        .sheet(isPresented: $showCarrierPicker) {
+            CarrierPickerSheet(
+                selectedCarrier: $tempCarrier,
+                isPresented: $showCarrierPicker
             )
-            package.trackTwRelationId = relationId
+        }
+    }
+}
 
-            if let storeName = trackingResult.storeName { package.storeName = storeName }
-            if let serviceType = trackingResult.serviceType { package.serviceType = serviceType }
-            if let pickupDeadline = trackingResult.pickupDeadline { package.pickupDeadline = pickupDeadline }
+// MARK: - Carrier Picker
 
-            // 新增 tracking events
-            for eventDTO in trackingResult.events {
-                let event = TrackingEvent(
-                    timestamp: eventDTO.timestamp,
-                    status: eventDTO.status,
-                    description: eventDTO.description,
-                    location: eventDTO.location
-                )
-                event.package = package
-                package.events.append(event)
+private struct CarrierPickerSheet: View {
+    @Binding var selectedCarrier: Carrier
+    @Binding var isPresented: Bool
+
+    private let carriers: [Carrier] = Carrier.allCases.map { $0 }
+    @State private var searchText = ""
+    @FocusState private var isSearchFieldFocused: Bool
+
+    private var filteredCarriers: [Carrier] {
+        let keyword = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !keyword.isEmpty else { return carriers }
+
+        return carriers.filter { carrier in
+            carrier.displayName.localizedCaseInsensitiveContains(keyword)
+                || carrier.rawValue.localizedCaseInsensitiveContains(keyword)
+                || carrier.abbreviation.localizedCaseInsensitiveContains(keyword)
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                searchBar
+
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(filteredCarriers, id: \.rawValue) { (carrier: Carrier) in
+                            carrierRow(carrier)
+                        }
+                    }
+                    .padding(.top, 8)
+                    .padding(.bottom, 12)
+                }
+                .scrollDismissesKeyboard(.interactively)
+                .onTapGesture {
+                    isSearchFieldFocused = false
+                }
             }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                isSearchFieldFocused = false
+            }
+            .navigationTitle(String(localized: "ai.field.carrier"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(String(localized: "common.done")) {
+                        isPresented = false
+                    }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .preferredColorScheme(.dark)
+    }
 
-            // 儲存到 SwiftData
-            modelContext.insert(package)
-            try modelContext.save()
+    private var searchBar: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
 
-            // 同步到 Firestore
-            FirebaseSyncService.shared.syncPackage(package)
+            TextField(String(localized: "carrier.searchPlaceholder"), text: $searchText)
+                .textFieldStyle(.plain)
+                .autocorrectionDisabled()
+                .focused($isSearchFieldFocused)
 
-            // 更新 Widget
-            WidgetDataService.shared.updateWidgetData(packages: existingPackages + [package])
-            WidgetCenter.shared.reloadAllTimelines()
+            if !searchText.isEmpty {
+                Button {
+                    searchText = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .padding(12)
+        .background(Color.secondaryCardBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .padding(.horizontal)
+        .padding(.top, 8)
+        .padding(.bottom, 4)
+    }
 
-            // 顯示成功動畫
-            showSuccess = true
+    private func carrierRow(_ carrier: Carrier) -> some View {
+        Button {
+            selectedCarrier = carrier
+            isPresented = false
+        } label: {
+            VStack(spacing: 0) {
+                HStack(spacing: 12) {
+                    CarrierLogoView(carrier: carrier, size: 32)
+                    Text(carrier.displayName)
+                        .foregroundStyle(.white)
+                    Spacer()
+                    if carrier == selectedCarrier {
+                        Image(systemName: "checkmark")
+                            .foregroundStyle(Color.appAccent)
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 12)
 
-            // 震動回饋
-            let generator = UINotificationFeedbackGenerator()
-            generator.notificationOccurred(.success)
-
-            // 延遲後關閉
-            try await Task.sleep(for: .seconds(1))
-            onDismiss()
-
-        } catch {
-            errorMessage = error.localizedDescription
-            showError = true
-            isSaving = false
+                Divider()
+                    .padding(.leading, 56)
+            }
         }
     }
 }
@@ -393,62 +411,33 @@ struct ConfidenceBadge: View {
     }
 }
 
-// MARK: - Success Animation
-
-struct AISuccessAnimation: View {
-    @State private var scale: CGFloat = 0.5
-    @State private var opacity: Double = 0
-
-    var body: some View {
-        ZStack {
-            Color.black.opacity(0.3)
-                .ignoresSafeArea()
-
-            VStack(spacing: 16) {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 64))
-                    .foregroundStyle(.green)
-                Text(String(localized: "ai.quickAdd.success"))
-                    .font(.headline)
-                    .foregroundStyle(.white)
-            }
-            .scaleEffect(scale)
-            .opacity(opacity)
-            .onAppear {
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
-                    scale = 1.0
-                    opacity = 1.0
-                }
-            }
-        }
-    }
-}
-
 // MARK: - Preview
 
 #Preview {
-    AIQuickAddSheet(
-        aiResult: AIVisionResult(
-            trackingNumber: "TW259426993523H",
-            carrier: "蝦皮店到店",
-            pickupLocation: "全家 台北信義店",
-            pickupCode: "1234",
-            packageName: "藍牙耳機",
-            estimatedDelivery: nil,
-            purchasePlatform: "蝦皮購物",
-            amount: "199",
-            confidence: 0.95
-        ),
-        trackingResult: TrackingResult(
-            trackingNumber: "TW259426993523H",
-            carrier: .shopee,
-            currentStatus: .arrivedAtStore,
-            events: [],
-            rawResponse: nil,
-            storeName: "全家信義店"
-        ),
-        relationId: "test-relation-id",
-        onDismiss: {}
-    )
+    NavigationStack {
+        AIQuickAddSheet(
+            aiResult: AIVisionResult(
+                trackingNumber: "TW259426993523H",
+                carrier: "蝦皮店到店",
+                pickupLocation: "全家 台北信義店",
+                pickupCode: "1234",
+                packageName: "藍牙耳機",
+                estimatedDelivery: nil,
+                purchasePlatform: "蝦皮購物",
+                amount: "199",
+                confidence: 0.95
+            ),
+            trackingResult: TrackingResult(
+                trackingNumber: "TW259426993523H",
+                carrier: .shopee,
+                currentStatus: .arrivedAtStore,
+                events: [],
+                rawResponse: nil,
+                storeName: "全家信義店"
+            ),
+            relationId: "test-relation-id",
+            onDismiss: {}
+        )
+    }
     .modelContainer(for: [Package.self, TrackingEvent.self], inMemory: true)
 }

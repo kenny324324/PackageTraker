@@ -30,6 +30,9 @@ struct AIScanningView: View {
 
     // 顯示結果
     @State private var navigateToQuickAdd = false
+    @State private var workflowCompleted = false
+    @State private var isProcessingWorkflow = false
+    @State private var workflowTask: Task<Void, Never>?
 
     // 錯誤
     @State private var showError = false
@@ -76,15 +79,10 @@ struct AIScanningView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button {
+                    Button(String(localized: "common.cancel")) {
                         onCancel()
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "xmark")
-                            Text(String(localized: "common.cancel"))
-                        }
                     }
-                    .foregroundStyle(.white.opacity(0.7))
+                    .foregroundStyle(.white)
                 }
             }
             .navigationDestination(isPresented: $navigateToQuickAdd) {
@@ -104,10 +102,13 @@ struct AIScanningView: View {
             }
             .fullScreenCover(isPresented: $showManualAdd) {
                 if let result = aiResult {
+                    let carrier = result.detectedCarrier
+                        ?? CarrierDetector.detectBest(result.trackingNumber ?? "")?.carrier
+                        ?? .other
                     NavigationStack {
                         PackageQueryView(
                             trackingNumber: result.trackingNumber ?? "",
-                            carrier: result.detectedCarrier ?? .other,
+                            carrier: carrier,
                             onComplete: { onDismiss() },
                             popToRoot: { showManualAdd = false }
                         )
@@ -116,9 +117,11 @@ struct AIScanningView: View {
             }
             .alert(String(localized: "ai.error.title"), isPresented: $showError) {
                 Button(String(localized: "addMethod.retry")) {
+                    workflowCompleted = false
                     Task { await processAIWorkflow() }
                 }
-                if aiResult?.trackingNumber != nil {
+                if let trackingNumber = aiResult?.trackingNumber,
+                   CarrierDetector.isValidFormat(trackingNumber) {
                     Button(String(localized: "addMethod.manualInput")) {
                         showError = false
                         showManualAdd = true
@@ -132,8 +135,11 @@ struct AIScanningView: View {
             }
         }
         .preferredColorScheme(.dark)
-        .task {
-            await processAIWorkflow()
+        .onAppear {
+            guard workflowTask == nil, !isProcessingWorkflow, !workflowCompleted else { return }
+            workflowTask = Task { @MainActor in
+                await processAIWorkflow()
+            }
         }
     }
 
@@ -164,23 +170,69 @@ struct AIScanningView: View {
     // MARK: - AI Workflow
 
     private func processAIWorkflow() async {
+        // 防止 .task 重複執行（view lifecycle 可能觸發多次）
+        guard !workflowCompleted, !isProcessingWorkflow else {
+            print("⚠️ [AIScanningView] processAIWorkflow skipped (completed=\(workflowCompleted), processing=\(isProcessingWorkflow))")
+            return
+        }
+
+        print("🟢 [AIScanningView] processAIWorkflow 開始")
+        isProcessingWorkflow = true
+        defer {
+            isProcessingWorkflow = false
+            print("🔚 [AIScanningView] processAIWorkflow 結束")
+        }
+
         showError = false
         errorMessage = ""
-        navigateToQuickAdd = false
 
         do {
             // 階段 1：AI 辨識
             loadingStage = .aiRecognition
 
+            print("📸 [AIScanningView] 開始 AI 辨識...")
             let result = try await analyzeImageWithRetry(image)
+            print("✅ [AIScanningView] AI 辨識完成")
             self.aiResult = result
 
-            // 階段 2：API 驗證
+            // 階段 2：驗證單號格式 + API 驗證
             withAnimation { loadingStage = .apiVerification }
 
-            guard let trackingNumber = result.trackingNumber,
-                  let carrier = result.detectedCarrier else {
+            guard let trackingNumber = result.trackingNumber, !trackingNumber.isEmpty else {
                 throw TrackingError.invalidTrackingNumber
+            }
+
+            // 驗證單號基本格式
+            guard CarrierDetector.isValidFormat(trackingNumber) else {
+                print("❌ [AIScanningView] 單號格式不正確: \(trackingNumber)")
+                throw TrackingError.invalidTrackingNumber
+            }
+
+            // 決定物流商：AI 辨識 → CarrierDetector 規則比對 → 失敗
+            let carrier: Carrier
+            if let aiCarrier = result.detectedCarrier {
+                // AI 有辨識到物流商，用 CarrierDetector 交叉驗證
+                let detectorResult = CarrierDetector.detectBest(trackingNumber)
+                if let detected = detectorResult, detected.confidence >= 0.8, detected.carrier != aiCarrier {
+                    // 單號格式高度匹配另一個物流商 → 以格式規則為準
+                    print("⚠️ [AIScanningView] AI 辨識物流商 \(aiCarrier.displayName) 與單號格式不符，改用 \(detected.carrier.displayName) (confidence: \(detected.confidence))")
+                    carrier = detected.carrier
+                } else {
+                    carrier = aiCarrier
+                }
+            } else if let detectorResult = CarrierDetector.detectBest(trackingNumber) {
+                // AI 無法辨識物流商，用單號格式判斷
+                print("📋 [AIScanningView] AI 未辨識物流商，CarrierDetector 匹配: \(detectorResult.carrier.displayName) (confidence: \(detectorResult.confidence))")
+                carrier = detectorResult.carrier
+            } else {
+                // 兩者都無法判斷
+                print("❌ [AIScanningView] 無法辨識物流商：AI 無結果，單號格式也無法匹配")
+                throw TrackingError.invalidTrackingNumber
+            }
+
+            // 檢查物流商是否支援追蹤
+            guard carrier.trackTwUUID != nil else {
+                throw TrackingError.unsupportedCarrier(carrier)
             }
 
             let relationId = try await trackingManager.importPackage(
@@ -191,6 +243,25 @@ struct AIScanningView: View {
             let trackingResult = try await trackingManager.track(
                 number: trackingNumber,
                 carrier: carrier
+            )
+
+            // 驗證追蹤結果是否有效（至少有事件或非 pending 狀態）
+            if trackingResult.events.isEmpty && trackingResult.currentStatus == .pending {
+                print("⚠️ [AIScanningView] 追蹤結果無任何事件且狀態為 pending，單號可能無效")
+                throw TrackingError.trackingNumberNotFound
+            }
+
+            // 更新 AI result 的 carrier（可能被 CarrierDetector 修正）
+            self.aiResult = AIVisionResult(
+                trackingNumber: result.trackingNumber,
+                carrier: carrier.displayName,
+                pickupLocation: result.pickupLocation,
+                pickupCode: result.pickupCode,
+                packageName: result.packageName,
+                estimatedDelivery: result.estimatedDelivery,
+                purchasePlatform: result.purchasePlatform,
+                amount: result.amount,
+                confidence: result.confidence
             )
 
             self.apiTrackingResult = trackingResult
@@ -205,10 +276,20 @@ struct AIScanningView: View {
 
             // 短暫延遲後顯示結果
             try? await Task.sleep(for: .milliseconds(600))
+            workflowCompleted = true
             navigateToQuickAdd = true
 
+        } catch is CancellationError {
+            print("🚫 [AIScanningView] Task 被取消 (CancellationError)！")
+            errorMessage = String(localized: "error.networkError")
+            showError = true
+        } catch let urlError as URLError where urlError.code == .cancelled {
+            print("🚫 [AIScanningView] URLSession 被取消 (URLError.cancelled)！")
+            errorMessage = String(localized: "error.networkError")
+            showError = true
         } catch {
-            errorMessage = error.localizedDescription
+            print("❌ [AIScanningView] 錯誤: \(error)")
+            errorMessage = friendlyErrorMessage(for: error)
             showError = true
         }
     }
@@ -237,11 +318,47 @@ struct AIScanningView: View {
         guard let aiError = error as? AIVisionError else { return false }
 
         switch aiError {
-        case .apiError, .parseError:
+        case .apiError:
+            return !aiError.isQuotaExceeded
+        case .parseError:
             return true
         default:
             return false
         }
+    }
+
+    private func friendlyErrorMessage(for error: Error) -> String {
+        if let aiError = error as? AIVisionError {
+            if aiError.isQuotaExceeded {
+                return String(localized: "ai.error.quotaExceeded")
+            }
+
+            switch aiError {
+            case .apiError:
+                return String(localized: "ai.error.serviceUnavailable")
+            default:
+                return aiError.errorDescription ?? String(localized: "ai.error.serviceUnavailable")
+            }
+        }
+
+        if let urlError = error as? URLError {
+            switch urlError.code {
+            case .timedOut,
+                 .notConnectedToInternet,
+                 .networkConnectionLost,
+                 .cannotFindHost,
+                 .cannotConnectToHost,
+                 .dnsLookupFailed,
+                 .internationalRoamingOff,
+                 .callIsActive,
+                 .dataNotAllowed:
+                return String(localized: "error.networkError")
+            default:
+                break
+            }
+        }
+
+        return error.localizedDescription
     }
 }
 

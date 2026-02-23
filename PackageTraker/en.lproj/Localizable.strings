@@ -254,6 +254,9 @@
 "platform.use" = "Use \"%@\"";
 "platform.custom" = "Custom";
 
+// Carrier Picker
+"carrier.searchPlaceholder" = "Search carrier";
+
 // Section
 "section.empty" = "No packages";
 
@@ -439,6 +442,8 @@
 "ai.error.subscriptionRequired" = "AI recognition requires Pro subscription";
 "ai.error.apiKeyMissing" = "AI service not configured";
 "ai.error.apiFailed" = "AI service error";
+"ai.error.quotaExceeded" = "AI service is temporarily busy. Please try again shortly.";
+"ai.error.serviceUnavailable" = "AI service is temporarily unavailable. Please try again later.";
 "ai.error.parseFailed" = "Unable to parse AI result";
 "ai.error.sdkNotAvailable" = "AI service unavailable";
 
@@ -463,6 +468,8 @@
 "ai.quickAdd.status" = "Package Status";
 "ai.quickAdd.storeName" = "Pickup Store";
 "ai.quickAdd.pickupLocation" = "Pickup Location";
+"ai.quickAdd.nextStep" = "Next Step";
+"ai.quickAdd.trackingTimeline" = "Tracking History";
 
 // Empty State (additional)
 "empty.addButtonHint" = "AI scan or manual entry";

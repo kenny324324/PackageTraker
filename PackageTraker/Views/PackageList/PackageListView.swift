@@ -60,7 +60,7 @@ struct PackageListView: View {
         NavigationStack {
             Group {
                 if filteredPackages.isEmpty {
-                    EmptyPackageListView(onAddPackage: { showAddMethodSheet = true })
+                    EmptyPackageListView()
                 } else {
                     packageListContent
                 }
@@ -441,32 +441,11 @@ struct PackageListView: View {
 // MARK: - Empty State
 
 struct EmptyPackageListView: View {
-    var onAddPackage: () -> Void
-
     var body: some View {
         ContentUnavailableView {
             Label(String(localized: "empty.title"), systemImage: "shippingbox")
         } description: {
             Text(String(localized: "empty.description"))
-        } actions: {
-            Button {
-                onAddPackage()
-            } label: {
-                Label {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(String(localized: "empty.addButton"))
-                            .font(.headline)
-                        Text(String(localized: "empty.addButtonHint"))
-                            .font(.caption)
-                            .foregroundStyle(.white.opacity(0.8))
-                    }
-                } icon: {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.title2)
-                }
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(.appAccent)
         }
     }
 }

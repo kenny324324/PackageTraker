@@ -62,3 +62,8 @@ functions/lib/
 
 # Local logs
 firebase-debug.log
+firebase-debug*.log
+
+# Misc
+*.png.bak
+arrow.png

@@ -254,6 +254,9 @@
 "platform.use" = "使用「%@」";
 "platform.custom" = "自訂";
 
+// Carrier Picker
+"carrier.searchPlaceholder" = "搜尋物流商";
+
 // Section
 "section.empty" = "暫無包裹";
 
@@ -438,6 +441,8 @@
 "ai.error.subscriptionRequired" = "AI 辨識需要 Pro 訂閱";
 "ai.error.apiKeyMissing" = "AI 服務未設定";
 "ai.error.apiFailed" = "AI 服務錯誤";
+"ai.error.quotaExceeded" = "目前 AI 辨識服務暫時忙碌，請稍後再試。";
+"ai.error.serviceUnavailable" = "目前 AI 辨識服務暫時無法使用，請稍後再試。";
 "ai.error.parseFailed" = "無法解析 AI 結果";
 "ai.error.sdkNotAvailable" = "AI 服務不可用";
 
@@ -462,6 +467,8 @@
 "ai.quickAdd.status" = "包裹狀態";
 "ai.quickAdd.storeName" = "取件門市";
 "ai.quickAdd.pickupLocation" = "取件地點";
+"ai.quickAdd.nextStep" = "下一步";
+"ai.quickAdd.trackingTimeline" = "物流追蹤";
 
 // Empty State (additional)
 "empty.addButtonHint" = "AI 掃描或手動輸入";
