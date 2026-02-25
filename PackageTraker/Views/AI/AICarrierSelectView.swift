@@ -88,7 +88,7 @@ struct AICarrierSelectView: View {
             }
         }
         .fullScreenCover(isPresented: $showPaywall) {
-            PaywallView()
+            PaywallView(lifetimeOnly: true)
         }
         .preferredColorScheme(.dark)
     }

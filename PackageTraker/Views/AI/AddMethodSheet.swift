@@ -15,6 +15,7 @@ struct AddMethodSheet: View {
     @State private var showAICarrierSelect = false
     @State private var showManualAdd = false
     @State private var showPaywall = false
+    @State private var paywallLifetimeOnly = false
     @State private var contentHeight: CGFloat = 0
     @State private var remainingScans: Int = AIVisionService.shared.remainingScans
     @State private var hasFetchedUsage = false
@@ -29,8 +30,8 @@ struct AddMethodSheet: View {
                 // AI 掃描按鈕
                 aiScanButton
 
-                // AI 剩餘次數（僅 Pro 用戶顯示）
-                if FeatureFlags.subscriptionEnabled && SubscriptionManager.shared.hasAIAccess {
+                // AI 剩餘次數（僅訂閱制用戶顯示，終身方案不顯示）
+                if FeatureFlags.subscriptionEnabled && SubscriptionManager.shared.hasAIAccess && !SubscriptionManager.shared.isLifetime {
                     Text(String(localized: "ai.remainingScans.\(remainingScans)"))
                         .font(.caption2)
                         .foregroundStyle(.secondary)
@@ -81,7 +82,7 @@ struct AddMethodSheet: View {
             AddPackageView()
         }
         .fullScreenCover(isPresented: $showPaywall) {
-            PaywallView()
+            PaywallView(lifetimeOnly: paywallLifetimeOnly)
         }
         .preferredColorScheme(.dark)
         .task {
@@ -95,11 +96,22 @@ struct AddMethodSheet: View {
         }
     }
 
-    /// 未訂閱 → 彈 Paywall；已訂閱 → 進入物流商選擇頁
+    /// 未訂閱 → 彈 Paywall；訂閱制次數用完 → 彈 Paywall；其餘 → 進入物流商選擇頁
     @ViewBuilder
     private var aiScanButton: some View {
         if FeatureFlags.subscriptionEnabled && !SubscriptionManager.shared.hasAIAccess {
-            Button { showPaywall = true } label: { aiScanLabel }
+            // 未訂閱
+            Button {
+                paywallLifetimeOnly = false
+                showPaywall = true
+            } label: { aiScanLabel }
+                .buttonStyle(.plain)
+        } else if FeatureFlags.subscriptionEnabled && !SubscriptionManager.shared.isLifetime && remainingScans <= 0 {
+            // 訂閱制但今日次數已用完 → 直接彈升級終身方案
+            Button {
+                paywallLifetimeOnly = true
+                showPaywall = true
+            } label: { aiScanLabel }
                 .buttonStyle(.plain)
         } else {
             Button { showAICarrierSelect = true } label: { aiScanLabel }

@@ -420,6 +420,7 @@
 "paywall.error" = "购买失败";
 "paywall.loadingProducts" = "加载方案中...";
 "paywall.termsNote" = "自动续订订阅，随时可取消。";
+"paywall.unlockUnlimitedAI" = "解锁无限次 AI 识别";
 "paywall.terms" = "服务条款";
 "paywall.privacy" = "隐私政策";
 

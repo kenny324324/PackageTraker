@@ -10,6 +10,9 @@ import StoreKit
 
 /// 付費牆
 struct PaywallView: View {
+    /// 僅顯示終身方案（用於訂閱制用戶次數用完時升級）
+    var lifetimeOnly: Bool = false
+
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var subscriptionManager = SubscriptionManager.shared
 
@@ -47,11 +50,20 @@ struct PaywallView: View {
                     
                     // 底部區域背景
                     VStack(spacing: 0) {
-                        // Terms text
-                        Text(String(localized: "paywall.termsNote"))
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                            .padding(.bottom, 16)
+                        if lifetimeOnly {
+                            // 升級終身方案提示
+                            Text(String(localized: "paywall.unlockUnlimitedAI"))
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(.yellow)
+                                .padding(.bottom, 16)
+                        } else {
+                            // Terms text
+                            Text(String(localized: "paywall.termsNote"))
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                                .padding(.bottom, 16)
+                        }
                         
                         subscribeButton
                         
@@ -195,20 +207,22 @@ struct PaywallView: View {
                     lifetimePlanCard(product: lifetime)
                 }
 
-                // Yearly
-                if let yearly = subscriptionManager.yearlyProduct {
-                    standardPlanCard(
-                        product: yearly,
-                        badge: String(localized: "paywall.badge.bestValue"),
-                        subtitle: isTrialEligible
-                            ? String(localized: "paywall.trial")
-                            : String(localized: "paywall.cancelAnytime")
-                    )
-                }
+                if !lifetimeOnly {
+                    // Yearly
+                    if let yearly = subscriptionManager.yearlyProduct {
+                        standardPlanCard(
+                            product: yearly,
+                            badge: String(localized: "paywall.badge.bestValue"),
+                            subtitle: isTrialEligible
+                                ? String(localized: "paywall.trial")
+                                : String(localized: "paywall.cancelAnytime")
+                        )
+                    }
 
-                // Monthly
-                if let monthly = subscriptionManager.monthlyProduct {
-                    standardPlanCard(product: monthly, badge: nil, subtitle: String(localized: "paywall.cancelAnytime"))
+                    // Monthly
+                    if let monthly = subscriptionManager.monthlyProduct {
+                        standardPlanCard(product: monthly, badge: nil, subtitle: String(localized: "paywall.cancelAnytime"))
+                    }
                 }
             }
             .padding(.horizontal, 20)

@@ -421,6 +421,7 @@
 "paywall.error" = "Purchase Error";
 "paywall.loadingProducts" = "Loading plans...";
 "paywall.termsNote" = "Auto-renewable subscription. Cancel anytime.";
+"paywall.unlockUnlimitedAI" = "Unlock Unlimited AI Recognition";
 "paywall.terms" = "Terms of Service";
 "paywall.privacy" = "Privacy Policy";
 
