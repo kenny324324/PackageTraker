@@ -149,6 +149,36 @@ struct DeveloperOptionsView: View {
                 Text("直接切換訂閱狀態，跳過 StoreKit 驗證。用於測試 Pro 功能與 UI 變化。")
             }
 
+            // MARK: - AI 掃描
+            Section {
+                HStack {
+                    Text("今日已用次數")
+                    Spacer()
+                    let used = 20 - AIVisionService.shared.remainingScans
+                    Text("\(used) / 20")
+                        .foregroundStyle(.secondary)
+                }
+
+                HStack {
+                    Text("方案")
+                    Spacer()
+                    Text(SubscriptionManager.shared.isLifetime ? "終身（無限）" : "訂閱（20/天）")
+                        .foregroundStyle(SubscriptionManager.shared.isLifetime ? .green : .secondary)
+                }
+
+                Button {
+                    UserDefaults.standard.removeObject(forKey: "ai.dailyUsage.count")
+                    UserDefaults.standard.removeObject(forKey: "ai.dailyUsage.date")
+                    print("[Debug] AI 掃描次數已重置")
+                } label: {
+                    Label("重置掃描次數", systemImage: "arrow.counterclockwise")
+                }
+            } header: {
+                Text("AI 掃描")
+            } footer: {
+                Text("重置本地每日掃描次數快取。終身方案不受次數限制。")
+            }
+
             // MARK: - 系統資訊
             Section {
                 HStack {

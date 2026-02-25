@@ -18,6 +18,7 @@ struct AICarrierSelectView: View {
     @State private var photoItem: PhotosPickerItem?
     @State private var selectedImage: UIImage?
     @State private var showScanning = false
+    @State private var showPaywall = false
 
     private var trackableCarriers: [Carrier] {
         Carrier.allCases.filter { $0.trackTwUUID != nil }
@@ -86,6 +87,9 @@ struct AICarrierSelectView: View {
                 }
             }
         }
+        .fullScreenCover(isPresented: $showPaywall) {
+            PaywallView()
+        }
         .preferredColorScheme(.dark)
     }
 
@@ -120,12 +124,15 @@ struct AICarrierSelectView: View {
     private func loadImage(from item: PhotosPickerItem) async {
         defer { photoItem = nil }
 
-        // 每日用量檢查
-        if AIVisionService.shared.remainingScans <= 0 {
-            let usage = await AIVisionService.shared.fetchUsageFromServer()
-            let remaining = max(0, usage.limit - usage.used)
-            if remaining <= 0 {
-                return
+        // 終身方案不限次數，其他方案檢查每日用量
+        if !SubscriptionManager.shared.isLifetime {
+            if AIVisionService.shared.remainingScans <= 0 {
+                let usage = await AIVisionService.shared.fetchUsageFromServer()
+                let remaining = max(0, usage.limit - usage.used)
+                if remaining <= 0 {
+                    showPaywall = true
+                    return
+                }
             }
         }
 

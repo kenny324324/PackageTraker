@@ -175,18 +175,21 @@ export const analyzePackageImage = onCall(
 
     // 2. 檢查訂閱層級
     const userDoc = await db.doc(`users/${uid}`).get();
-    const tier = userDoc.data()?.subscriptionTier;
+    const userData = userDoc.data();
+    const tier = userData?.subscriptionTier;
     if (tier !== "pro") {
       throw new HttpsError("permission-denied", "Pro subscription required");
     }
 
-    // 3. 檢查每日用量
+    // 3. 檢查每日用量（終身方案不限次數）
+    const productID = userData?.subscriptionProductID as string | undefined;
+    const isLifetime = productID === "com.kenny.PackageTraker.pro.lifetime";
     const today = getTaiwanDateString();
     const usageRef = db.doc(`users/${uid}/aiUsage/${today}`);
     const usageDoc = await usageRef.get();
     const currentCount = (usageDoc.data()?.count as number) || 0;
 
-    if (currentCount >= DAILY_LIMIT) {
+    if (!isLifetime && currentCount >= DAILY_LIMIT) {
       throw new HttpsError(
         "resource-exhausted",
         `Daily AI scan limit reached (${DAILY_LIMIT}/day)`

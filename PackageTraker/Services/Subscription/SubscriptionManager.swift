@@ -42,6 +42,7 @@ class SubscriptionManager: ObservableObject {
     // MARK: - Computed
 
     var isPro: Bool { currentTier == .pro }
+    var isLifetime: Bool { currentProductID == SubscriptionProductID.lifetime.rawValue }
     var maxPackageCount: Int { isPro ? .max : 5 }
     var hasAIAccess: Bool { isPro }
     var hasAllThemes: Bool { isPro }
