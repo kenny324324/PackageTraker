@@ -50,10 +50,10 @@ struct SettingsView: View {
     @ObservedObject private var subscriptionManager = SubscriptionManager.shared
 
     // 通知設定（持久化到 UserDefaults，並同步到 Firestore）
-    @AppStorage("notificationsEnabled") private var notificationsEnabled = false
-    @AppStorage("arrivalNotificationEnabled") private var arrivalNotificationEnabled = false
-    @AppStorage("shippedNotificationEnabled") private var shippedNotificationEnabled = false
-    @AppStorage("pickupReminderEnabled") private var pickupReminderEnabled = false
+    @AppStorage("notificationsEnabled") private var notificationsEnabled = true
+    @AppStorage("arrivalNotificationEnabled") private var arrivalNotificationEnabled = true
+    @AppStorage("shippedNotificationEnabled") private var shippedNotificationEnabled = true
+    @AppStorage("pickupReminderEnabled") private var pickupReminderEnabled = true
 
     @State private var showClearDataConfirmation = false
     @State private var showClearDataSuccess = false

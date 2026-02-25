@@ -53,6 +53,14 @@ struct PackageTrakerApp: App {
     @StateObject private var subscriptionManager = SubscriptionManager.shared
 
     init() {
+        // 推播通知預設全開啟（首次安裝時 UserDefaults 尚無值，register 提供預設）
+        UserDefaults.standard.register(defaults: [
+            "notificationsEnabled": true,
+            "arrivalNotificationEnabled": true,
+            "shippedNotificationEnabled": true,
+            "pickupReminderEnabled": true
+        ])
+
         // 初始化 Firebase
         FirebaseApp.configure()
 

@@ -9,9 +9,9 @@ import SwiftUI
 
 /// 推播通知細項設定
 struct NotificationSettingsView: View {
-    @AppStorage("arrivalNotificationEnabled") private var arrivalNotificationEnabled = false
-    @AppStorage("shippedNotificationEnabled") private var shippedNotificationEnabled = false
-    @AppStorage("pickupReminderEnabled") private var pickupReminderEnabled = false
+    @AppStorage("arrivalNotificationEnabled") private var arrivalNotificationEnabled = true
+    @AppStorage("shippedNotificationEnabled") private var shippedNotificationEnabled = true
+    @AppStorage("pickupReminderEnabled") private var pickupReminderEnabled = true
 
     var body: some View {
         ScrollView {
