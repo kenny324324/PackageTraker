@@ -60,14 +60,15 @@ enum TrackingStatus: String, CaseIterable, Identifiable, Codable {
     // MARK: - Track.TW Mapping
 
     /// 從 Track.TW 的 checkpoint_status + 狀態描述文字對應到 TrackingStatus
+    ///
+    /// 以 API 的 4 種 checkpoint_status 為主，僅在 transit / delivered 內用描述細分：
+    /// - transit  → .shipped（剛出貨）或 .inTransit（預設）
+    /// - delivered → .delivered（已取件/簽收）或 .arrivedAtStore（預設，到店待取）
     static func fromTrackTw(checkpointStatus: String, statusDescription: String) -> TrackingStatus {
         switch checkpointStatus {
         case "delivered":
-            return .delivered
+            return mapDeliveredSubStatus(statusDescription)
         case "exception":
-            if statusDescription.contains("退回") || statusDescription.contains("退貨") {
-                return .returned
-            }
             return .returned
         case "pending":
             return .pending
@@ -78,42 +79,52 @@ enum TrackingStatus: String, CaseIterable, Identifiable, Codable {
         }
     }
 
-    /// 根據中文描述細分 transit 狀態
+    /// 細分 transit：區分「剛出貨」vs「到店待取」vs「配送中」
+    ///
+    /// 判斷順序很重要：shipped → arrivedAtStore → inTransit（預設）
     private static func mapTransitSubStatus(_ description: String) -> TrackingStatus {
-        // 1. 尚未出貨（優先排除）
-        //    「將於...後出貨」「等待出貨」「等待寄件」「準備出貨」「訂單成立」「訂單處理」
-        if description.contains("將於") || description.contains("等待出貨") ||
-           description.contains("等待寄件") || description.contains("準備出貨") ||
-           description.contains("訂單成立") || description.contains("訂單處理") {
-            return .pending
-        }
-
-        // 2. 已到門市/到店（待取件）
-        //    「到店」「到門市」「待取」「可取貨」「配達」「已到達」「已送達」
-        if description.contains("到店") || description.contains("到門市") ||
-           description.contains("待取") || description.contains("可取貨") ||
-           description.contains("配達") || description.contains("已到達") ||
-           description.contains("已送達") {
-            return .arrivedAtStore
-        }
-
-        // 3. 物流運送中
-        //    「配送中」「運送中」「轉運」「理貨」「抵達」「派送」「投遞」
-        if description.contains("配送中") || description.contains("運送中") ||
-           description.contains("轉運") || description.contains("理貨") ||
-           description.contains("抵達") || description.contains("派送") ||
-           description.contains("投遞") {
-            return .inTransit
-        }
-
-        // 4. 已出貨/已寄件（注意：前面已排除「將於...出貨」）
-        //    「寄件」「出貨」「已收件」「已攬收」
+        // 1. 已出貨/已寄件（最先判斷，避免「寄件門市已收件」被後續門市規則誤判）
         if description.contains("寄件") || description.contains("出貨") ||
-           description.contains("已收件") || description.contains("已攬收") {
+           description.contains("已收件") || description.contains("已攬收") ||
+           description.contains("訂單成立") || description.contains("訂單處理") {
             return .shipped
         }
 
-        // 5. 無法判斷，預設配送中
+        // 2. 到店待取：描述含「門市」但排除移動中的事件
+        //    ✅ "包裹配達取件門市" → arrivedAtStore
+        //    ❌ "前往取件門市" → inTransit（含「前往」）
+        //    ❌ "離開寄件門市" → inTransit（含「離開」）
+        //    ❌ "送達物流中心" → inTransit（不含「門市」）
+        if description.contains("到店") || description.contains("可取件") ||
+           description.contains("門市到貨") {
+            return .arrivedAtStore
+        }
+        if description.contains("門市") &&
+           !description.contains("前往") &&
+           !description.contains("離開") &&
+           !description.contains("物流中心") &&
+           !description.contains("轉運") {
+            return .arrivedAtStore
+        }
+
+        // 3. 其餘一律配送中
         return .inTransit
+    }
+
+    /// 細分 delivered：區分「已取件/簽收」vs「到店待取」
+    ///
+    /// 注意：「取件門市」包含「取件」二字，必須先排除，避免誤判為已取貨
+    private static func mapDeliveredSubStatus(_ description: String) -> TrackingStatus {
+        // 明確已取件/簽收 → 已完成
+        // 先排除「取件門市」（門市名稱，不是已取件動作）
+        let cleaned = description.replacingOccurrences(of: "取件門市", with: "")
+        if cleaned.contains("簽收") || cleaned.contains("取件") ||
+           cleaned.contains("領取") || cleaned.contains("取貨完成") ||
+           cleaned.contains("已領") || cleaned.contains("已取") {
+            return .delivered
+        }
+
+        // 其餘（到店、送達門市等）→ 到店待取件
+        return .arrivedAtStore
     }
 }
