@@ -87,8 +87,8 @@ class AIVisionService {
 
             let aiResult = try parseCloudFunctionResult(data)
 
-            // 成功後遞增本地快取
-            incrementLocalUsageCount()
+            // 成功後從伺服器同步最新用量（確保跨裝置一致）
+            _ = await fetchUsageFromServer()
 
             return aiResult
 
@@ -164,21 +164,6 @@ class AIVisionService {
         }
 
         return .apiError(statusCode: nil, rawMessage: error.localizedDescription)
-    }
-
-    /// 遞增本地用量快取
-    private func incrementLocalUsageCount() {
-        let today = taiwanDateString()
-        let currentDate = UserDefaults.standard.string(forKey: dailyDateKey) ?? ""
-
-        if currentDate != today {
-            // 新的一天，重置
-            UserDefaults.standard.set(1, forKey: dailyCountKey)
-            UserDefaults.standard.set(today, forKey: dailyDateKey)
-        } else {
-            let current = UserDefaults.standard.integer(forKey: dailyCountKey)
-            UserDefaults.standard.set(current + 1, forKey: dailyCountKey)
-        }
     }
 
     /// 取得台灣時區日期字串 (yyyy-MM-dd)
