@@ -17,6 +17,7 @@ struct PaywallView: View {
     @State private var showError = false
     @State private var showRestoreSuccess = false
     @State private var isRestoring = false
+    @State private var isTrialEligible = true
 
     var body: some View {
         NavigationStack {
@@ -131,6 +132,14 @@ struct PaywallView: View {
                         ?? subscriptionManager.yearlyProduct
                         ?? subscriptionManager.monthlyProduct
                 }
+                AnalyticsService.logPaywallShown(trigger: "general")
+            }
+            .task {
+                // 檢查年費方案的試用資格
+                if let yearly = subscriptionManager.yearlyProduct,
+                   let subscription = yearly.subscription {
+                    isTrialEligible = await subscription.isEligibleForIntroOffer
+                }
             }
         }
         .preferredColorScheme(.dark)
@@ -188,7 +197,13 @@ struct PaywallView: View {
 
                 // Yearly
                 if let yearly = subscriptionManager.yearlyProduct {
-                    standardPlanCard(product: yearly, badge: String(localized: "paywall.badge.bestValue"), subtitle: String(localized: "paywall.trial"))
+                    standardPlanCard(
+                        product: yearly,
+                        badge: String(localized: "paywall.badge.bestValue"),
+                        subtitle: isTrialEligible
+                            ? String(localized: "paywall.trial")
+                            : String(localized: "paywall.cancelAnytime")
+                    )
                 }
 
                 // Monthly
@@ -494,7 +509,10 @@ struct PaywallView: View {
             if let product = selectedProduct {
                 Task {
                     let success = await subscriptionManager.purchase(product)
-                    if success { dismiss() }
+                    if success {
+                        AnalyticsService.logSubscriptionPurchased(productId: product.id)
+                        dismiss()
+                    }
                     if subscriptionManager.errorMessage != nil { showError = true }
                 }
             } else {
@@ -532,7 +550,9 @@ struct PaywallView: View {
         if product.id == SubscriptionProductID.lifetime.rawValue {
             return String(localized: "paywall.button.lifetime")
         } else if product.id == SubscriptionProductID.yearly.rawValue {
-            return String(localized: "paywall.button.trial")
+            return isTrialEligible
+                ? String(localized: "paywall.button.trial")
+                : String(localized: "paywall.button.subscribe")
         } else {
             return String(localized: "paywall.button.subscribe")
         }

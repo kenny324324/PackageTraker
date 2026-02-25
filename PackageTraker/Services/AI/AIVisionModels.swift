@@ -26,7 +26,7 @@ struct AIVisionResult: Codable {
         let mappings: [(keywords: [String], carrier: Carrier)] = [
             // 超商取貨
             (["蝦皮", "shopee", "spx"], .shopee),
-            (["7-11", "7-eleven", "統一", "交貨便"], .sevenEleven),
+            (["7-11", "7-eleven", "統一", "交貨便", "賣貨便"], .sevenEleven),
             (["全家", "familymart", "family"], .familyMart),
             (["ok超商", "okmart", "ok mart"], .okMart),
             (["萊爾富", "hilife", "hi-life"], .hiLife),
@@ -103,6 +103,8 @@ enum AIVisionError: LocalizedError {
     case apiError(statusCode: Int?, rawMessage: String?)
     case parseError
     case sdkNotAvailable
+    case dailyLimitReached
+    case proRequired
 
     var isQuotaExceeded: Bool {
         switch self {
@@ -121,7 +123,7 @@ enum AIVisionError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .subscriptionRequired:
+        case .subscriptionRequired, .proRequired:
             return String(localized: "ai.error.subscriptionRequired")
         case .invalidImage:
             return String(localized: "error.imageLoadFailed")
@@ -136,6 +138,8 @@ enum AIVisionError: LocalizedError {
             return String(localized: "ai.error.parseFailed")
         case .sdkNotAvailable:
             return String(localized: "ai.error.sdkNotAvailable")
+        case .dailyLimitReached:
+            return String(localized: "ai.error.dailyLimitReached")
         }
     }
 }

@@ -15,6 +15,8 @@ import WidgetKit
 import FirebaseCore
 import FirebaseAuth
 import FirebaseMessaging
+import FirebaseCrashlytics
+import FirebaseAnalytics
 
 /// App 啟動流程狀態
 enum AppFlow: Equatable {
@@ -53,6 +55,9 @@ struct PackageTrakerApp: App {
     init() {
         // 初始化 Firebase
         FirebaseApp.configure()
+
+        // 啟用 Crashlytics
+        Crashlytics.crashlytics().setCrashlyticsCollectionEnabled(true)
 
         // 設置通知中心代理
         UNUserNotificationCenter.current().delegate = NotificationDelegate.shared
@@ -140,8 +145,12 @@ struct PackageTrakerApp: App {
                         appFlow = .signIn
                     }
                 }
-                // 登入成功：註冊 FCM 推播
+                // 登入成功：註冊 FCM 推播 + 設定監控 user ID
                 if !oldValue && newValue {
+                    if let uid = Auth.auth().currentUser?.uid {
+                        Crashlytics.crashlytics().setUserID(uid)
+                        Analytics.setUserID(uid)
+                    }
                     Task {
                         await FirebasePushService.shared.registerForPushNotifications()
                     }

@@ -213,6 +213,8 @@ struct PackageQueryView: View {
                 return "API Token 已過期或需要重新設定，請至設定頁面處理"
             case .serverError(let message):
                 return "伺服器異常：\(message)"
+            case .noTrackingData:
+                return String(localized: "ai.error.noTrackingData")
             }
         }
         return "查詢時遇到問題：\(error.localizedDescription)"

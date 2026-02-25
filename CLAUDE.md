@@ -7,10 +7,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **PackageTraker** (取貨吧) is an iOS package tracking app targeting the Taiwan market. It helps users track packages from 18+ carriers and manage pickups from convenience stores and logistics centers.
 
 - **Technology**: SwiftUI + SwiftData (local database) + Firebase (Auth, Firestore, FCM) + StoreKit 2
-- **Target**: iOS 16+ (dark mode only, `.preferredColorScheme(.dark)`)
+- **Target**: iOS 26+ (dark mode only, `.preferredColorScheme(.dark)`)
 - **Project Type**: Xcode project (no SPM workspace)
 - **Localization**: 3 languages (Traditional Chinese `zh-Hant`, Simplified Chinese `zh-Hans`, English `en`)
 - **Authentication**: Apple Sign In via Firebase Auth (required before accessing main app)
+- **Firebase Project**: `packagetraker-e80b0`
 
 ## Build & Development Commands
 
@@ -48,9 +49,9 @@ firebase deploy --only functions                 # Deploy to Firebase
 
 - `Package.swift` - SwiftData `@Model` with trackingNumber, carrier, status, pickupInfo, etc.
 - `TrackingStatus.swift` - 6 package states: pending, shipped, inTransit, arrivedAtStore, delivered, returned
-- `Carrier.swift` - 18+ carriers grouped by `CarrierCategory` (convenienceStore, domestic, ecommerce, international, other)
+- `Carrier.swift` - 22 carriers grouped by `CarrierCategory` (convenienceStore, domestic, ecommerce, international, other); 20 have `trackTwUUID` (API-trackable)
 - `TrackingEvent` - SwiftData model defined inside `Package.swift` (not a separate file), linked via `@Relationship`
-- `SubscriptionTier.swift` - `SubscriptionTier` enum (`.free`, `.pro`) and `SubscriptionProductID` enum with 3 product IDs
+- Other models: `SubscriptionTier`, `PaymentMethod`, `PurchasePlatform`, `ThemeColor`, `LinkedEmailAccount`
 
 ### Service Layer (`PackageTraker/Services/`)
 
@@ -84,28 +85,23 @@ firebase deploy --only functions                 # Deploy to Firebase
 - `NotificationManager.swift` - Coordinates notification logic with user preferences from `UserDefaults`
 - Handles arrival notifications and daily pickup reminders (10:00 AM via `UNCalendarNotificationTrigger`)
 
+**Gmail / Email Parsing (`Services/Gmail/` + `Services/EmailParsing/`):**
+- Gmail OAuth + email fetching for auto-importing tracking numbers from order confirmation emails
+- Feature-flagged off (`emailAutoImportEnabled = false`)
+
 **Other Services:**
 - `CarrierDetector.swift` - Auto-detects carrier from tracking number regex patterns (see `File/物流商辨識規則總覽.md`)
 - `ThemeManager.swift` - Theme/appearance management
-- `TrackingNumberOCRService.swift` - OCR scanning
+- `Services/OCR/TrackingNumberOCRService.swift` - Barcode OCR scanning
 - `Services/Widget/WidgetDataService.swift` - Bridges main app data to App Group for widget
 - `Services/Debug/DebugNotificationService.swift` - `#if DEBUG` test notification helpers
 
 ### View Layer (`PackageTraker/Views/`)
 
-**Main Navigation:**
 - `MainTabView.swift` - 3 tabs: PackageList (0), History (1), Settings (2). Uses `@Binding var selectedTab: Int` from `PackageTrakerApp`
 - `SplashView.swift` - Cold start animation for already-authenticated users
-- `Auth/SignInView.swift` - Apple Sign In screen
-
-**Feature Views:**
-- `PackageList/` - Active packages with pull-to-refresh, stats summary, package cards
-- `AddPackage/` - Manual entry + AI scan entry point (`AddMethodSheet`)
-- `AI/` - AI scanning flow: `AddMethodSheet` → `AIScanningView` → `AIQuickAddSheet`
-- `PackageDetail/` - Package info, tracking events, edit sheet
-- `History/` - Archived packages, carrier history stats
-- `Settings/` - Account detail, notification settings, theme settings, developer options (`#if DEBUG`)
-- `Subscription/` - `PaywallView` with feature comparison and plan selection
+- Subdirectories per feature: `Auth/`, `PackageList/`, `AddPackage/`, `AI/`, `PackageDetail/`, `History/`, `Settings/`, `Subscription/`
+- AI scanning flow: `AddMethodSheet` → `AIScanningView` → `AIQuickAddSheet`
 
 ### Widget Extension (`PackageTrakerWidget/`)
 
@@ -122,13 +118,13 @@ Firebase Cloud Functions v2 (TypeScript, Node.js 20, asia-east1):
 - `scheduler.ts` - 15-minute tracking poll via Track.TW API
 - `triggers.ts` - Firestore `onDocumentUpdated` → FCM push on status change
 - `dailyReminder.ts` - 10:00 AM Taiwan time pickup reminder
+- `alertEmail.ts` - `onSystemAlertCreated` for system alert notifications
 - `services/trackTwApi.ts` - Track.TW HTTP client
 - `services/pushNotification.ts` - FCM push via firebase-admin
 - `i18n/notifications.ts` - Multilingual push templates (zh-Hant, zh-Hans, en)
+- `utils/carrierNames.ts`, `utils/statusMapper.ts` - Shared mapping utilities
 
-### Legacy Backend (`backend/`)
-
-Pre-migration Python/FastAPI service using `parcel-tw` library. Deployed on Railway. No longer actively used (replaced by Track.TW API integration).
+**Note:** `backend/` is a deprecated Python/FastAPI service (replaced by Track.TW API). Do not modify.
 
 ## App Flow & Authentication
 
@@ -210,7 +206,7 @@ Most services use `static let shared` singleton pattern: `SubscriptionManager.sh
 1. **Import**: `TrackTwAPIClient.importPackages(carrierId, [trackingNumbers])` → returns `[trackingNumber: relationId]`
 2. **Track**: `TrackTwAPIClient.getTracking(relationId)` → returns checkpoints with status
 
-- Only carriers with `trackTwUUID` computed property are auto-trackable
+- Only carriers with `trackTwUUID` computed property are auto-trackable (20 of 22)
 - Relation IDs cached in-memory (`TrackTwAPIService.relationIdCache`) and persisted (`Package.trackTwRelationId`)
 
 ## AI Scanning Carrier Detection Flow
@@ -253,10 +249,6 @@ Most services use `static let shared` singleton pattern: `SubscriptionManager.sh
 3. Add to `zh-Hans.lproj/Localizable.strings` (Simplified Chinese)
 4. Use: `String(localized: "key.name")`
 
-## Key Directories
+### Tests
 
-- `PackageTraker/` - Main iOS app (Models, Services, Views, Components, Extensions, Localization)
-- `PackageTrakerWidget/` - iOS Widget Extension (separate target, uses App Group)
-- `functions/` - Firebase Cloud Functions (TypeScript, Node.js 20)
-- `backend/` - Legacy Python/FastAPI (deprecated, replaced by Track.TW)
-- `File/` - Project documentation and planning files
+Test files in `PackageTrakerTests/` and `PackageTrakerUITests/` are minimal boilerplate stubs. There is no meaningful test coverage — do not rely on tests to catch regressions.

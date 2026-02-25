@@ -10,6 +10,7 @@ import SwiftData
 
 /// AI 掃描全頁面（全高，類似 PackageQueryView 的過場）
 struct AIScanningView: View {
+    let carrier: Carrier       // 使用者選的物流商
     let image: UIImage
     let onDismiss: () -> Void  // 成功新增後關閉整個流程
     let onCancel: () -> Void   // 取消回到選擇頁
@@ -37,85 +38,95 @@ struct AIScanningView: View {
     // 錯誤
     @State private var showError = false
     @State private var errorMessage = ""
+    @State private var isNoTrackingDataError = false
     @State private var showManualAdd = false
+    @State private var showCancelConfirm = false
 
     private let trackingManager = TrackingManager()
     private let aiService = AIVisionService.shared
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                // 背景
-                Color.black.ignoresSafeArea()
+        ZStack {
+            // 背景
+            Color.black.ignoresSafeArea()
 
-                VStack(spacing: 0) {
-                    Spacer()
+            VStack(spacing: 0) {
+                Spacer()
 
-                    // 有機光影球動畫
-                    OrganicOrbAnimation(stage: loadingStage)
-                        .frame(height: 280)
+                // 有機光影球動畫
+                OrganicOrbAnimation(stage: loadingStage)
+                    .frame(height: 280)
 
-                    Spacer()
-                        .frame(height: 40)
+                Spacer()
+                    .frame(height: 40)
 
-                    // 階段文字
-                    VStack(spacing: 10) {
-                        Text(stageTitle)
-                            .font(.title3)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(.white)
-                            .contentTransition(.numericText())
+                // 階段文字
+                VStack(spacing: 10) {
+                    Text(stageTitle)
+                        .font(.title3)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.white)
+                        .contentTransition(.numericText())
 
-                        Text(stageSubtitle)
-                            .font(.subheadline)
-                            .foregroundStyle(.white.opacity(0.6))
-                            .contentTransition(.numericText())
-                    }
-                    .animation(.easeInOut(duration: 0.4), value: loadingStage)
-
-                    Spacer()
+                    Text(stageSubtitle)
+                        .font(.subheadline)
+                        .foregroundStyle(.white.opacity(0.6))
+                        .contentTransition(.numericText())
                 }
+                .animation(.easeInOut(duration: 0.4), value: loadingStage)
+
+                Spacer()
             }
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button(String(localized: "common.cancel")) {
-                        onCancel()
-                    }
-                    .foregroundStyle(.white)
+        }
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button(String(localized: "common.cancel")) {
+                    showCancelConfirm = true
                 }
+                .foregroundStyle(.white)
             }
-            .navigationDestination(isPresented: $navigateToQuickAdd) {
-                if let aiResult = aiResult,
-                   let trackingResult = apiTrackingResult,
-                   let relationId = apiRelationId {
-                    AIQuickAddSheet(
-                        aiResult: aiResult,
-                        trackingResult: trackingResult,
-                        relationId: relationId,
-                        onDismiss: {
-                            navigateToQuickAdd = false
-                            onDismiss()
-                        }
+        }
+        .navigationDestination(isPresented: $navigateToQuickAdd) {
+            if let aiResult = aiResult,
+               let trackingResult = apiTrackingResult,
+               let relationId = apiRelationId {
+                AIQuickAddSheet(
+                    aiResult: aiResult,
+                    trackingResult: trackingResult,
+                    relationId: relationId,
+                    onDismiss: {
+                        navigateToQuickAdd = false
+                        onDismiss()
+                    }
+                )
+            }
+        }
+        .fullScreenCover(isPresented: $showManualAdd) {
+            if let result = aiResult {
+                NavigationStack {
+                    PackageQueryView(
+                        trackingNumber: result.trackingNumber ?? "",
+                        carrier: self.carrier,
+                        onComplete: { onDismiss() },
+                        popToRoot: { showManualAdd = false }
                     )
                 }
             }
-            .fullScreenCover(isPresented: $showManualAdd) {
-                if let result = aiResult {
-                    let carrier = result.detectedCarrier
-                        ?? CarrierDetector.detectBest(result.trackingNumber ?? "")?.carrier
-                        ?? .other
-                    NavigationStack {
-                        PackageQueryView(
-                            trackingNumber: result.trackingNumber ?? "",
-                            carrier: carrier,
-                            onComplete: { onDismiss() },
-                            popToRoot: { showManualAdd = false }
-                        )
-                    }
-                }
+        }
+        .alert(String(localized: "ai.scanning.cancelConfirmMessage"), isPresented: $showCancelConfirm) {
+            Button(String(localized: "common.confirm")) {
+                onCancel()
             }
-            .alert(String(localized: "ai.error.title"), isPresented: $showError) {
+            Button(String(localized: "common.cancel"), role: .cancel) {}
+        }
+        .alert(String(localized: "ai.error.title"), isPresented: $showError) {
+            if isNoTrackingDataError {
+                Button(String(localized: "common.ok")) {
+                    onDismiss()
+                }
+            } else {
                 Button(String(localized: "addMethod.retry")) {
                     workflowCompleted = false
                     Task { await processAIWorkflow() }
@@ -130,9 +141,9 @@ struct AIScanningView: View {
                 Button(String(localized: "common.cancel"), role: .cancel) {
                     onCancel()
                 }
-            } message: {
-                Text(errorMessage)
             }
+        } message: {
+            Text(errorMessage)
         }
         .preferredColorScheme(.dark)
         .onAppear {
@@ -185,17 +196,19 @@ struct AIScanningView: View {
 
         showError = false
         errorMessage = ""
+        isNoTrackingDataError = false
 
         do {
             // 階段 1：AI 辨識
             loadingStage = .aiRecognition
+            AnalyticsService.logAIScanStarted()
 
             print("📸 [AIScanningView] 開始 AI 辨識...")
             let result = try await analyzeImageWithRetry(image)
             print("✅ [AIScanningView] AI 辨識完成")
             self.aiResult = result
 
-            // 階段 2：驗證單號格式 + API 驗證
+            // 階段 2：API 驗證
             withAnimation { loadingStage = .apiVerification }
 
             guard let trackingNumber = result.trackingNumber, !trackingNumber.isEmpty else {
@@ -208,67 +221,48 @@ struct AIScanningView: View {
                 throw TrackingError.invalidTrackingNumber
             }
 
-            // 決定物流商：AI 辨識 → CarrierDetector 規則比對 → 失敗
-            let carrier: Carrier
-            if let aiCarrier = result.detectedCarrier {
-                // AI 有辨識到物流商，用 CarrierDetector 交叉驗證
-                let detectorResult = CarrierDetector.detectBest(trackingNumber)
-                if let detected = detectorResult, detected.confidence >= 0.8, detected.carrier != aiCarrier {
-                    // 單號格式高度匹配另一個物流商 → 以格式規則為準
-                    print("⚠️ [AIScanningView] AI 辨識物流商 \(aiCarrier.displayName) 與單號格式不符，改用 \(detected.carrier.displayName) (confidence: \(detected.confidence))")
-                    carrier = detected.carrier
-                } else {
-                    carrier = aiCarrier
-                }
-            } else if let detectorResult = CarrierDetector.detectBest(trackingNumber) {
-                // AI 無法辨識物流商，用單號格式判斷
-                print("📋 [AIScanningView] AI 未辨識物流商，CarrierDetector 匹配: \(detectorResult.carrier.displayName) (confidence: \(detectorResult.confidence))")
-                carrier = detectorResult.carrier
-            } else {
-                // 兩者都無法判斷
-                print("❌ [AIScanningView] 無法辨識物流商：AI 無結果，單號格式也無法匹配")
-                throw TrackingError.invalidTrackingNumber
-            }
-
-            // 檢查物流商是否支援追蹤
-            guard carrier.trackTwUUID != nil else {
-                throw TrackingError.unsupportedCarrier(carrier)
-            }
+            // 直接用使用者選的 carrier
+            let carrier = self.carrier
+            print("📋 [AIScanningView] 使用者選擇: \(carrier.displayName)")
 
             let relationId = try await trackingManager.importPackage(
                 number: trackingNumber,
                 carrier: carrier
             )
-
-            let trackingResult = try await trackingManager.track(
+            var trackResult = try await trackingManager.track(
                 number: trackingNumber,
                 carrier: carrier
             )
+            print("✅ [AIScanningView] \(carrier.displayName) 追蹤完成，\(trackResult.events.count) 筆事件")
 
-            // 驗證追蹤結果是否有效（至少有事件或非 pending 狀態）
-            if trackingResult.events.isEmpty && trackingResult.currentStatus == .pending {
-                print("⚠️ [AIScanningView] 追蹤結果無任何事件且狀態為 pending，單號可能無效")
-                throw TrackingError.trackingNumberNotFound
+            // 事件輪詢：若初次無事件，最多再試 5 次
+            if trackResult.events.isEmpty {
+                for attempt in 1...5 {
+                    try await Task.sleep(for: .seconds(3))
+                    guard !Task.isCancelled else { break }
+                    trackResult = try await trackingManager.track(number: trackingNumber, carrier: carrier)
+                    if !trackResult.events.isEmpty {
+                        print("✅ 第 \(attempt) 次輪詢取得 \(trackResult.events.count) 筆事件")
+                        break
+                    }
+                }
             }
 
-            // 更新 AI result 的 carrier（可能被 CarrierDetector 修正）
-            self.aiResult = AIVisionResult(
-                trackingNumber: result.trackingNumber,
-                carrier: carrier.displayName,
-                pickupLocation: result.pickupLocation,
-                pickupCode: result.pickupCode,
-                packageName: result.packageName,
-                estimatedDelivery: result.estimatedDelivery,
-                purchasePlatform: result.purchasePlatform,
-                amount: result.amount,
-                confidence: result.confidence
-            )
+            // 仍然無事件 → 報錯
+            if trackResult.events.isEmpty {
+                throw TrackingError.noTrackingData
+            }
 
-            self.apiTrackingResult = trackingResult
+            self.aiResult = result
+            self.apiTrackingResult = trackResult
             self.apiRelationId = relationId
 
             // 完成
             withAnimation { loadingStage = .complete }
+            AnalyticsService.logAIScanCompleted(
+                carrier: carrier.displayName,
+                hasPickupCode: result.pickupCode != nil
+            )
 
             // 震動回饋
             let generator = UINotificationFeedbackGenerator()
@@ -281,14 +275,38 @@ struct AIScanningView: View {
 
         } catch is CancellationError {
             print("🚫 [AIScanningView] Task 被取消 (CancellationError)！")
+            AnalyticsService.logAIScanFailed(errorType: "cancelled")
             errorMessage = String(localized: "error.networkError")
             showError = true
         } catch let urlError as URLError where urlError.code == .cancelled {
             print("🚫 [AIScanningView] URLSession 被取消 (URLError.cancelled)！")
+            AnalyticsService.logAIScanFailed(errorType: "url_cancelled")
             errorMessage = String(localized: "error.networkError")
             showError = true
         } catch {
             print("❌ [AIScanningView] 錯誤: \(error)")
+            let errorType: String
+            if let aiError = error as? AIVisionError {
+                switch aiError {
+                case .dailyLimitReached:
+                    errorType = "daily_limit"
+                    AnalyticsService.logAIDailyLimitHit(count: 20)
+                case .proRequired:
+                    errorType = "pro_required"
+                default:
+                    errorType = "ai_error"
+                }
+            } else if let trackingError = error as? TrackingError {
+                if case .noTrackingData = trackingError {
+                    errorType = "no_tracking_data"
+                    isNoTrackingDataError = true
+                } else {
+                    errorType = "tracking_error"
+                }
+            } else {
+                errorType = "unknown"
+            }
+            AnalyticsService.logAIScanFailed(errorType: errorType)
             errorMessage = friendlyErrorMessage(for: error)
             showError = true
         }
@@ -322,6 +340,8 @@ struct AIScanningView: View {
             return !aiError.isQuotaExceeded
         case .parseError:
             return true
+        case .dailyLimitReached, .proRequired, .subscriptionRequired:
+            return false
         default:
             return false
         }
@@ -334,6 +354,10 @@ struct AIScanningView: View {
             }
 
             switch aiError {
+            case .dailyLimitReached:
+                return String(localized: "ai.error.dailyLimitReached")
+            case .proRequired:
+                return String(localized: "ai.error.subscriptionRequired")
             case .apiError:
                 return String(localized: "ai.error.serviceUnavailable")
             default:
@@ -526,6 +550,7 @@ struct OrganicOrbAnimation: View {
 
 #Preview("AI Scanning") {
     AIScanningView(
+        carrier: .shopee,
         image: UIImage(systemName: "photo")!,
         onDismiss: {},
         onCancel: {}

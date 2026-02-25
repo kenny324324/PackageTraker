@@ -409,7 +409,7 @@
 "paywall.plan.oneTime" = "One-time";
 "paywall.plan.lifetimeDesc" = "Pay once, yours forever";
 "paywall.badge.bestValue" = "BEST VALUE";
-"paywall.trial" = "3 days free trial";
+"paywall.trial" = "7 days free trial";
 "paywall.cancelAnytime" = "Cancel anytime";
 "paywall.bestValue" = "Best Value";
 "paywall.subscribe" = "Subscribe Now";
@@ -446,6 +446,8 @@
 "ai.error.serviceUnavailable" = "AI service is temporarily unavailable. Please try again later.";
 "ai.error.parseFailed" = "Unable to parse AI result";
 "ai.error.sdkNotAvailable" = "AI service unavailable";
+"ai.error.dailyLimitReached" = "Daily AI scan limit reached (20/day). Resets at midnight.";
+"ai.remainingScans.%lld" = "%lld scans remaining today";
 
 // AddMethodSheet
 "addMethod.title" = "Add Package";
@@ -470,6 +472,17 @@
 "ai.quickAdd.pickupLocation" = "Pickup Location";
 "ai.quickAdd.nextStep" = "Next Step";
 "ai.quickAdd.trackingTimeline" = "Tracking History";
+"ai.quickAdd.pendingTracking" = "Tracking info will update shortly";
+"ai.quickAdd.fetchingTracking" = "Fetching tracking info...";
+"ai.quickAdd.detectedInfo" = "Detected Info";
+"ai.field.purchasePlatform" = "Platform";
+"ai.field.amount" = "Amount";
+
+// AI Carrier Select
+"ai.carrierSelect.title" = "Select Carrier";
+"ai.carrierSelect.next" = "Next";
+"ai.error.noTrackingData" = "No tracking data found";
+"ai.scanning.cancelConfirmMessage" = "AI is analyzing. Are you sure you want to cancel?";
 
 // Empty State (additional)
 "empty.addButtonHint" = "AI scan or manual entry";

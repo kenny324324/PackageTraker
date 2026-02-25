@@ -7,18 +7,17 @@
 
 import SwiftUI
 import SwiftData
-import PhotosUI
 
 /// 新增包裹方式選擇 Sheet
 struct AddMethodSheet: View {
     @Environment(\.dismiss) private var dismiss
 
-    @State private var aiPhotoItem: PhotosPickerItem?
-    @State private var showAIScanningView = false
-    @State private var selectedImage: UIImage?
+    @State private var showAICarrierSelect = false
     @State private var showManualAdd = false
     @State private var showPaywall = false
     @State private var contentHeight: CGFloat = 0
+    @State private var remainingScans: Int = AIVisionService.shared.remainingScans
+    @State private var hasFetchedUsage = false
 
     private var adaptiveSheetHeight: CGFloat {
         max(184, min(248, contentHeight + 80))
@@ -28,52 +27,14 @@ struct AddMethodSheet: View {
         NavigationStack {
             VStack(spacing: 10) {
                 // AI 掃描按鈕
-                PhotosPicker(selection: $aiPhotoItem, matching: .images) {
-                    ZStack {
-                        LinearGradient(
-                            stops: [
-                                .init(color: Color(red: 0.24, green: 0.56, blue: 1.00), location: 0.00), // blue
-                                .init(color: Color(red: 0.62, green: 0.36, blue: 0.95), location: 0.36), // purple
-                                .init(color: Color(red: 0.98, green: 0.23, blue: 0.38), location: 0.72), // red
-                                .init(color: Color(red: 1.00, green: 0.53, blue: 0.18), location: 1.00) // orange
-                            ],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                        .padding(-10)
-                        .saturation(0.80)
-                        .contrast(1.16)
-                        .brightness(0.10)
+                aiScanButton
 
-                        Color.black.opacity(0.26)
-
-                        HStack(spacing: 10) {
-                            Image(systemName: "apple.intelligence")
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundStyle(.white)
-                                .shadow(color: .black.opacity(0.5), radius: 2, x: 0, y: 1)
-
-                            Text(String(localized: "addMethod.aiScan.title"))
-                                .font(.system(size: 17, weight: .semibold))
-                                .foregroundStyle(.white)
-                                .shadow(color: .black.opacity(0.5), radius: 2, x: 0, y: 1)
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-                        .padding(.horizontal, 18)
-                        .padding(.vertical, 6)
-                    }
-                    .frame(height: 56)
-                    .clipShape(Capsule())
-                    .overlay(
-                        Capsule()
-                            .strokeBorder(Color.white.opacity(0.18), lineWidth: 0.9)
-                    )
-                    .modifier(AILiquidGlassCapsuleModifier())
-                    .shadow(color: Color(red: 0.19, green: 0.62, blue: 1.00).opacity(0.44), radius: 16, x: -8, y: 0)
-                    .shadow(color: Color(red: 0.54, green: 0.42, blue: 1.00).opacity(0.30), radius: 15, x: 0, y: 0)
-                    .shadow(color: Color(red: 1.00, green: 0.54, blue: 0.26).opacity(0.34), radius: 15, x: 8, y: 0)
+                // AI 剩餘次數（僅 Pro 用戶顯示）
+                if FeatureFlags.subscriptionEnabled && SubscriptionManager.shared.hasAIAccess {
+                    Text(String(localized: "ai.remainingScans.\(remainingScans)"))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                 }
-                .buttonStyle(.plain)
 
                 // 手動輸入按鈕
                 Button {
@@ -110,23 +71,11 @@ struct AddMethodSheet: View {
             guard height > 0 else { return }
             contentHeight = height
         }
-        .onChange(of: aiPhotoItem) { _, newItem in
-            guard let newItem else { return }
-            Task {
-                await loadImage(from: newItem)
-            }
-        }
-        .fullScreenCover(isPresented: $showAIScanningView, onDismiss: {
-            selectedImage = nil
-        }) {
-            if let image = selectedImage {
-                AIScanningView(image: image, onDismiss: {
-                    showAIScanningView = false
-                    dismiss()
-                }, onCancel: {
-                    showAIScanningView = false
-                })
-            }
+        .fullScreenCover(isPresented: $showAICarrierSelect) {
+            AICarrierSelectView(onDismiss: {
+                showAICarrierSelect = false
+                dismiss()
+            })
         }
         .fullScreenCover(isPresented: $showManualAdd) {
             AddPackageView()
@@ -135,25 +84,75 @@ struct AddMethodSheet: View {
             PaywallView()
         }
         .preferredColorScheme(.dark)
+        .task {
+            // 刷新剩餘次數（從伺服器同步），僅執行一次避免重繪導致 PhotosPicker 滾動重置
+            guard !hasFetchedUsage else { return }
+            hasFetchedUsage = true
+            if SubscriptionManager.shared.hasAIAccess {
+                let usage = await AIVisionService.shared.fetchUsageFromServer()
+                remainingScans = max(0, usage.limit - usage.used)
+            }
+        }
     }
 
-    private func loadImage(from item: PhotosPickerItem) async {
-        defer { aiPhotoItem = nil }
-
-        // 訂閱檢查
+    /// 未訂閱 → 彈 Paywall；已訂閱 → 進入物流商選擇頁
+    @ViewBuilder
+    private var aiScanButton: some View {
         if FeatureFlags.subscriptionEnabled && !SubscriptionManager.shared.hasAIAccess {
-            showPaywall = true
-            return
+            Button { showPaywall = true } label: { aiScanLabel }
+                .buttonStyle(.plain)
+        } else {
+            Button { showAICarrierSelect = true } label: { aiScanLabel }
+                .buttonStyle(.plain)
         }
-
-        guard let imageData = try? await item.loadTransferable(type: Data.self),
-              let image = UIImage(data: imageData) else {
-            return
-        }
-
-        selectedImage = image
-        showAIScanningView = true
     }
+
+    private var aiScanLabel: some View {
+        ZStack {
+            LinearGradient(
+                stops: [
+                    .init(color: Color(red: 0.24, green: 0.56, blue: 1.00), location: 0.00),
+                    .init(color: Color(red: 0.62, green: 0.36, blue: 0.95), location: 0.36),
+                    .init(color: Color(red: 0.98, green: 0.23, blue: 0.38), location: 0.72),
+                    .init(color: Color(red: 1.00, green: 0.53, blue: 0.18), location: 1.00),
+                ],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+            .padding(-10)
+            .saturation(0.80)
+            .contrast(1.16)
+            .brightness(0.10)
+
+            Color.black.opacity(0.26)
+
+            HStack(spacing: 10) {
+                Image(systemName: "apple.intelligence")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .shadow(color: .black.opacity(0.5), radius: 2, x: 0, y: 1)
+
+                Text(String(localized: "addMethod.aiScan.title"))
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .shadow(color: .black.opacity(0.5), radius: 2, x: 0, y: 1)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 6)
+        }
+        .frame(height: 56)
+        .clipShape(Capsule())
+        .overlay(
+            Capsule()
+                .strokeBorder(Color.white.opacity(0.18), lineWidth: 0.9)
+        )
+        .modifier(AILiquidGlassCapsuleModifier())
+        .shadow(color: Color(red: 0.19, green: 0.62, blue: 1.00).opacity(0.44), radius: 16, x: -8, y: 0)
+        .shadow(color: Color(red: 0.54, green: 0.42, blue: 1.00).opacity(0.30), radius: 15, x: 0, y: 0)
+        .shadow(color: Color(red: 1.00, green: 0.54, blue: 0.26).opacity(0.34), radius: 15, x: 8, y: 0)
+    }
+
 }
 
 private struct AddMethodContentHeightPreferenceKey: PreferenceKey {

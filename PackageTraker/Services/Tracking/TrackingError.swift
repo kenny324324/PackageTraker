@@ -11,6 +11,7 @@ enum TrackingError: Error, LocalizedError {
     case invalidTrackingNumber
     case unauthorized
     case serverError(message: String)
+    case noTrackingData
 
     var errorDescription: String? {
         switch self {
@@ -41,6 +42,8 @@ enum TrackingError: Error, LocalizedError {
                 format: String(localized: "error.serverError"),
                 message
             )
+        case .noTrackingData:
+            return String(localized: "ai.error.noTrackingData")
         }
     }
 }

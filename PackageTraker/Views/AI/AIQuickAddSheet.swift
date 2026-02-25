@@ -11,14 +11,25 @@ import SwiftData
 /// AI 辨識結果確認頁
 struct AIQuickAddSheet: View {
     let aiResult: AIVisionResult
-    let trackingResult: TrackingResult
-    let relationId: String
     let onDismiss: () -> Void
 
+    @State private var currentTrackingResult: TrackingResult
+    @State private var currentRelationId: String
     @State private var showPackageInfo = false
     @State private var editedTrackingNumber = ""
     @State private var editedCarrier: Carrier = .other
     @State private var showEditSheet = false
+    @State private var isPollingEvents = false
+    @State private var isRetracking = false
+
+    private let trackingManager = TrackingManager()
+
+    init(aiResult: AIVisionResult, trackingResult: TrackingResult, relationId: String, onDismiss: @escaping () -> Void) {
+        self.aiResult = aiResult
+        self.onDismiss = onDismiss
+        self._currentTrackingResult = State(initialValue: trackingResult)
+        self._currentRelationId = State(initialValue: relationId)
+    }
 
     var body: some View {
         ScrollView {
@@ -41,22 +52,28 @@ struct AIQuickAddSheet: View {
                 Button(String(localized: "common.cancel")) {
                     onDismiss()
                 }
+                .foregroundStyle(.white)
             }
             ToolbarItem(placement: .topBarTrailing) {
-                Button(String(localized: "ai.quickAdd.nextStep")) {
+                Button {
                     showPackageInfo = true
+                } label: {
+                    Text(String(localized: "ai.quickAdd.nextStep"))
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.white)
                 }
+                .tint(Color.appAccent)
             }
         }
-        .safeAreaInset(edge: .bottom) {
-            bottomToolbar
-        }
+        // .safeAreaInset(edge: .bottom) {
+        //     bottomToolbar
+        // }
         .navigationDestination(isPresented: $showPackageInfo) {
             PackageInfoView(
                 trackingNumber: editedTrackingNumber,
                 carrier: editedCarrier,
-                trackingResult: trackingResult,
-                relationId: relationId,
+                trackingResult: currentTrackingResult,
+                relationId: currentRelationId,
                 onComplete: { onDismiss() },
                 popToRoot: { showPackageInfo = false },
                 prefillName: aiResult.packageName,
@@ -73,8 +90,7 @@ struct AIQuickAddSheet: View {
         }
         .onAppear {
             editedTrackingNumber = aiResult.trackingNumber ?? ""
-            // 以 API 追蹤結果的物流商為準（已經過 CarrierDetector 交叉驗證）
-            editedCarrier = trackingResult.carrier
+            editedCarrier = currentTrackingResult.carrier
         }
         .preferredColorScheme(.dark)
     }
@@ -82,7 +98,7 @@ struct AIQuickAddSheet: View {
     // MARK: - Package Info Card
 
     private var carrierDisplayTitle: String {
-        if let storeName = trackingResult.storeName, !storeName.isEmpty {
+        if let storeName = currentTrackingResult.storeName, !storeName.isEmpty {
             if editedCarrier == .sevenEleven {
                 return "\(editedCarrier.displayName) \(storeName)"
             } else if editedCarrier == .familyMart {
@@ -109,11 +125,11 @@ struct AIQuickAddSheet: View {
 
                 Spacer()
 
-                StatusIconBadge(status: trackingResult.currentStatus)
+                StatusIconBadge(status: currentTrackingResult.currentStatus)
             }
 
             // 取貨地點
-            if let storeName = trackingResult.storeName {
+            if let storeName = currentTrackingResult.storeName {
                 HStack {
                     Image(systemName: "mappin.circle.fill")
                         .foregroundStyle(.secondary)
@@ -124,7 +140,7 @@ struct AIQuickAddSheet: View {
             }
 
             // 取件期限
-            if let deadline = trackingResult.pickupDeadline {
+            if let deadline = currentTrackingResult.pickupDeadline {
                 HStack(spacing: 4) {
                     Image(systemName: "calendar")
                         .foregroundStyle(.secondary)
@@ -141,25 +157,40 @@ struct AIQuickAddSheet: View {
     // MARK: - Tracking Timeline
 
     private var trackingTimelineSection: some View {
-        Group {
-            if !trackingResult.events.isEmpty {
-                VStack(alignment: .leading, spacing: 16) {
-                    Text(String(localized: "ai.quickAdd.trackingTimeline"))
-                        .font(.headline)
+        VStack(alignment: .leading, spacing: 16) {
+            Text(String(localized: "ai.quickAdd.trackingTimeline"))
+                .font(.headline)
 
-                    VStack(spacing: 0) {
-                        let sortedEvents = trackingResult.events
-                            .sorted { $0.timestamp > $1.timestamp }
-                        ForEach(Array(sortedEvents.enumerated()), id: \.offset) { index, event in
-                            TimelineEventRow(
-                                event: event,
-                                isFirst: index == 0,
-                                isLast: index == sortedEvents.count - 1
-                            )
-                        }
+            if !currentTrackingResult.events.isEmpty {
+                VStack(spacing: 0) {
+                    let sortedEvents = currentTrackingResult.events
+                        .sorted { $0.timestamp > $1.timestamp }
+                    ForEach(Array(sortedEvents.enumerated()), id: \.offset) { index, event in
+                        TimelineEventRow(
+                            event: event,
+                            isFirst: index == 0,
+                            isLast: index == sortedEvents.count - 1
+                        )
                     }
-                    .adaptiveCardStyle()
                 }
+                .adaptiveCardStyle()
+            } else {
+                HStack(spacing: 10) {
+                    if isPollingEvents {
+                        ProgressView()
+                            .tint(.secondary)
+                    } else {
+                        Image(systemName: "clock.arrow.circlepath")
+                            .font(.title3)
+                            .foregroundStyle(.secondary)
+                    }
+                    Text(String(localized: isPollingEvents ? "ai.quickAdd.fetchingTracking" : "ai.quickAdd.pendingTracking"))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding()
+                .adaptiveCardStyle()
             }
         }
     }

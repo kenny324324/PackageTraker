@@ -408,7 +408,7 @@
 "paywall.plan.oneTime" = "单次付费";
 "paywall.plan.lifetimeDesc" = "一次付清，永久拥有";
 "paywall.badge.bestValue" = "最超值";
-"paywall.trial" = "免费试用 3 天";
+"paywall.trial" = "免费试用 7 天";
 "paywall.cancelAnytime" = "随时可取消";
 "paywall.bestValue" = "最划算";
 "paywall.subscribe" = "立即订阅";
@@ -445,6 +445,8 @@
 "ai.error.serviceUnavailable" = "目前 AI 识别服务暂时不可用，请稍后再试。";
 "ai.error.parseFailed" = "无法解析 AI 结果";
 "ai.error.sdkNotAvailable" = "AI 服务不可用";
+"ai.error.dailyLimitReached" = "今日 AI 扫描已达上限（20次/天），午夜重置。";
+"ai.remainingScans.%lld" = "今日剩余 %lld 次扫描";
 
 // AddMethodSheet
 "addMethod.title" = "选择新增方式";
@@ -469,6 +471,17 @@
 "ai.quickAdd.pickupLocation" = "取件地点";
 "ai.quickAdd.nextStep" = "下一步";
 "ai.quickAdd.trackingTimeline" = "物流追踪";
+"ai.quickAdd.pendingTracking" = "追踪信息稍后自动更新";
+"ai.quickAdd.fetchingTracking" = "正在获取物流信息…";
+"ai.quickAdd.detectedInfo" = "识别信息";
+"ai.field.purchasePlatform" = "购买平台";
+"ai.field.amount" = "金额";
+
+// AI Carrier Select
+"ai.carrierSelect.title" = "选择物流商";
+"ai.carrierSelect.next" = "下一步";
+"ai.error.noTrackingData" = "找不到追踪资料";
+"ai.scanning.cancelConfirmMessage" = "AI 识别中，确定要中断并返回吗？";
 
 // Empty State (additional)
 "empty.addButtonHint" = "AI 扫描或手动输入";
