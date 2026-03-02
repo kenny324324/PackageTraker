@@ -171,6 +171,10 @@
 "error.ocrFailed" = "Text Recognition Issue";
 "error.unsupportedCarrier" = "Currently not supported: %@";
 "error.networkError" = "Network connection error. Please check your connection and try again.";
+"network.offline" = "No Internet Connection";
+"forceUpdate.title" = "Update Required";
+"forceUpdate.message" = "A new version is available. Please update to continue using the app.";
+"forceUpdate.button" = "Update Now";
 "error.parsingError" = "Data format error: %@";
 "error.trackingNumberNotFound" = "Tracking number not found";
 "error.invalidResponse" = "Carrier response error";

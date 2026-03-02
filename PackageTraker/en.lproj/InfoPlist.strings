@@ -5,3 +5,4 @@
 
 "CFBundleDisplayName" = "Pickup";
 "CFBundleName" = "Pickup";
+"NSUserNotificationsUsageDescription" = "We need notification permissions to alert you when packages arrive and remind you to pick them up.";

@@ -46,6 +46,9 @@ struct PackageTrakerApp: App {
     // Deep Link：推播點擊後待導航的包裹 ID
     @State private var pendingPackageId: UUID?
 
+    // 強制更新狀態
+    @State private var forceUpdateURL: String?
+
     // Firebase 認證服務
     @StateObject private var authService = FirebaseAuthService.shared
 
@@ -118,6 +121,13 @@ struct PackageTrakerApp: App {
                     .zIndex(1)
                 }
 
+                // 強制更新覆蓋層
+                if let storeURL = forceUpdateURL {
+                    ForceUpdateView(storeURL: storeURL)
+                        .transition(.opacity)
+                        .zIndex(2)
+                }
+
                 // 冷啟動覆蓋層
                 if appFlow == .coldStart {
                     SplashView(refreshService: refreshService) {
@@ -133,8 +143,32 @@ struct PackageTrakerApp: App {
                     .zIndex(1)
                 }
             }
+            .overlay(alignment: .top) {
+                if appFlow == .main && !NetworkMonitor.shared.isConnected {
+                    HStack(spacing: 6) {
+                        Image(systemName: "wifi.slash")
+                            .font(.caption2)
+                        Text(String(localized: "network.offline"))
+                            .font(.caption2)
+                            .fontWeight(.medium)
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(.red.opacity(0.85), in: Capsule())
+                    .padding(.top, 4)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                }
+            }
             .animation(.easeOut(duration: 0.4), value: appFlow) // 驅動覆蓋層的淡入淡出轉場
+            .animation(.easeInOut(duration: 0.3), value: NetworkMonitor.shared.isConnected)
             .preferredColorScheme(.dark)
+            .task {
+                let result = await ForceUpdateService.shared.checkForUpdate()
+                if case .forceUpdate(let url) = result {
+                    forceUpdateURL = url
+                }
+            }
             .onChange(of: subscriptionManager.currentTier) { _, newTier in
                 if newTier == .free {
                     ThemeManager.shared.resetToDefaultIfNeeded()

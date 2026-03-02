@@ -21,6 +21,7 @@ struct PaywallView: View {
     @State private var showRestoreSuccess = false
     @State private var isRestoring = false
     @State private var isTrialEligible = true
+    @State private var safariURL: IdentifiableURL?
 
     var body: some View {
         NavigationStack {
@@ -91,6 +92,24 @@ struct PaywallView: View {
                         }
                         .disabled(isRestoring)
                         .padding(.top, 16)
+
+                        // Terms & Privacy links
+                        HStack(spacing: 4) {
+                            Button(String(localized: "paywall.terms")) {
+                                if let url = URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/") {
+                                    safariURL = IdentifiableURL(url: url)
+                                }
+                            }
+                            Text("·").foregroundStyle(.white.opacity(0.3))
+                            Button(String(localized: "paywall.privacy")) {
+                                if let url = URL(string: "https://ripe-cereal-4f9.notion.site/Privacy-Policy-302341fcbfde81d589a2e4ba6713b911") {
+                                    safariURL = IdentifiableURL(url: url)
+                                }
+                            }
+                        }
+                        .font(.caption2)
+                        .foregroundStyle(.white.opacity(0.3))
+                        .padding(.top, 8)
                     }
                     .padding(20)
                     .background(
@@ -136,6 +155,10 @@ struct PaywallView: View {
                         dismiss()
                     }
                 }
+            }
+            .sheet(item: $safariURL) { item in
+                SafariView(url: item.url)
+                    .ignoresSafeArea()
             }
             .onAppear {
                 // 預設選 Lifetime

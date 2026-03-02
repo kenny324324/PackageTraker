@@ -5,3 +5,4 @@
 
 "CFBundleDisplayName" = "取貨吧";
 "CFBundleName" = "取貨吧";
+"NSUserNotificationsUsageDescription" = "我們需要通知權限來提醒您包裹到貨和取貨";

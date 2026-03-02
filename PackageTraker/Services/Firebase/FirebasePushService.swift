@@ -40,6 +40,10 @@ final class FirebasePushService: NSObject, ObservableObject {
         }
 
         UIApplication.shared.registerForRemoteNotifications()
+
+        // 確保已快取的 token 被上傳
+        // （處理 didReceiveRegistrationToken 在 Auth 恢復前觸發的時序問題）
+        await uploadToken()
     }
 
     // MARK: - 上傳 Token（多裝置：寫入 fcmTokens map，含裝置通知設定）

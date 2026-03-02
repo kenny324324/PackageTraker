@@ -83,6 +83,11 @@ enum TrackingStatus: String, CaseIterable, Identifiable, Codable {
     ///
     /// 判斷順序很重要：shipped → arrivedAtStore → inTransit（預設）
     private static func mapTransitSubStatus(_ description: String) -> TrackingStatus {
+        // 0. 描述含「尚未」表示物流動作尚未發生（如「尚未至門市寄件」），視為待出貨
+        if description.contains("尚未") {
+            return .pending
+        }
+
         // 1. 已出貨/已寄件（最先判斷，避免「寄件門市已收件」被後續門市規則誤判）
         if description.contains("寄件") || description.contains("出貨") ||
            description.contains("已收件") || description.contains("已攬收") ||

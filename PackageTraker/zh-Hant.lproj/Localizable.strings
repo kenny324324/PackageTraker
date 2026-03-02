@@ -171,6 +171,10 @@
 "error.ocrFailed" = "文字辨識異常";
 "error.unsupportedCarrier" = "目前尚未支援 %@";
 "error.networkError" = "網路連線異常，請檢查網路後再試";
+"network.offline" = "目前沒有網路連線";
+"forceUpdate.title" = "需要更新";
+"forceUpdate.message" = "有新版本可用，請更新後繼續使用。";
+"forceUpdate.button" = "前往更新";
 "error.parsingError" = "資料格式有誤：%@";
 "error.trackingNumberNotFound" = "查無此單號";
 "error.invalidResponse" = "物流商回應異常";

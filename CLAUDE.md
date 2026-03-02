@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**PackageTraker** (取貨吧) is an iOS package tracking app targeting the Taiwan market. It helps users track packages from 18+ carriers and manage pickups from convenience stores and logistics centers.
+**PackageTraker** (取貨吧) is an iOS package tracking app targeting the Taiwan market. It helps users track packages from 21 carriers and manage pickups from convenience stores and logistics centers.
 
 - **Technology**: SwiftUI + SwiftData (local database) + Firebase (Auth, Firestore, FCM) + StoreKit 2
 - **Target**: iOS 26+ (dark mode only, `.preferredColorScheme(.dark)`)
@@ -49,7 +49,7 @@ firebase deploy --only functions                 # Deploy to Firebase
 
 - `Package.swift` - SwiftData `@Model` with trackingNumber, carrier, status, pickupInfo, etc.
 - `TrackingStatus.swift` - 6 package states: pending, shipped, inTransit, arrivedAtStore, delivered, returned
-- `Carrier.swift` - 22 carriers grouped by `CarrierCategory` (convenienceStore, domestic, ecommerce, international, other); 20 have `trackTwUUID` (API-trackable)
+- `Carrier.swift` - 21 carriers grouped by `CarrierCategory` (convenienceStore, domestic, ecommerce, international, other); 18 have `trackTwUUID` (API-trackable; yanwen, cainiao, other lack UUID)
 - `TrackingEvent` - SwiftData model defined inside `Package.swift` (not a separate file), linked via `@Relationship`
 - Other models: `SubscriptionTier`, `PaymentMethod`, `PurchasePlatform`, `ThemeColor`, `LinkedEmailAccount`
 
@@ -92,6 +92,7 @@ firebase deploy --only functions                 # Deploy to Firebase
 **Other Services:**
 - `CarrierDetector.swift` - Auto-detects carrier from tracking number regex patterns (see `File/物流商辨識規則總覽.md`)
 - `ThemeManager.swift` - Theme/appearance management
+- `Analytics/AnalyticsService.swift` - App analytics tracking
 - `Services/OCR/TrackingNumberOCRService.swift` - Barcode OCR scanning
 - `Services/Widget/WidgetDataService.swift` - Bridges main app data to App Group for widget
 - `Services/Debug/DebugNotificationService.swift` - `#if DEBUG` test notification helpers
@@ -101,7 +102,7 @@ firebase deploy --only functions                 # Deploy to Firebase
 - `MainTabView.swift` - 3 tabs: PackageList (0), History (1), Settings (2). Uses `@Binding var selectedTab: Int` from `PackageTrakerApp`
 - `SplashView.swift` - Cold start animation for already-authenticated users
 - Subdirectories per feature: `Auth/`, `PackageList/`, `AddPackage/`, `AI/`, `PackageDetail/`, `History/`, `Settings/`, `Subscription/`
-- AI scanning flow: `AddMethodSheet` → `AIScanningView` → `AIQuickAddSheet`
+- AI scanning flow: `AddMethodSheet` → `AICarrierSelectView` (user picks carrier) → `AIScanningView` → `AIQuickAddSheet` → `PackageInfoView`
 
 ### Widget Extension (`PackageTrakerWidget/`)
 
@@ -119,6 +120,7 @@ Firebase Cloud Functions v2 (TypeScript, Node.js 20, asia-east1):
 - `triggers.ts` - Firestore `onDocumentUpdated` → FCM push on status change
 - `dailyReminder.ts` - 10:00 AM Taiwan time pickup reminder
 - `alertEmail.ts` - `onSystemAlertCreated` for system alert notifications
+- `geminiProxy.ts` - Gemini AI proxy with daily usage limit (20/day for subscribers)
 - `services/trackTwApi.ts` - Track.TW HTTP client
 - `services/pushNotification.ts` - FCM push via firebase-admin
 - `i18n/notifications.ts` - Multilingual push templates (zh-Hant, zh-Hans, en)
@@ -206,7 +208,7 @@ Most services use `static let shared` singleton pattern: `SubscriptionManager.sh
 1. **Import**: `TrackTwAPIClient.importPackages(carrierId, [trackingNumbers])` → returns `[trackingNumber: relationId]`
 2. **Track**: `TrackTwAPIClient.getTracking(relationId)` → returns checkpoints with status
 
-- Only carriers with `trackTwUUID` computed property are auto-trackable (20 of 22)
+- Only carriers with `trackTwUUID` computed property are auto-trackable (18 of 21)
 - Relation IDs cached in-memory (`TrackTwAPIService.relationIdCache`) and persisted (`Package.trackTwRelationId`)
 
 ## AI Scanning Carrier Detection Flow
