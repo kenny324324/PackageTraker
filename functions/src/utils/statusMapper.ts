@@ -56,8 +56,9 @@ function mapTransitSubStatus(description: string): TrackingStatus {
   }
 
   // 1. 已出貨/已寄件（最先判斷，避免「寄件門市已收件」被後續門市規則誤判）
+  //    排除「離開寄件門市」：包裹已離開寄件門市，語義是移動中，應為 inTransit
   if (
-    description.includes("寄件") ||
+    (description.includes("寄件") && !description.includes("離開寄件")) ||
     description.includes("出貨") ||
     description.includes("已收件") ||
     description.includes("已攬收") ||
