@@ -10,6 +10,7 @@ import Combine
 import FirebaseAuth
 import FirebaseFirestore
 import SwiftData
+import WidgetKit
 
 @MainActor
 final class FirebaseSyncService: ObservableObject {
@@ -431,6 +432,15 @@ final class FirebaseSyncService: ObservableObject {
         }
 
         try? modelContext.save()
+
+        // 更新 Widget 資料（雲端同步後反映最新狀態）
+        let descriptor = FetchDescriptor<Package>(
+            predicate: #Predicate<Package> { !$0.isArchived }
+        )
+        if let packages = try? modelContext.fetch(descriptor) {
+            WidgetDataService.shared.updateWidgetData(packages: packages)
+            WidgetCenter.shared.reloadAllTimelines()
+        }
     }
 
     private func applyRemoteChange(docId: String, data: [String: Any], to modelContext: ModelContext) {

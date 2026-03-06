@@ -1,0 +1,17 @@
+/* Widget */
+"widget.title" = "我的包裹";
+"widget.description" = "隨時查看包裹追蹤狀態";
+"widget.empty" = "沒有包裹";
+"widget.emptyHint" = "在 App 中新增包裹即可在此顯示";
+"widget.count%lld" = "%lld 個包裹";
+"widget.pending" = "待取";
+"widget.recentDelivered" = "30天";
+"widget.pickup.displayName" = "取貨提醒";
+"widget.pickup.description" = "查看待取貨和近期已取的包裹";
+"widget.quickAdd.displayName" = "快速新增";
+"widget.quickAdd.description" = "點一下快速新增包裹";
+"widget.proOnly" = "升級 Pro 解鎖完整追蹤小工具";
+"widget.config.selectPackage" = "選擇包裹";
+"widget.config.description" = "選擇要在小工具上顯示的包裹";
+"widget.config.package" = "包裹";
+"widget.config.latestAdded" = "最新加入";

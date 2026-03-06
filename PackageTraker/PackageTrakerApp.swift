@@ -46,6 +46,9 @@ struct PackageTrakerApp: App {
     // Deep Link：推播點擊後待導航的包裹 ID
     @State private var pendingPackageId: UUID?
 
+    // Widget Quick Add：從桌面快速新增包裹
+    @State private var showAddPackage = false
+
     // 強制更新狀態
     @State private var forceUpdateURL: String?
 
@@ -94,7 +97,7 @@ struct PackageTrakerApp: App {
         WindowGroup {
             ZStack {
                 // 主畫面始終存在底層（已完成佈局，避免 TabView/NavigationStack 插入時的內部動畫）
-                MainTabView(selectedTab: $selectedTab, pendingPackageId: $pendingPackageId)
+                MainTabView(selectedTab: $selectedTab, pendingPackageId: $pendingPackageId, showAddPackage: $showAddPackage)
                     .environment(refreshService)
                     .onOpenURL { url in
                         handleIncomingURL(url)
@@ -168,6 +171,8 @@ struct PackageTrakerApp: App {
                 if case .forceUpdate(let url) = result {
                     forceUpdateURL = url
                 }
+                // 啟動時同步訂閱層級到 Widget（確保 Widget 能讀取到正確狀態）
+                WidgetDataService.shared.updateSubscriptionTier(subscriptionManager.currentTier)
             }
             .onChange(of: subscriptionManager.currentTier) { _, newTier in
                 if newTier == .free {
@@ -209,6 +214,14 @@ struct PackageTrakerApp: App {
     // MARK: - URL Handling
 
     private func handleIncomingURL(_ url: URL) {
+        // 處理 Widget Quick Add: packagetraker://addPackage
+        if url.scheme == "packagetraker",
+           url.host == "addPackage" {
+            selectedTab = 0
+            showAddPackage = true
+            return
+        }
+
         // 處理 Widget Deep Link: packagetraker://package/{uuid}
         if url.scheme == "packagetraker",
            url.host == "package",

@@ -1,0 +1,17 @@
+/* Widget */
+"widget.title" = "My Packages";
+"widget.description" = "Track your packages at a glance";
+"widget.empty" = "No Packages";
+"widget.emptyHint" = "Add packages in the app to see them here";
+"widget.count%lld" = "%lld packages";
+"widget.pending" = "Arrived";
+"widget.recentDelivered" = "30 Days";
+"widget.pickup.displayName" = "Pickup Reminder";
+"widget.pickup.description" = "View pending pickups and recently collected packages";
+"widget.quickAdd.displayName" = "Quick Add";
+"widget.quickAdd.description" = "Tap to quickly add a new package";
+"widget.proOnly" = "Upgrade to Pro for full tracking widget";
+"widget.config.selectPackage" = "Select Package";
+"widget.config.description" = "Choose a package to display";
+"widget.config.package" = "Package";
+"widget.config.latestAdded" = "Latest Added";

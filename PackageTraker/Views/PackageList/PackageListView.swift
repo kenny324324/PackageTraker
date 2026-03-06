@@ -5,6 +5,7 @@ import WidgetKit
 /// 包裹清單主頁
 struct PackageListView: View {
     @Binding var pendingPackageId: UUID?
+    @Binding var showAddPackage: Bool
 
     @Environment(\.modelContext) private var modelContext
     @Environment(PackageRefreshService.self) private var refreshService
@@ -18,7 +19,6 @@ struct PackageListView: View {
     @Query private var linkedAccounts: [LinkedEmailAccount]
 
     @State private var showAddMethodSheet = false
-    @State private var showAddPackage = false
     @State private var selectedPackage: Package?
     @State private var emailSyncStatus: String?
     @State private var showPendingSheet = false
@@ -117,12 +117,23 @@ struct PackageListView: View {
                 PackageDetailView(package: package, namespace: heroNamespace)
                     .navigationTransition(.zoom(sourceID: package.id, in: heroNamespace))
             }
+            .onChange(of: showAddPackage) { _, newValue in
+                if newValue {
+                    showAddMethodSheet = true
+                    showAddPackage = false
+                }
+            }
             .onChange(of: pendingPackageId) { _, newValue in
                 guard let targetId = newValue else { return }
                 if let package = packages.first(where: { $0.id == targetId }) {
                     selectedPackage = package
                 }
                 pendingPackageId = nil
+            }
+            .task {
+                // 啟動時同步 Widget 資料（確保既有包裹資料寫入 App Group）
+                WidgetDataService.shared.updateWidgetData(packages: packages)
+                WidgetCenter.shared.reloadAllTimelines()
             }
         }
         .toolbar(selectedPackage == nil ? .visible : .hidden, for: .tabBar)
@@ -132,12 +143,14 @@ struct PackageListView: View {
 
     private func deletePackage(_ package: Package) {
         let packageId = package.id
+        let remainingPackages = packages.filter { $0.id != package.id }
         modelContext.delete(package)
         try? modelContext.save()
         packageToDelete = nil
         // 從 Firestore 刪除
         FirebaseSyncService.shared.deletePackage(packageId)
         // 更新 Widget
+        WidgetDataService.shared.updateWidgetData(packages: remainingPackages)
         WidgetCenter.shared.reloadAllTimelines()
     }
 
@@ -453,7 +466,7 @@ struct EmptyPackageListView: View {
 // MARK: - Previews
 
 #Preview {
-    PackageListView(pendingPackageId: .constant(nil))
+    PackageListView(pendingPackageId: .constant(nil), showAddPackage: .constant(false))
         .modelContainer(for: [Package.self, TrackingEvent.self, LinkedEmailAccount.self], inMemory: true)
         .environment(PackageRefreshService())
 }

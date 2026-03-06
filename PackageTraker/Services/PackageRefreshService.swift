@@ -55,6 +55,8 @@ final class PackageRefreshService {
             try? context.save()
             // 同步到 Firestore
             FirebaseSyncService.shared.syncPackage(package)
+            // 更新 Widget 資料
+            updateWidgetFromContext(context)
             return true
         } catch is CancellationError {
             // timeout 取消是正常行為，不印錯誤
@@ -172,6 +174,19 @@ final class PackageRefreshService {
     /// 判斷包裹資料是否過期（預設 5 分鐘）
     func isStale(_ package: Package, threshold: TimeInterval = 300) -> Bool {
         Date().timeIntervalSince(package.lastUpdated) > threshold
+    }
+
+    // MARK: - Widget 更新
+
+    /// 從 ModelContext 讀取所有未歸檔包裹並更新 Widget
+    private func updateWidgetFromContext(_ context: ModelContext) {
+        let descriptor = FetchDescriptor<Package>(
+            predicate: #Predicate<Package> { !$0.isArchived }
+        )
+        if let packages = try? context.fetch(descriptor) {
+            WidgetDataService.shared.updateWidgetData(packages: packages)
+            WidgetCenter.shared.reloadAllTimelines()
+        }
     }
 
     // MARK: - 結果寫入（唯一實作）

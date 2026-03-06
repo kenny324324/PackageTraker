@@ -23,6 +23,24 @@ struct WidgetPackageData: Codable {
     let pickupLocation: String?
     let storeName: String?
     let updatedAt: Date
+    let latestEventTimestamp: Date?
+
+    /// 自定義解碼：讓舊版 JSON（沒有 latestEventTimestamp）也能正常解碼
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        trackingNumber = try c.decode(String.self, forKey: .trackingNumber)
+        carrierRawValue = try c.decode(String.self, forKey: .carrierRawValue)
+        carrierDisplayName = try c.decode(String.self, forKey: .carrierDisplayName)
+        customName = try c.decodeIfPresent(String.self, forKey: .customName)
+        statusRawValue = try c.decode(String.self, forKey: .statusRawValue)
+        statusDisplayName = try c.decode(String.self, forKey: .statusDisplayName)
+        latestDescription = try c.decodeIfPresent(String.self, forKey: .latestDescription)
+        pickupLocation = try c.decodeIfPresent(String.self, forKey: .pickupLocation)
+        storeName = try c.decodeIfPresent(String.self, forKey: .storeName)
+        updatedAt = try c.decode(Date.self, forKey: .updatedAt)
+        latestEventTimestamp = try c.decodeIfPresent(Date.self, forKey: .latestEventTimestamp)
+    }
 }
 
 /// 訂閱層級

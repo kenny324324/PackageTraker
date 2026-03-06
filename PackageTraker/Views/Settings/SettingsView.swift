@@ -81,6 +81,11 @@ struct SettingsView: View {
                     // 一般設定
                     generalSection
 
+                    // 小工具
+                    if FeatureFlags.widgetEnabled {
+                        widgetSection
+                    }
+
                     // 通知設定
                     notificationSection
 
@@ -639,6 +644,54 @@ struct SettingsView: View {
         }
     }
     #endif
+
+    // MARK: - Widget Section
+
+    private var widgetSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(String(localized: "settings.widget.title"))
+                .font(.title2)
+                .fontWeight(.bold)
+                .foregroundStyle(.white)
+
+            VStack(spacing: 0) {
+                HStack(spacing: 14) {
+                    // Icon
+                    Image(systemName: "rectangle.on.rectangle.angled.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 30, height: 30)
+                        .background(Color.indigo)
+                        .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(String(localized: "settings.widget.title"))
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.white)
+
+                        Text(String(localized: "settings.widget.hint"))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+
+                        if !subscriptionManager.isPro {
+                            Text(String(localized: "settings.widget.freeDesc"))
+                                .font(.caption)
+                                .foregroundStyle(.orange.opacity(0.8))
+                                .lineLimit(2)
+                                .padding(.top, 2)
+                        }
+                    }
+
+                    Spacer()
+                }
+                .padding(16)
+            }
+            .background(Color.secondaryCardBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 20))
+        }
+    }
 
     // MARK: - General Section
     

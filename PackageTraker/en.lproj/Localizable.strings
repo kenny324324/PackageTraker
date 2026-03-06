@@ -10,11 +10,11 @@
 
 // Home
 "home.title" = "My Packages";
-"home.pending" = "Pending Pickup";
+"home.pending" = "Ready for Pickup";
 "home.delivered30" = "Last 30 Days";
 
 // Sheet
-"sheet.pendingTitle" = "Pending Pickup";
+"sheet.pendingTitle" = "Ready for Pickup";
 "sheet.deliveredTitle" = "Picked Up (30 Days)";
 "sheet.empty" = "No packages";
 
@@ -500,3 +500,10 @@
 "widget.emptyHint" = "Add a package in the app to see it here";
 "widget.upgradePro" = "Upgrade to Pro for full Widget experience";
 "widget.count%lld" = "%lld packages";
+"widget.pending" = "Arrived";
+"widget.recentDelivered" = "30 Days";
+
+// Settings - Widget
+"settings.widget.title" = "Widget";
+"settings.widget.hint" = "Long press home screen → tap \"+\" → search \"PackageTraker\" to add";
+"settings.widget.freeDesc" = "Free tier shows pickup reminders. Upgrade to Pro for full tracking.";

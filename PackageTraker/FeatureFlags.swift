@@ -23,5 +23,5 @@ struct FeatureFlags {
     static let aiVisionEnabled = true  // 測試用：暫時開啟
 
     /// iOS Widget（Phase D）
-    static let widgetEnabled = false
+    static let widgetEnabled = true
 }

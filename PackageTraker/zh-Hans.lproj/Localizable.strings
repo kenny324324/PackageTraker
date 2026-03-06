@@ -499,3 +499,10 @@
 "widget.emptyHint" = "在 App 中添加包裹即可在此显示";
 "widget.upgradePro" = "升级 Pro 体验完整 Widget";
 "widget.count%lld" = "%lld 个包裹";
+"widget.pending" = "待取";
+"widget.recentDelivered" = "30天";
+
+// Settings - Widget
+"settings.widget.title" = "小工具";
+"settings.widget.hint" = "长按主屏幕 → 点「+」→ 搜索「取货吧」即可添加";
+"settings.widget.freeDesc" = "免费版显示待取货提醒，升级 Pro 可查看所有包裹追踪状态";

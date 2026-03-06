@@ -6,16 +6,19 @@
 //
 
 import WidgetKit
+import AppIntents
 import Foundation
 
 // MARK: - Timeline Entry
 
 struct PackageTimelineEntry: TimelineEntry {
     let date: Date
-    let packages: [WidgetPackageItem]
+    let packages: [WidgetPackageItem]       // PRO：全部包裹
+    let pendingPackages: [WidgetPackageItem] // Free：待取貨（arrivedAtStore）
+    let recentDelivered: [WidgetPackageItem] // Free：30天內已取（delivered）
     let isPro: Bool
 
-    /// 預覽用範例資料
+    /// 預覽用範例資料（PRO）
     static var preview: PackageTimelineEntry {
         PackageTimelineEntry(
             date: .now,
@@ -24,7 +27,7 @@ struct PackageTimelineEntry: TimelineEntry {
                     id: UUID().uuidString,
                     trackingNumber: "TW259426993523H",
                     carrierName: "蝦皮店到店",
-                    carrierIcon: "shippingbox",
+                    carrierRawValue: "shopee",
                     customName: "藍牙耳機",
                     statusName: "已到貨",
                     statusColor: .green,
@@ -36,7 +39,7 @@ struct PackageTimelineEntry: TimelineEntry {
                     id: UUID().uuidString,
                     trackingNumber: "SF1234567890123",
                     carrierName: "順豐速運",
-                    carrierIcon: "shippingbox",
+                    carrierRawValue: "sfExpress",
                     customName: "手機殼",
                     statusName: "運送中",
                     statusColor: .blue,
@@ -48,7 +51,7 @@ struct PackageTimelineEntry: TimelineEntry {
                     id: UUID().uuidString,
                     trackingNumber: "T123456789",
                     carrierName: "全家店到店",
-                    carrierIcon: "shippingbox",
+                    carrierRawValue: "familyMart",
                     customName: nil,
                     statusName: "處理中",
                     statusColor: .orange,
@@ -57,7 +60,46 @@ struct PackageTimelineEntry: TimelineEntry {
                     updatedAt: Date().addingTimeInterval(-7200)
                 ),
             ],
+            pendingPackages: [],
+            recentDelivered: [],
             isPro: true
+        )
+    }
+
+    /// 預覽用範例資料（Free）
+    static var freePreview: PackageTimelineEntry {
+        PackageTimelineEntry(
+            date: .now,
+            packages: [],
+            pendingPackages: [
+                WidgetPackageItem(
+                    id: UUID().uuidString,
+                    trackingNumber: "TW259426993523H",
+                    carrierName: "蝦皮店到店",
+                    carrierRawValue: "shopee",
+                    customName: nil,
+                    statusName: "已到貨",
+                    statusColor: .green,
+                    latestDescription: nil,
+                    pickupLocation: nil,
+                    updatedAt: Date()
+                )
+            ],
+            recentDelivered: [
+                WidgetPackageItem(
+                    id: UUID().uuidString,
+                    trackingNumber: "SF1234567890123",
+                    carrierName: "順豐速運",
+                    carrierRawValue: "sfExpress",
+                    customName: nil,
+                    statusName: "已取貨",
+                    statusColor: .green,
+                    latestDescription: nil,
+                    pickupLocation: nil,
+                    updatedAt: Date().addingTimeInterval(-3600)
+                )
+            ],
+            isPro: false
         )
     }
 }
@@ -69,7 +111,7 @@ struct WidgetPackageItem: Identifiable {
     let id: String
     let trackingNumber: String
     let carrierName: String
-    let carrierIcon: String
+    let carrierRawValue: String
     let customName: String?
     let statusName: String
     let statusColor: WidgetStatusColor
@@ -86,6 +128,46 @@ struct WidgetPackageItem: Identifiable {
     var deepLinkURL: URL {
         URL(string: "packagetraker://package/\(id)")!
     }
+
+    /// 從 WidgetPackageData 轉換
+    static func from(_ data: WidgetPackageData) -> WidgetPackageItem {
+        WidgetPackageItem(
+            id: data.id,
+            trackingNumber: data.trackingNumber,
+            carrierName: data.carrierDisplayName,
+            carrierRawValue: data.carrierRawValue,
+            customName: data.customName,
+            statusName: data.statusDisplayName,
+            statusColor: WidgetStatusColor.from(statusRawValue: data.statusRawValue),
+            latestDescription: data.latestDescription,
+            pickupLocation: data.pickupLocation ?? data.storeName,
+            updatedAt: data.updatedAt
+        )
+    }
+
+    /// 物流商 Logo 圖片名稱（對應 Assets 中的圖片）
+    var carrierLogoName: String? {
+        switch carrierRawValue {
+        case "sevenEleven":   return "SevenEleven"
+        case "familyMart":    return "FamilyMart"
+        case "hiLife":        return "HiLife"
+        case "okMart":        return "OKMart"
+        case "shopee":        return "Shopee"
+        case "tcat":          return "Tcat"
+        case "hct":           return "HCT"
+        case "ecan":          return "Ecan"
+        case "postTW":        return "PostTW"
+        case "pchome":        return "PChome"
+        case "momo":          return "Momo"
+        case "kerry":         return "Kerry"
+        case "dhl":           return "DHL"
+        case "fedex":         return "FedEx"
+        case "ups":           return "UPS"
+        case "sfExpress":     return "SFExpress"
+        case "customs":       return "Customs"
+        default:              return nil
+        }
+    }
 }
 
 /// Widget 狀態顏色（避免依賴主 App 的 Color extensions）
@@ -95,13 +177,13 @@ enum WidgetStatusColor {
     /// 對應 TrackingStatus rawValue
     static func from(statusRawValue: String) -> WidgetStatusColor {
         switch statusRawValue {
-        case "arrived": return .green
-        case "transit": return .blue
-        case "pending": return .orange
-        case "exception": return .red
-        case "collected": return .purple
-        case "delivered": return .green
-        default: return .gray
+        case "pending":        return .gray
+        case "shipped":        return .orange
+        case "inTransit":      return .blue
+        case "arrivedAtStore": return .green
+        case "delivered":      return .green
+        case "returned":       return .red
+        default:               return .gray
         }
     }
 }
@@ -134,24 +216,92 @@ struct PackageTimelineProvider: TimelineProvider {
         let rawData = WidgetDataService.readWidgetData()
         let isPro = WidgetDataService.readSubscriptionTier() == .pro
 
-        let items = rawData.map { data in
-            WidgetPackageItem(
-                id: data.id,
-                trackingNumber: data.trackingNumber,
-                carrierName: data.carrierDisplayName,
-                carrierIcon: "shippingbox",
-                customName: data.customName,
-                statusName: data.statusDisplayName,
-                statusColor: WidgetStatusColor.from(statusRawValue: data.statusRawValue),
-                latestDescription: data.latestDescription,
-                pickupLocation: data.pickupLocation ?? data.storeName,
-                updatedAt: data.updatedAt
-            )
+        let thirtyDaysAgo = Date().addingTimeInterval(-30 * 24 * 3600)
+        let recentData = rawData.filter { data in
+            if let eventTime = data.latestEventTimestamp {
+                return eventTime > thirtyDaysAgo
+            }
+            return data.updatedAt > thirtyDaysAgo
+        }
+        let pending = recentData
+            .filter { $0.statusRawValue == "arrivedAtStore" }
+            .map { WidgetPackageItem.from($0) }
+        let delivered = recentData
+            .filter { $0.statusRawValue == "delivered" }
+            .map { WidgetPackageItem.from($0) }
+
+        let proItems = isPro ? Array(rawData.prefix(5).map { WidgetPackageItem.from($0) }) : []
+
+        return PackageTimelineEntry(
+            date: .now,
+            packages: proItems,
+            pendingPackages: pending,
+            recentDelivered: delivered,
+            isPro: isPro
+        )
+    }
+}
+
+// MARK: - PRO Timeline Provider (AppIntent)
+
+struct ProPackageTimelineProvider: AppIntentTimelineProvider {
+    typealias Entry = PackageTimelineEntry
+    typealias Intent = PackageWidgetIntent
+
+    func placeholder(in context: Context) -> PackageTimelineEntry {
+        PackageTimelineEntry.preview
+    }
+
+    func snapshot(for configuration: PackageWidgetIntent, in context: Context) async -> PackageTimelineEntry {
+        createEntry(for: configuration)
+    }
+
+    func timeline(for configuration: PackageWidgetIntent, in context: Context) async -> Timeline<PackageTimelineEntry> {
+        let entry = createEntry(for: configuration)
+        let nextUpdate = Calendar.current.date(byAdding: .minute, value: 15, to: Date())!
+        return Timeline(entries: [entry], policy: .after(nextUpdate))
+    }
+
+    // MARK: - Private
+
+    private func createEntry(for configuration: PackageWidgetIntent) -> PackageTimelineEntry {
+        let rawData = WidgetDataService.readWidgetData()
+        let isPro = WidgetDataService.readSubscriptionTier() == .pro
+
+        let proItems: [WidgetPackageItem]
+        if isPro {
+            if let selected = configuration.selectedPackage {
+                if selected.id == "__latest_added__" {
+                    // 「最新加入」：顯示最新的一筆未取件包裹
+                    if let latest = rawData.first(where: { $0.statusRawValue != "delivered" }) {
+                        proItems = [WidgetPackageItem.from(latest)]
+                    } else {
+                        proItems = []
+                    }
+                } else if let found = rawData.first(where: { $0.id == selected.id }) {
+                    // 使用者選了特定包裹
+                    proItems = [WidgetPackageItem.from(found)]
+                } else {
+                    // 選的包裹已不存在，回到預設（最新未取件包裹）
+                    if let fallback = rawData.first(where: { $0.statusRawValue != "delivered" }) {
+                        proItems = [WidgetPackageItem.from(fallback)]
+                    } else {
+                        proItems = []
+                    }
+                }
+            } else {
+                // 未選擇 = 預設顯示最新加入的包裹
+                proItems = Array(rawData.prefix(5).map { WidgetPackageItem.from($0) })
+            }
+        } else {
+            proItems = []
         }
 
         return PackageTimelineEntry(
             date: .now,
-            packages: items,
+            packages: proItems,
+            pendingPackages: [],
+            recentDelivered: [],
             isPro: isPro
         )
     }

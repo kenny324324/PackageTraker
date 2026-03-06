@@ -7,29 +7,15 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		314A817A2F34A0C900E3F3C2 /* momo.png in Resources */ = {isa = PBXBuildFile; fileRef = 314A81772F34A0C900E3F3C2 /* momo.png */; };
-		314A817B2F34A0C900E3F3C2 /* DHL.png in Resources */ = {isa = PBXBuildFile; fileRef = 314A81742F34A0C900E3F3C2 /* DHL.png */; };
-		314A817C2F34A0C900E3F3C2 /* FEdex.png in Resources */ = {isa = PBXBuildFile; fileRef = 314A81752F34A0C900E3F3C2 /* FEdex.png */; };
-		314A817D2F34A0C900E3F3C2 /* 中華郵政.png in Resources */ = {isa = PBXBuildFile; fileRef = 314A816D2F34A0C900E3F3C2 /* 中華郵政.png */; };
-		314A817E2F34A0C900E3F3C2 /* 嘉里大榮.png in Resources */ = {isa = PBXBuildFile; fileRef = 314A81722F34A0C900E3F3C2 /* 嘉里大榮.png */; };
-		314A817F2F34A0C900E3F3C2 /* 順豐.png in Resources */ = {isa = PBXBuildFile; fileRef = 314A816F2F34A0C900E3F3C2 /* 順豐.png */; };
-		314A81802F34A0C900E3F3C2 /* 黑貓.png in Resources */ = {isa = PBXBuildFile; fileRef = 314A81702F34A0C900E3F3C2 /* 黑貓.png */; };
-		314A81812F34A0C900E3F3C2 /* Hilife-Logo.png in Resources */ = {isa = PBXBuildFile; fileRef = 314A81762F34A0C900E3F3C2 /* Hilife-Logo.png */; };
-		314A81822F34A0C900E3F3C2 /* UPS.png in Resources */ = {isa = PBXBuildFile; fileRef = 314A81792F34A0C900E3F3C2 /* UPS.png */; };
-		314A81832F34A0C900E3F3C2 /* 關務署.png in Resources */ = {isa = PBXBuildFile; fileRef = 314A81732F34A0C900E3F3C2 /* 關務署.png */; };
-		314A81842F34A0C900E3F3C2 /* PcHome.png in Resources */ = {isa = PBXBuildFile; fileRef = 314A81782F34A0C900E3F3C2 /* PcHome.png */; };
-		314A81852F34A0C900E3F3C2 /* 新竹物流.png in Resources */ = {isa = PBXBuildFile; fileRef = 314A81712F34A0C900E3F3C2 /* 新竹物流.png */; };
-		314A81862F34A0C900E3F3C2 /* 宅配通.png in Resources */ = {isa = PBXBuildFile; fileRef = 314A816E2F34A0C900E3F3C2 /* 宅配通.png */; };
-		3164BEB72F33153F00DD217B /* 7-Eleven-Logo.png in Resources */ = {isa = PBXBuildFile; fileRef = 3164BEB22F33153F00DD217B /* 7-Eleven-Logo.png */; };
-		3164BEB82F33153F00DD217B /* Shopee-Logo.png in Resources */ = {isa = PBXBuildFile; fileRef = 3164BEB52F33153F00DD217B /* Shopee-Logo.png */; };
-		3164BEB92F33153F00DD217B /* Family-Logo.png in Resources */ = {isa = PBXBuildFile; fileRef = 3164BEB32F33153F00DD217B /* Family-Logo.png */; };
-		3164BEBA2F33153F00DD217B /* OKMart-Logo.png in Resources */ = {isa = PBXBuildFile; fileRef = 3164BEB42F33153F00DD217B /* OKMart-Logo.png */; };
 		3164BEC62F333B6F00DD217B /* box.png in Resources */ = {isa = PBXBuildFile; fileRef = 3164BEC52F333B6F00DD217B /* box.png */; };
 		318658322F3C6F3F00CAC4AC /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 318658312F3C6F3F00CAC4AC /* StoreKit.framework */; };
 		31870CFC2F4EC6A6003666F3 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = 31870CFB2F4EC6A6003666F3 /* FirebaseCrashlytics */; };
 		31870CFE2F4EC6AF003666F3 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 31870CFD2F4EC6AF003666F3 /* FirebaseAnalytics */; };
 		31870D002F4EC6B6003666F3 /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = 31870CFF2F4EC6B6003666F3 /* FirebaseFunctions */; };
 		31C141422F31EF6700EF85BE /* icon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 31C141412F31EF6700EF85BE /* icon.icon */; };
+		31D4CE612F5A921B00476EED /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 31D4CE602F5A921B00476EED /* WidgetKit.framework */; };
+		31D4CE632F5A921B00476EED /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 31D4CE622F5A921B00476EED /* SwiftUI.framework */; };
+		31D4CE702F5A921D00476EED /* PackageTrakerWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 31D4CE5F2F5A921B00476EED /* PackageTrakerWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		31FB3D652F39959A00104C5C /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 31FB3D642F39959A00104C5C /* FirebaseAuth */; };
 		31FB3D672F39959A00104C5C /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 31FB3D662F39959A00104C5C /* FirebaseFirestore */; };
 		31FB3D692F39959A00104C5C /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 31FB3D682F39959A00104C5C /* FirebaseMessaging */; };
@@ -38,6 +24,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		31D4CE6E2F5A921D00476EED /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 31F66DD12F309B9D0068C3FB /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 31D4CE5E2F5A921B00476EED;
+			remoteInfo = PackageTrakerWidgetExtension;
+		};
 		31F66DE72F309B9E0068C3FB /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 31F66DD12F309B9D0068C3FB /* Project object */;
@@ -54,28 +47,28 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		31D4CE712F5A921D00476EED /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				31D4CE702F5A921D00476EED /* PackageTrakerWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
-		314A816D2F34A0C900E3F3C2 /* 中華郵政.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "中華郵政.png"; sourceTree = "<group>"; };
-		314A816E2F34A0C900E3F3C2 /* 宅配通.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "宅配通.png"; sourceTree = "<group>"; };
-		314A816F2F34A0C900E3F3C2 /* 順豐.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "順豐.png"; sourceTree = "<group>"; };
-		314A81702F34A0C900E3F3C2 /* 黑貓.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "黑貓.png"; sourceTree = "<group>"; };
-		314A81712F34A0C900E3F3C2 /* 新竹物流.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "新竹物流.png"; sourceTree = "<group>"; };
-		314A81722F34A0C900E3F3C2 /* 嘉里大榮.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "嘉里大榮.png"; sourceTree = "<group>"; };
-		314A81732F34A0C900E3F3C2 /* 關務署.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "關務署.png"; sourceTree = "<group>"; };
-		314A81742F34A0C900E3F3C2 /* DHL.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = DHL.png; sourceTree = "<group>"; };
-		314A81752F34A0C900E3F3C2 /* FEdex.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = FEdex.png; sourceTree = "<group>"; };
-		314A81762F34A0C900E3F3C2 /* Hilife-Logo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Hilife-Logo.png"; sourceTree = "<group>"; };
-		314A81772F34A0C900E3F3C2 /* momo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = momo.png; sourceTree = "<group>"; };
-		314A81782F34A0C900E3F3C2 /* PcHome.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = PcHome.png; sourceTree = "<group>"; };
-		314A81792F34A0C900E3F3C2 /* UPS.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = UPS.png; sourceTree = "<group>"; };
-		3164BEB22F33153F00DD217B /* 7-Eleven-Logo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "7-Eleven-Logo.png"; sourceTree = "<group>"; };
-		3164BEB32F33153F00DD217B /* Family-Logo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Family-Logo.png"; sourceTree = "<group>"; };
-		3164BEB42F33153F00DD217B /* OKMart-Logo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "OKMart-Logo.png"; sourceTree = "<group>"; };
-		3164BEB52F33153F00DD217B /* Shopee-Logo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Shopee-Logo.png"; sourceTree = "<group>"; };
 		3164BEC52F333B6F00DD217B /* box.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = box.png; sourceTree = "<group>"; };
 		3182A42C2F3D7C5C0038D096 /* Configuration.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = Configuration.storekit; sourceTree = "<group>"; };
 		318658312F3C6F3F00CAC4AC /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
 		31C141412F31EF6700EF85BE /* icon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = icon.icon; sourceTree = "<group>"; };
+		31D4CE5F2F5A921B00476EED /* PackageTrakerWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PackageTrakerWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		31D4CE602F5A921B00476EED /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		31D4CE622F5A921B00476EED /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		31F66DD92F309B9D0068C3FB /* PackageTraker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PackageTraker.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		31F66DE62F309B9E0068C3FB /* PackageTrakerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PackageTrakerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		31F66DF02F309B9E0068C3FB /* PackageTrakerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PackageTrakerUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -83,6 +76,13 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		31D4CE752F5A921D00476EED /* Exceptions for "PackageTrakerWidget" folder in "PackageTrakerWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 31D4CE5E2F5A921B00476EED /* PackageTrakerWidgetExtension */;
+		};
 		31F66E652F31DEC60068C3FB /* Exceptions for "PackageTraker" folder in "PackageTraker" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -93,6 +93,14 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		31D4CE642F5A921B00476EED /* PackageTrakerWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				31D4CE752F5A921D00476EED /* Exceptions for "PackageTrakerWidget" folder in "PackageTrakerWidgetExtension" target */,
+			);
+			path = PackageTrakerWidget;
+			sourceTree = "<group>";
+		};
 		31F66DDB2F309B9D0068C3FB /* PackageTraker */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -119,6 +127,15 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		31D4CE5C2F5A921B00476EED /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				31D4CE632F5A921B00476EED /* SwiftUI.framework in Frameworks */,
+				31D4CE612F5A921B00476EED /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		31F66DD62F309B9D0068C3FB /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -151,34 +168,12 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		3164BEB62F33153F00DD217B /* Logo */ = {
-			isa = PBXGroup;
-			children = (
-				314A816D2F34A0C900E3F3C2 /* 中華郵政.png */,
-				314A816E2F34A0C900E3F3C2 /* 宅配通.png */,
-				314A816F2F34A0C900E3F3C2 /* 順豐.png */,
-				314A81702F34A0C900E3F3C2 /* 黑貓.png */,
-				314A81712F34A0C900E3F3C2 /* 新竹物流.png */,
-				314A81722F34A0C900E3F3C2 /* 嘉里大榮.png */,
-				314A81732F34A0C900E3F3C2 /* 關務署.png */,
-				314A81742F34A0C900E3F3C2 /* DHL.png */,
-				314A81752F34A0C900E3F3C2 /* FEdex.png */,
-				314A81762F34A0C900E3F3C2 /* Hilife-Logo.png */,
-				314A81772F34A0C900E3F3C2 /* momo.png */,
-				314A81782F34A0C900E3F3C2 /* PcHome.png */,
-				314A81792F34A0C900E3F3C2 /* UPS.png */,
-				3164BEB22F33153F00DD217B /* 7-Eleven-Logo.png */,
-				3164BEB32F33153F00DD217B /* Family-Logo.png */,
-				3164BEB42F33153F00DD217B /* OKMart-Logo.png */,
-				3164BEB52F33153F00DD217B /* Shopee-Logo.png */,
-			);
-			path = Logo;
-			sourceTree = "<group>";
-		};
 		318658302F3C6F3F00CAC4AC /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
 				318658312F3C6F3F00CAC4AC /* StoreKit.framework */,
+				31D4CE602F5A921B00476EED /* WidgetKit.framework */,
+				31D4CE622F5A921B00476EED /* SwiftUI.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -189,12 +184,12 @@
 				3182A42C2F3D7C5C0038D096 /* Configuration.storekit */,
 				31FB3D6A2F39967700104C5C /* GoogleService-Info.plist */,
 				3164BEC52F333B6F00DD217B /* box.png */,
-				3164BEB62F33153F00DD217B /* Logo */,
 				31C141412F31EF6700EF85BE /* icon.icon */,
 				31F66E032F309BA90068C3FB /* File */,
 				31F66DDB2F309B9D0068C3FB /* PackageTraker */,
 				31F66DE92F309B9E0068C3FB /* PackageTrakerTests */,
 				31F66DF32F309B9E0068C3FB /* PackageTrakerUITests */,
+				31D4CE642F5A921B00476EED /* PackageTrakerWidget */,
 				318658302F3C6F3F00CAC4AC /* Frameworks */,
 				31F66DDA2F309B9D0068C3FB /* Products */,
 			);
@@ -206,6 +201,7 @@
 				31F66DD92F309B9D0068C3FB /* PackageTraker.app */,
 				31F66DE62F309B9E0068C3FB /* PackageTrakerTests.xctest */,
 				31F66DF02F309B9E0068C3FB /* PackageTrakerUITests.xctest */,
+				31D4CE5F2F5A921B00476EED /* PackageTrakerWidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -213,6 +209,28 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		31D4CE5E2F5A921B00476EED /* PackageTrakerWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 31D4CE742F5A921D00476EED /* Build configuration list for PBXNativeTarget "PackageTrakerWidgetExtension" */;
+			buildPhases = (
+				31D4CE5B2F5A921B00476EED /* Sources */,
+				31D4CE5C2F5A921B00476EED /* Frameworks */,
+				31D4CE5D2F5A921B00476EED /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				31D4CE642F5A921B00476EED /* PackageTrakerWidget */,
+			);
+			name = PackageTrakerWidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = PackageTrakerWidgetExtension;
+			productReference = 31D4CE5F2F5A921B00476EED /* PackageTrakerWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		31F66DD82F309B9D0068C3FB /* PackageTraker */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 31F66DFA2F309B9E0068C3FB /* Build configuration list for PBXNativeTarget "PackageTraker" */;
@@ -221,10 +239,12 @@
 				31F66DD62F309B9D0068C3FB /* Frameworks */,
 				31F66DD72F309B9D0068C3FB /* Resources */,
 				31870D012F4EC6DD003666F3 /* ShellScript */,
+				31D4CE712F5A921D00476EED /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				31D4CE6F2F5A921D00476EED /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				31F66DDB2F309B9D0068C3FB /* PackageTraker */,
@@ -297,9 +317,12 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2620;
+				LastSwiftUpdateCheck = 2630;
 				LastUpgradeCheck = 2620;
 				TargetAttributes = {
+					31D4CE5E2F5A921B00476EED = {
+						CreatedOnToolsVersion = 26.3;
+					};
 					31F66DD82F309B9D0068C3FB = {
 						CreatedOnToolsVersion = 26.2;
 					};
@@ -337,34 +360,25 @@
 				31F66DD82F309B9D0068C3FB /* PackageTraker */,
 				31F66DE52F309B9E0068C3FB /* PackageTrakerTests */,
 				31F66DEF2F309B9E0068C3FB /* PackageTrakerUITests */,
+				31D4CE5E2F5A921B00476EED /* PackageTrakerWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		31D4CE5D2F5A921B00476EED /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		31F66DD72F309B9D0068C3FB /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				3164BEB72F33153F00DD217B /* 7-Eleven-Logo.png in Resources */,
-				3164BEB82F33153F00DD217B /* Shopee-Logo.png in Resources */,
-				314A817A2F34A0C900E3F3C2 /* momo.png in Resources */,
-				314A817B2F34A0C900E3F3C2 /* DHL.png in Resources */,
-				314A817C2F34A0C900E3F3C2 /* FEdex.png in Resources */,
-				314A817D2F34A0C900E3F3C2 /* 中華郵政.png in Resources */,
-				314A817E2F34A0C900E3F3C2 /* 嘉里大榮.png in Resources */,
-				314A817F2F34A0C900E3F3C2 /* 順豐.png in Resources */,
-				314A81802F34A0C900E3F3C2 /* 黑貓.png in Resources */,
-				314A81812F34A0C900E3F3C2 /* Hilife-Logo.png in Resources */,
-				314A81822F34A0C900E3F3C2 /* UPS.png in Resources */,
-				314A81832F34A0C900E3F3C2 /* 關務署.png in Resources */,
 				31FB3D6B2F39967700104C5C /* GoogleService-Info.plist in Resources */,
-				314A81842F34A0C900E3F3C2 /* PcHome.png in Resources */,
-				314A81852F34A0C900E3F3C2 /* 新竹物流.png in Resources */,
-				314A81862F34A0C900E3F3C2 /* 宅配通.png in Resources */,
 				3164BEC62F333B6F00DD217B /* box.png in Resources */,
-				3164BEB92F33153F00DD217B /* Family-Logo.png in Resources */,
-				3164BEBA2F33153F00DD217B /* OKMart-Logo.png in Resources */,
 				31C141422F31EF6700EF85BE /* icon.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -411,6 +425,13 @@
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		31D4CE5B2F5A921B00476EED /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		31F66DD52F309B9D0068C3FB /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -435,6 +456,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		31D4CE6F2F5A921D00476EED /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 31D4CE5E2F5A921B00476EED /* PackageTrakerWidgetExtension */;
+			targetProxy = 31D4CE6E2F5A921D00476EED /* PBXContainerItemProxy */;
+		};
 		31F66DE82F309B9E0068C3FB /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 31F66DD82F309B9D0068C3FB /* PackageTraker */;
@@ -448,6 +474,72 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		31D4CE722F5A921D00476EED /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = PackageTrakerWidget/PackageTrakerWidget.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 260225;
+				DEVELOPMENT_TEAM = 5353WH6FVX;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = PackageTrakerWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = PackageTrakerWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kenny.PackageTraker.PackageTrakerWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		31D4CE732F5A921D00476EED /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = PackageTrakerWidget/PackageTrakerWidget.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 260225;
+				DEVELOPMENT_TEAM = 5353WH6FVX;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = PackageTrakerWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = PackageTrakerWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kenny.PackageTraker.PackageTrakerWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		31F66DF82F309B9E0068C3FB /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -724,6 +816,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		31D4CE742F5A921D00476EED /* Build configuration list for PBXNativeTarget "PackageTrakerWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				31D4CE722F5A921D00476EED /* Debug */,
+				31D4CE732F5A921D00476EED /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		31F66DD42F309B9D0068C3FB /* Build configuration list for PBXProject "PackageTraker" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

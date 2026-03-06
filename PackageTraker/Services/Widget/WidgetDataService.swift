@@ -23,6 +23,43 @@ struct WidgetPackageData: Codable {
     let pickupLocation: String?
     let storeName: String?
     let updatedAt: Date
+    let latestEventTimestamp: Date?
+
+    /// 自定義解碼：讓舊版 JSON（沒有 latestEventTimestamp）也能正常解碼
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        trackingNumber = try c.decode(String.self, forKey: .trackingNumber)
+        carrierRawValue = try c.decode(String.self, forKey: .carrierRawValue)
+        carrierDisplayName = try c.decode(String.self, forKey: .carrierDisplayName)
+        customName = try c.decodeIfPresent(String.self, forKey: .customName)
+        statusRawValue = try c.decode(String.self, forKey: .statusRawValue)
+        statusDisplayName = try c.decode(String.self, forKey: .statusDisplayName)
+        latestDescription = try c.decodeIfPresent(String.self, forKey: .latestDescription)
+        pickupLocation = try c.decodeIfPresent(String.self, forKey: .pickupLocation)
+        storeName = try c.decodeIfPresent(String.self, forKey: .storeName)
+        updatedAt = try c.decode(Date.self, forKey: .updatedAt)
+        latestEventTimestamp = try c.decodeIfPresent(Date.self, forKey: .latestEventTimestamp)
+    }
+
+    /// 主 App 寫入用
+    init(id: String, trackingNumber: String, carrierRawValue: String, carrierDisplayName: String,
+         customName: String?, statusRawValue: String, statusDisplayName: String,
+         latestDescription: String?, pickupLocation: String?, storeName: String?,
+         updatedAt: Date, latestEventTimestamp: Date?) {
+        self.id = id
+        self.trackingNumber = trackingNumber
+        self.carrierRawValue = carrierRawValue
+        self.carrierDisplayName = carrierDisplayName
+        self.customName = customName
+        self.statusRawValue = statusRawValue
+        self.statusDisplayName = statusDisplayName
+        self.latestDescription = latestDescription
+        self.pickupLocation = pickupLocation
+        self.storeName = storeName
+        self.updatedAt = updatedAt
+        self.latestEventTimestamp = latestEventTimestamp
+    }
 }
 
 /// Widget 資料服務 — 寫入共享 UserDefaults
@@ -45,7 +82,6 @@ class WidgetDataService {
         let activePackages = packages
             .filter { !$0.isArchived }
             .sorted(by: { $0.lastUpdated > $1.lastUpdated })
-            .prefix(5)
 
         let widgetData = activePackages.map { pkg in
             WidgetPackageData(
@@ -59,18 +95,21 @@ class WidgetDataService {
                 latestDescription: pkg.latestDescription,
                 pickupLocation: pkg.userPickupLocation ?? pkg.pickupLocation,
                 storeName: pkg.storeName,
-                updatedAt: pkg.lastUpdated
+                updatedAt: pkg.lastUpdated,
+                latestEventTimestamp: pkg.latestEventTimestamp
             )
         }
 
         if let encoded = try? JSONEncoder().encode(Array(widgetData)) {
             defaults.set(encoded, forKey: dataKey)
+            defaults.synchronize()
         }
     }
 
     /// 更新訂閱層級（讓 Widget 知道是否為 Pro）
     func updateSubscriptionTier(_ tier: SubscriptionTier) {
         sharedDefaults?.set(tier.rawValue, forKey: tierKey)
+        sharedDefaults?.synchronize()
     }
 
     /// 讀取 Widget 資料（從 Widget Extension 呼叫）

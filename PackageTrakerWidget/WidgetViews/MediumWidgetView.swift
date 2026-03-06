@@ -12,13 +12,14 @@ struct MediumWidgetView: View {
     let entry: PackageTimelineEntry
 
     var body: some View {
-        if entry.packages.isEmpty {
-            emptyContent
-        } else if !entry.isPro && FeatureFlags.subscriptionEnabled {
-            proUpgradeContent
-        } else {
-            packageList
+        Group {
+            if entry.packages.isEmpty {
+                emptyContent
+            } else {
+                packageList
+            }
         }
+        .padding(12)
     }
 
     // MARK: - Package List
@@ -56,11 +57,12 @@ struct MediumWidgetView: View {
     }
 
     private func packageRow(_ package: WidgetPackageItem) -> some View {
-        HStack(spacing: 10) {
+        HStack(alignment: .top, spacing: 10) {
             // 狀態指示點
             Circle()
                 .fill(statusColor(package.statusColor))
                 .frame(width: 8, height: 8)
+                .padding(.top, 3)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(package.displayName)
@@ -72,6 +74,13 @@ struct MediumWidgetView: View {
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
+
+                if let desc = package.latestDescription, !desc.isEmpty {
+                    Text(desc)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
             }
 
             Spacer()
@@ -106,36 +115,6 @@ struct MediumWidgetView: View {
         .frame(maxHeight: .infinity)
     }
 
-    // MARK: - Pro Upgrade
-
-    private var proUpgradeContent: some View {
-        VStack(spacing: 8) {
-            // 還是顯示第一個包裹
-            if let package = entry.packages.first {
-                Link(destination: package.deepLinkURL) {
-                    packageRow(package)
-                }
-            }
-
-            Divider()
-
-            HStack {
-                Image(systemName: "crown.fill")
-                    .font(.caption)
-                    .foregroundStyle(.yellow)
-
-                Text(String(localized: "widget.upgradePro"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                Spacer()
-            }
-            .padding(.top, 2)
-
-            Spacer(minLength: 0)
-        }
-    }
-
     // MARK: - Helpers
 
     private func statusColor(_ color: WidgetStatusColor) -> Color {
@@ -150,9 +129,3 @@ struct MediumWidgetView: View {
     }
 }
 
-// MARK: - Feature Flags (Widget side)
-
-/// Widget 側的 FeatureFlags（與主 App 保持一致）
-enum FeatureFlags {
-    static let subscriptionEnabled = true
-}

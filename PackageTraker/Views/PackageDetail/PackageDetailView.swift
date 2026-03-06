@@ -382,6 +382,8 @@ struct PackageDetailView: View {
         // 從 Firestore 刪除
         FirebaseSyncService.shared.deletePackage(packageId)
         // 更新 Widget
+        let remainingPackages = (try? modelContext.fetch(FetchDescriptor<Package>())) ?? []
+        WidgetDataService.shared.updateWidgetData(packages: remainingPackages)
         WidgetCenter.shared.reloadAllTimelines()
         dismiss()
     }

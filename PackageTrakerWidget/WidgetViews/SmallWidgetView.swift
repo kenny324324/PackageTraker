@@ -2,7 +2,7 @@
 //  SmallWidgetView.swift
 //  PackageTrakerWidget
 //
-//  Small widget: shows 1 package with status
+//  Small widget: shows 1 package with carrier logo, status badge, and latest event
 //
 
 import SwiftUI
@@ -12,56 +12,76 @@ struct SmallWidgetView: View {
     let entry: PackageTimelineEntry
 
     var body: some View {
-        if let package = entry.packages.first {
-            packageContent(package)
-        } else {
-            emptyContent
+        Group {
+            if let package = entry.packages.first {
+                packageContent(package)
+            } else {
+                emptyContent
+            }
         }
+        .padding(12)
     }
 
     // MARK: - Package Content
 
     private func packageContent(_ package: WidgetPackageItem) -> some View {
         Link(destination: package.deepLinkURL) {
-            VStack(alignment: .leading, spacing: 8) {
-                // 物流商 + 狀態
-                HStack {
-                    Image(systemName: "shippingbox.fill")
-                        .font(.caption)
-                        .foregroundStyle(statusColor(package.statusColor))
-
-                    Text(package.carrierName)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
+            VStack(spacing: 0) {
+                // 頂部：通路 Logo (左) + 狀態膠囊 (右)
+                HStack(alignment: .top) {
+                    // 通路 Logo（圓形）
+                    if let logoName = package.carrierLogoName {
+                        Image(logoName)
+                            .resizable()
+                            .widgetAccentedRenderingMode(.fullColor)
+                            .scaledToFit()
+                            .frame(width: 28, height: 28)
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(Color.primary.opacity(0.1), lineWidth: 0.5))
+                    } else {
+                        Image(systemName: "shippingbox.fill")
+                            .font(.system(size: 14))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 28, height: 28)
+                            .background(Color.primary.opacity(0.1))
+                            .clipShape(Circle())
+                    }
 
                     Spacer()
+
+                    // 狀態膠囊：0.1 背景色 + 該顏色文字
+                    Text(package.statusName)
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        .foregroundStyle(statusColor(package.statusColor))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(statusColor(package.statusColor).opacity(0.1))
+                        .clipShape(Capsule())
                 }
 
-                // 包裹名稱
+                Spacer(minLength: 4)
+
+                // 中間：商品名稱（最多兩行，靠左）
                 Text(package.displayName)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
+                    .font(.system(size: 17, weight: .bold, design: .rounded))
                     .lineLimit(2)
+                    .minimumScaleFactor(0.8)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
-                Spacer()
+                Spacer(minLength: 4)
 
-                // 狀態 badge
-                Text(package.statusName)
-                    .font(.caption2)
-                    .fontWeight(.medium)
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(statusColor(package.statusColor))
-                    .clipShape(Capsule())
-
-                // 最新動態
+                // 底部：當前狀態描述區塊
                 if let desc = package.latestDescription {
                     Text(desc)
-                        .font(.caption2)
+                        .font(.system(size: 12, weight: .semibold, design: .rounded))
                         .foregroundStyle(.secondary)
-                        .lineLimit(1)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 8)
+                        .background(Color.primary.opacity(0.1), in: RoundedRectangle(cornerRadius: 14))
                 }
             }
         }
@@ -76,7 +96,7 @@ struct SmallWidgetView: View {
                 .foregroundStyle(.secondary)
 
             Text(String(localized: "widget.empty"))
-                .font(.caption)
+                .font(.system(size: 13, design: .rounded))
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
         }

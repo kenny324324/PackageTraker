@@ -12,11 +12,14 @@ struct LargeWidgetView: View {
     let entry: PackageTimelineEntry
 
     var body: some View {
-        if entry.packages.isEmpty {
-            emptyContent
-        } else {
-            packageList
+        Group {
+            if entry.packages.isEmpty {
+                emptyContent
+            } else {
+                packageList
+            }
         }
+        .padding(12)
     }
 
     // MARK: - Package List
@@ -50,13 +53,6 @@ struct LargeWidgetView: View {
             }
 
             Spacer(minLength: 0)
-
-            // 免費用戶 Pro 提示
-            if !entry.isPro && FeatureFlags.subscriptionEnabled {
-                Divider()
-                    .padding(.vertical, 4)
-                proUpgradeHint
-            }
         }
     }
 
@@ -136,21 +132,7 @@ struct LargeWidgetView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    // MARK: - Pro Upgrade Hint
 
-    private var proUpgradeHint: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "crown.fill")
-                .font(.caption2)
-                .foregroundStyle(.yellow)
-
-            Text(String(localized: "widget.upgradePro"))
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-
-            Spacer()
-        }
-    }
 
     // MARK: - Helpers
 

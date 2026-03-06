@@ -98,6 +98,9 @@ class SubscriptionManager: ObservableObject {
         // 讀取產品 ID 快取
         currentProductID = UserDefaults.standard.string(forKey: "subscriptionProductID")
 
+        // 確保 App Group 也有正確的訂閱狀態（Widget 需要讀取）
+        WidgetDataService.shared.updateSubscriptionTier(currentTier)
+
         // 啟動交易監聽
         transactionListener = listenForTransactions()
 
@@ -284,6 +287,8 @@ class SubscriptionManager: ObservableObject {
     /// 本地快取
     private func persistTier(_ tier: SubscriptionTier) {
         UserDefaults.standard.set(tier.rawValue, forKey: "subscriptionTier")
+        // 同步到 Widget App Group（確保 Widget 能讀到正確訂閱狀態）
+        WidgetDataService.shared.updateSubscriptionTier(tier)
     }
 
     /// 本地快取產品 ID
