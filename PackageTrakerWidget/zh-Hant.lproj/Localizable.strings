@@ -15,3 +15,9 @@
 "widget.config.description" = "選擇要在小工具上顯示的包裹";
 "widget.config.package" = "包裹";
 "widget.config.latestAdded" = "最新加入";
+"widget.config.displayMode" = "顯示方式";
+"widget.config.mode.automatic" = "依照新增順序";
+"widget.config.mode.manual" = "手動選擇";
+"widget.config.package1" = "包裹 1";
+"widget.config.package2" = "包裹 2";
+"widget.config.package3" = "包裹 3";

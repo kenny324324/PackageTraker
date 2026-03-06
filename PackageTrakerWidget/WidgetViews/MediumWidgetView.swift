@@ -2,7 +2,7 @@
 //  MediumWidgetView.swift
 //  PackageTrakerWidget
 //
-//  Medium widget: shows 2-3 packages in a list
+//  Medium widget: shows up to 2 packages in list style
 //
 
 import SwiftUI
@@ -25,70 +25,67 @@ struct MediumWidgetView: View {
     // MARK: - Package List
 
     private var packageList: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // 標題列
-            HStack {
-                Image(systemName: "shippingbox.fill")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
-                Text(String(localized: "widget.title"))
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                Spacer()
-                Text("\(entry.packages.count)")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-            }
-            .padding(.bottom, 6)
-
-            // 包裹列表（最多 3 個）
-            ForEach(Array(entry.packages.prefix(3).enumerated()), id: \.element.id) { index, package in
+        VStack(spacing: 0) {
+            ForEach(Array(entry.packages.prefix(2).enumerated()), id: \.offset) { index, package in
                 if index > 0 {
                     Divider()
-                        .padding(.vertical, 2)
+                        .padding(.vertical, 6)
                 }
                 Link(destination: package.deepLinkURL) {
                     packageRow(package)
                 }
             }
-
             Spacer(minLength: 0)
         }
     }
 
     private func packageRow(_ package: WidgetPackageItem) -> some View {
-        HStack(alignment: .top, spacing: 10) {
-            // 狀態指示點
-            Circle()
-                .fill(statusColor(package.statusColor))
-                .frame(width: 8, height: 8)
-                .padding(.top, 3)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(package.displayName)
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .lineLimit(1)
-
-                Text(package.carrierName)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-
-                if let desc = package.latestDescription, !desc.isEmpty {
-                    Text(desc)
-                        .font(.caption2)
+        VStack(alignment: .leading, spacing: 6) {
+            // Row 1: Logo + Name + Status capsule
+            HStack(alignment: .center, spacing: 8) {
+                if let logoName = package.carrierLogoName {
+                    Image(logoName)
+                        .resizable()
+                        .widgetAccentedRenderingMode(.fullColor)
+                        .scaledToFit()
+                        .frame(width: 28, height: 28)
+                        .clipShape(Circle())
+                        .overlay(Circle().stroke(Color.primary.opacity(0.1), lineWidth: 0.5))
+                } else {
+                    Image(systemName: "shippingbox.fill")
+                        .font(.system(size: 14))
                         .foregroundStyle(.secondary)
-                        .lineLimit(1)
+                        .frame(width: 28, height: 28)
+                        .background(Color.primary.opacity(0.1))
+                        .clipShape(Circle())
                 }
+
+                Text(package.displayName)
+                    .font(.system(size: 17, weight: .bold, design: .rounded))
+                    .lineLimit(1)
+
+                Spacer()
+
+                Text(package.statusName)
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .foregroundStyle(statusColor(package.statusColor))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(statusColor(package.statusColor).opacity(0.1))
+                    .clipShape(Capsule())
             }
 
-            Spacer()
-
-            Text(package.statusName)
-                .font(.caption2)
-                .fontWeight(.medium)
-                .foregroundStyle(statusColor(package.statusColor))
+            // Row 2: Latest description in gray rounded rect
+            if let desc = package.latestDescription, !desc.isEmpty {
+                Text(desc)
+                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 8)
+                    .background(Color.primary.opacity(0.1), in: RoundedRectangle(cornerRadius: 14))
+            }
         }
     }
 
@@ -128,4 +125,3 @@ struct MediumWidgetView: View {
         }
     }
 }
-

@@ -2,7 +2,7 @@
 //  LargeWidgetView.swift
 //  PackageTrakerWidget
 //
-//  Large widget: shows 4-5 packages with latest event details
+//  Large widget: shows up to 4 packages in list style
 //
 
 import SwiftUI
@@ -25,89 +25,66 @@ struct LargeWidgetView: View {
     // MARK: - Package List
 
     private var packageList: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // 標題列
-            HStack {
-                Image(systemName: "shippingbox.fill")
-                    .font(.subheadline)
-                    .foregroundStyle(.orange)
-                Text(String(localized: "widget.title"))
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                Spacer()
-                Text(String(localized: "widget.count\(entry.packages.count)"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            .padding(.bottom, 8)
-
-            // 包裹列表（最多 5 個）
-            ForEach(Array(entry.packages.prefix(5).enumerated()), id: \.element.id) { index, package in
+        VStack(spacing: 0) {
+            ForEach(Array(entry.packages.prefix(3).enumerated()), id: \.offset) { index, package in
                 if index > 0 {
                     Divider()
-                        .padding(.vertical, 4)
+                        .padding(.vertical, 6)
                 }
                 Link(destination: package.deepLinkURL) {
-                    packageDetailRow(package)
+                    packageRow(package)
                 }
             }
-
             Spacer(minLength: 0)
         }
     }
 
-    private func packageDetailRow(_ package: WidgetPackageItem) -> some View {
-        HStack(alignment: .top, spacing: 10) {
-            // 狀態指示圓點
-            Circle()
-                .fill(statusColor(package.statusColor))
-                .frame(width: 10, height: 10)
-                .padding(.top, 4)
-
-            VStack(alignment: .leading, spacing: 3) {
-                // 包裹名稱 + 物流商
-                HStack {
-                    Text(package.displayName)
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .lineLimit(1)
-
-                    Spacer()
-
-                    Text(package.statusName)
-                        .font(.caption2)
-                        .fontWeight(.medium)
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(statusColor(package.statusColor))
-                        .clipShape(Capsule())
-                }
-
-                // 物流商
-                Text(package.carrierName)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-
-                // 最新動態
-                if let desc = package.latestDescription {
-                    Text(desc)
-                        .font(.caption2)
+    private func packageRow(_ package: WidgetPackageItem) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            // Row 1: Logo + Name + Status capsule
+            HStack(alignment: .center, spacing: 8) {
+                if let logoName = package.carrierLogoName {
+                    Image(logoName)
+                        .resizable()
+                        .widgetAccentedRenderingMode(.fullColor)
+                        .scaledToFit()
+                        .frame(width: 28, height: 28)
+                        .clipShape(Circle())
+                        .overlay(Circle().stroke(Color.primary.opacity(0.1), lineWidth: 0.5))
+                } else {
+                    Image(systemName: "shippingbox.fill")
+                        .font(.system(size: 14))
                         .foregroundStyle(.secondary)
-                        .lineLimit(1)
+                        .frame(width: 28, height: 28)
+                        .background(Color.primary.opacity(0.1))
+                        .clipShape(Circle())
                 }
 
-                // 取貨地點
-                if let location = package.pickupLocation {
-                    HStack(spacing: 4) {
-                        Image(systemName: "mappin.circle.fill")
-                            .font(.caption2)
-                        Text(location)
-                            .font(.caption2)
-                    }
-                    .foregroundStyle(.orange)
+                Text(package.displayName)
+                    .font(.system(size: 17, weight: .bold, design: .rounded))
                     .lineLimit(1)
-                }
+
+                Spacer()
+
+                Text(package.statusName)
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .foregroundStyle(statusColor(package.statusColor))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(statusColor(package.statusColor).opacity(0.1))
+                    .clipShape(Capsule())
+            }
+
+            // Row 2: Latest description in gray rounded rect
+            if let desc = package.latestDescription, !desc.isEmpty {
+                Text(desc)
+                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 8)
+                    .background(Color.primary.opacity(0.1), in: RoundedRectangle(cornerRadius: 14))
             }
         }
     }
@@ -131,8 +108,6 @@ struct LargeWidgetView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
-
-
 
     // MARK: - Helpers
 

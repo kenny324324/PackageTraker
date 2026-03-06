@@ -270,28 +270,20 @@ struct ProPackageTimelineProvider: AppIntentTimelineProvider {
 
         let proItems: [WidgetPackageItem]
         if isPro {
-            if let selected = configuration.selectedPackage {
-                if selected.id == "__latest_added__" {
-                    // 「最新加入」：顯示最新的一筆未取件包裹
-                    if let latest = rawData.first(where: { $0.statusRawValue != "delivered" }) {
-                        proItems = [WidgetPackageItem.from(latest)]
-                    } else {
-                        proItems = []
-                    }
-                } else if let found = rawData.first(where: { $0.id == selected.id }) {
-                    // 使用者選了特定包裹
-                    proItems = [WidgetPackageItem.from(found)]
-                } else {
-                    // 選的包裹已不存在，回到預設（最新未取件包裹）
-                    if let fallback = rawData.first(where: { $0.statusRawValue != "delivered" }) {
-                        proItems = [WidgetPackageItem.from(fallback)]
-                    } else {
-                        proItems = []
-                    }
+            if configuration.displayMode == .manual {
+                // 手動選擇：依序取 package1/2/3，跳過重複
+                var seenIds = Set<String>()
+                let selectedIds = [configuration.package1, configuration.package2, configuration.package3]
+                    .compactMap { $0?.id }
+                proItems = selectedIds.compactMap { id -> WidgetPackageItem? in
+                    guard seenIds.insert(id).inserted else { return nil }
+                    return rawData.first(where: { $0.id == id })
+                        .map { WidgetPackageItem.from($0) }
                 }
             } else {
-                // 未選擇 = 預設顯示最新加入的包裹
-                proItems = Array(rawData.prefix(5).map { WidgetPackageItem.from($0) })
+                // 依照新增順序：取最新的未取貨包裹
+                let active = rawData.filter { $0.statusRawValue != "delivered" }
+                proItems = active.prefix(3).map { WidgetPackageItem.from($0) }
             }
         } else {
             proItems = []

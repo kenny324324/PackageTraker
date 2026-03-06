@@ -15,3 +15,9 @@
 "widget.config.description" = "Choose a package to display";
 "widget.config.package" = "Package";
 "widget.config.latestAdded" = "Latest Added";
+"widget.config.displayMode" = "Display Mode";
+"widget.config.mode.automatic" = "By Recency";
+"widget.config.mode.manual" = "Manual Selection";
+"widget.config.package1" = "Package 1";
+"widget.config.package2" = "Package 2";
+"widget.config.package3" = "Package 3";
