@@ -43,6 +43,12 @@ struct DeveloperOptionsView: View {
 
             // MARK: - Mock 資料
             Section {
+                Button {
+                    seedScreenshotData()
+                } label: {
+                    Label("一鍵產生截圖資料", systemImage: "photo.stack.fill")
+                }
+
                 // 選擇狀態新增測試包裹
                 Menu {
                     Button {
@@ -250,6 +256,7 @@ struct DeveloperOptionsView: View {
         let descriptor = FetchDescriptor<Package>(
             predicate: #Predicate<Package> { package in
                 package.trackingNumber.starts(with: "MOCK") ||
+                package.trackingNumber.starts(with: "SHOT") ||
                 package.trackingNumber.starts(with: "TEST")
             }
         )
@@ -266,6 +273,145 @@ struct DeveloperOptionsView: View {
             print("[Debug] 已清除 \(count) 個測試包裹")
         } catch {
             print("[Debug] 清除測試包裹失敗: \(error)")
+        }
+    }
+
+    /// 一鍵產生可用於 App Store 截圖的假資料（含時間軸）
+    private func seedScreenshotData() {
+        clearMockData()
+
+        let now = Date()
+
+        // 1) 已到店（含完整時間軸）
+        let packageA = Package(
+            trackingNumber: "SHOT711000001",
+            carrier: .sevenEleven,
+            customName: "蝦皮藍牙耳機",
+            pickupCode: "6-5-29-14",
+            pickupLocation: "7-11 景安門市",
+            status: .arrivedAtStore,
+            lastUpdated: now.addingTimeInterval(-15 * 60),
+            latestDescription: "包裹已到店，請於期限內取件",
+            storeName: "7-11 景安門市",
+            pickupDeadline: "03/12 23:59"
+        )
+
+        let timelineA: [TrackingEvent] = [
+            TrackingEvent(
+                timestamp: now.addingTimeInterval(-15 * 60),
+                status: .arrivedAtStore,
+                description: "[景安門市] 包裹已到店，可前往取件",
+                location: "新北市中和區"
+            ),
+            TrackingEvent(
+                timestamp: now.addingTimeInterval(-2 * 60 * 60),
+                status: .inTransit,
+                description: "包裹配送中，前往取件門市",
+                location: "新北市中和區"
+            ),
+            TrackingEvent(
+                timestamp: now.addingTimeInterval(-6 * 60 * 60),
+                status: .shipped,
+                description: "賣家已寄件，等待物流收件",
+                location: "台北市"
+            ),
+            TrackingEvent(
+                timestamp: now.addingTimeInterval(-18 * 60 * 60),
+                status: .pending,
+                description: "訂單已成立",
+                location: nil
+            ),
+        ]
+        timelineA.forEach { $0.package = packageA }
+        packageA.events = timelineA
+
+        // 2) 已到店
+        let packageB = Package(
+            trackingNumber: "SHOTFM000002",
+            carrier: .familyMart,
+            customName: "momo 行動電源",
+            pickupCode: "35415",
+            pickupLocation: "全家 中和店",
+            status: .arrivedAtStore,
+            lastUpdated: now.addingTimeInterval(-40 * 60),
+            latestDescription: "已到店 全家-中和店",
+            storeName: "全家 中和店",
+            pickupDeadline: "03/13 23:59"
+        )
+
+        // 3) 配送中
+        let packageC = Package(
+            trackingNumber: "SHOTTCAT00003",
+            carrier: .tcat,
+            customName: "PChome 機械鍵盤",
+            pickupLocation: "宅配到府",
+            status: .inTransit,
+            lastUpdated: now.addingTimeInterval(-90 * 60),
+            latestDescription: "包裹已從台北轉運中心發出"
+        )
+
+        // 4) 已出貨
+        let packageD = Package(
+            trackingNumber: "SHOTHCT000004",
+            carrier: .hct,
+            customName: "博客來新書",
+            pickupLocation: "宅配到府",
+            status: .shipped,
+            lastUpdated: now.addingTimeInterval(-3 * 60 * 60),
+            latestDescription: "貨件已收件，準備配送"
+        )
+
+        // 5) 待出貨
+        let packageE = Package(
+            trackingNumber: "SHOTMOMO00005",
+            carrier: .momo,
+            customName: "momo 折疊桌",
+            status: .pending,
+            lastUpdated: now.addingTimeInterval(-5 * 60 * 60),
+            latestDescription: "訂單處理中"
+        )
+
+        // 6) 國際配送中
+        let packageF = Package(
+            trackingNumber: "SHOTDHL000006",
+            carrier: .dhl,
+            customName: "Amazon 轉接器",
+            pickupLocation: "宅配到府",
+            status: .inTransit,
+            lastUpdated: now.addingTimeInterval(-7 * 60 * 60),
+            latestDescription: "Shipment in transit - Hong Kong"
+        )
+
+        // 7) 歷史：已取貨（可拍歷史頁）
+        let historyA = Package(
+            trackingNumber: "SHOTDONE00007",
+            carrier: .sevenEleven,
+            customName: "蝦皮手機殼",
+            status: .delivered,
+            lastUpdated: now.addingTimeInterval(-2 * 24 * 60 * 60),
+            isArchived: true,
+            latestDescription: "買家取件成功"
+        )
+
+        // 8) 歷史：已取貨
+        let historyB = Package(
+            trackingNumber: "SHOTDONE00008",
+            carrier: .fedex,
+            customName: "Apple Watch 錶帶",
+            status: .delivered,
+            lastUpdated: now.addingTimeInterval(-8 * 24 * 60 * 60),
+            isArchived: true,
+            latestDescription: "Delivered"
+        )
+
+        let allPackages = [packageA, packageB, packageC, packageD, packageE, packageF, historyA, historyB]
+        allPackages.forEach { modelContext.insert($0) }
+
+        do {
+            try modelContext.save()
+            print("[Debug] 已建立 \(allPackages.count) 筆截圖資料")
+        } catch {
+            print("[Debug] 建立截圖資料失敗: \(error)")
         }
     }
 

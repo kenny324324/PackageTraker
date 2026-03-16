@@ -238,8 +238,8 @@
 				31F66DD52F309B9D0068C3FB /* Sources */,
 				31F66DD62F309B9D0068C3FB /* Frameworks */,
 				31F66DD72F309B9D0068C3FB /* Resources */,
-				31870D012F4EC6DD003666F3 /* ShellScript */,
 				31D4CE712F5A921D00476EED /* Embed Foundation Extensions */,
+				31870D012F4EC6DD003666F3 /* ShellScript */,
 			);
 			buildRules = (
 			);
@@ -417,6 +417,7 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
+				"$(DERIVED_FILE_DIR)/firebase-crashlytics-upload",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -482,7 +483,7 @@
 				CODE_SIGN_ENTITLEMENTS = PackageTrakerWidget/PackageTrakerWidget.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 260225;
+				CURRENT_PROJECT_VERSION = 250316;
 				DEVELOPMENT_TEAM = 5353WH6FVX;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = PackageTrakerWidget/Info.plist;
@@ -493,7 +494,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kenny.PackageTraker.PackageTrakerWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -515,7 +516,7 @@
 				CODE_SIGN_ENTITLEMENTS = PackageTrakerWidget/PackageTrakerWidget.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 260225;
+				CURRENT_PROJECT_VERSION = 250316;
 				DEVELOPMENT_TEAM = 5353WH6FVX;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = PackageTrakerWidget/Info.plist;
@@ -526,7 +527,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kenny.PackageTraker.PackageTrakerWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -669,7 +670,7 @@
 				CODE_SIGN_ENTITLEMENTS = PackageTraker/PackageTraker.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 260225;
+				CURRENT_PROJECT_VERSION = 250316;
 				DEVELOPMENT_TEAM = 5353WH6FVX;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -681,7 +682,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kenny.PackageTraker;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -703,7 +704,7 @@
 				CODE_SIGN_ENTITLEMENTS = PackageTraker/PackageTraker.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 260225;
+				CURRENT_PROJECT_VERSION = 250316;
 				DEVELOPMENT_TEAM = 5353WH6FVX;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -715,7 +716,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kenny.PackageTraker;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -734,11 +735,11 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 260225;
+				CURRENT_PROJECT_VERSION = 250316;
 				DEVELOPMENT_TEAM = 5353WH6FVX;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kenny.PackageTrakerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
@@ -756,11 +757,11 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 260225;
+				CURRENT_PROJECT_VERSION = 250316;
 				DEVELOPMENT_TEAM = 5353WH6FVX;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kenny.PackageTrakerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
@@ -777,10 +778,10 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 260225;
+				CURRENT_PROJECT_VERSION = 250316;
 				DEVELOPMENT_TEAM = 5353WH6FVX;
 				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kenny.PackageTrakerUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
@@ -797,10 +798,10 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 260225;
+				CURRENT_PROJECT_VERSION = 250316;
 				DEVELOPMENT_TEAM = 5353WH6FVX;
 				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kenny.PackageTrakerUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;

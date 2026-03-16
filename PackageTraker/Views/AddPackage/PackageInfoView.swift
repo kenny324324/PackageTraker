@@ -311,6 +311,10 @@ struct PackageInfoView: View {
         WidgetDataService.shared.updateWidgetData(packages: existingPackages + [package])
         WidgetCenter.shared.reloadAllTimelines()
 
+        // 評分提示（爽點：成功新增包裹）
+        ReviewPromptService.recordPackageAdded()
+        ReviewPromptService.requestReviewIfAppropriate()
+
         onComplete()
     }
 

@@ -193,6 +193,11 @@ final class PackageRefreshService {
 
     /// 將 API 追蹤結果寫入 Package model
     private func applyTrackingResult(_ result: TrackingResult, to package: Package) {
+        // 評分提示（爽點：包裹到店）
+        if result.currentStatus == .arrivedAtStore && package.status != .arrivedAtStore {
+            ReviewPromptService.requestReviewIfAppropriate()
+        }
+
         package.status = result.currentStatus
         package.lastUpdated = Date()
 
