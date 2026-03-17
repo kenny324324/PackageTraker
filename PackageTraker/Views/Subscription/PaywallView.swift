@@ -8,6 +8,22 @@
 import SwiftUI
 import StoreKit
 
+// MARK: - Equal Size PreferenceKeys
+
+private struct CardWidthKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
+private struct CardHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
 /// 付費牆
 struct PaywallView: View {
     /// 僅顯示終身方案（用於訂閱制用戶次數用完時升級）
@@ -22,6 +38,8 @@ struct PaywallView: View {
     @State private var isRestoring = false
     @State private var isTrialEligible = true
     @State private var safariURL: IdentifiableURL?
+    @State private var cardWidth: CGFloat = 0
+    @State private var cardHeight: CGFloat = 0
 
     var body: some View {
         NavigationStack {
@@ -250,6 +268,8 @@ struct PaywallView: View {
             }
             .padding(.horizontal, 20)
         }
+        .onPreferenceChange(CardWidthKey.self) { cardWidth = $0 }
+        .onPreferenceChange(CardHeightKey.self) { cardHeight = $0 }
     }
     
     // MARK: - Lifetime Card
@@ -307,9 +327,18 @@ struct PaywallView: View {
                     .font(.title3)
                     .fontWeight(.bold)
                     .foregroundStyle(.black)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
             }
-            .frame(width: 140)
             .padding(14)
+            .background(GeometryReader { geo in
+                Color.clear
+                    .preference(key: CardWidthKey.self, value: geo.size.width)
+                    .preference(key: CardHeightKey.self, value: geo.size.height)
+            })
+            .frame(width: cardWidth > 0 ? cardWidth : nil,
+                   height: cardHeight > 0 ? cardHeight : nil,
+                   alignment: .top)
             .background(
                 LinearGradient(
                     colors: [Color(hex: "FFD700"), Color(hex: "FFA500")],
@@ -396,16 +425,26 @@ struct PaywallView: View {
                         .font(.title3)
                         .fontWeight(.bold)
                         .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
 
                     Text("/ \(title.lowercased())")
                         .font(.system(size: 10))
                         .foregroundStyle(.secondary)
+                        .layoutPriority(-1)
 
                     Spacer()
                 }
             }
-            .frame(width: 140)
             .padding(14)
+            .background(GeometryReader { geo in
+                Color.clear
+                    .preference(key: CardWidthKey.self, value: geo.size.width)
+                    .preference(key: CardHeightKey.self, value: geo.size.height)
+            })
+            .frame(width: cardWidth > 0 ? cardWidth : nil,
+                   height: cardHeight > 0 ? cardHeight : nil,
+                   alignment: .top)
             .background(Color.secondaryCardBackground)
             .clipShape(RoundedRectangle(cornerRadius: 20))
             .overlay(
