@@ -68,7 +68,7 @@ struct PackageListView: View {
             .adaptiveGradientBackground()
             .navigationTitle(String(localized: "home.title"))
             .toolbarTitleDisplayMode(.inlineLarge)
-            .toolbarBackground(.hidden, for: .navigationBar)
+            .adaptiveNavigationStyle()
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     addButton

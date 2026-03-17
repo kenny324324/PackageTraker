@@ -138,7 +138,7 @@ extension View {
         }
     }
 
-    /// 導航欄樣式 - 移除背景讓系統 Liquid Glass 生效
+    /// 導航欄樣式 - iOS 26 移除背景讓 Liquid Glass 生效，iOS 18 保留系統預設
     @ViewBuilder
     func adaptiveNavigationStyle() -> some View {
         if #available(iOS 26, *) {
@@ -146,7 +146,6 @@ extension View {
                 .toolbarBackground(.hidden, for: .navigationBar)
         } else {
             self
-                .toolbarBackground(.hidden, for: .navigationBar)
         }
     }
 
@@ -183,7 +182,7 @@ extension View {
             }
         } else {
             self
-                .background(tint?.opacity(0.15) ?? Color.cardBackground)
+                .background(tint ?? Color.secondaryCardBackground)
                 .clipShape(Circle())
         }
     }
@@ -199,7 +198,7 @@ extension View {
             }
         } else {
             self
-                .background(tint?.opacity(0.15) ?? Color.cardBackground)
+                .background(tint ?? Color.secondaryCardBackground)
                 .clipShape(Capsule())
         }
     }

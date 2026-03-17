@@ -81,25 +81,14 @@ struct AccountDetailView: View {
                             .frame(maxWidth: .infinity)
                             .glassEffect(.regular.tint(.red), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
                     } else {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 20)
-                                .fill(.ultraThinMaterial)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 20)
-                                        .stroke(Color.red.opacity(0.3), lineWidth: 1)
-                                )
-                                .background(
-                                    RoundedRectangle(cornerRadius: 20)
-                                        .fill(Color.red.opacity(0.08))
-                                )
-
-                            Text(String(localized: "settings.signOut"))
-                                .font(.title3)
-                                .fontWeight(.semibold)
-                                .foregroundStyle(Color.white)
-                        }
-                        .frame(height: 54)
-                        .frame(maxWidth: .infinity)
+                        Text(String(localized: "settings.signOut"))
+                            .font(.title3)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(Color.white)
+                            .frame(height: 54)
+                            .frame(maxWidth: .infinity)
+                            .background(Color.red)
+                            .clipShape(RoundedRectangle(cornerRadius: 20))
                     }
                 }
                 .padding(.horizontal)

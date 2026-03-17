@@ -67,7 +67,13 @@ struct ThemeSettingsView: View {
                 }
             }
         }
-        .background(.ultraThinMaterial)
+        .background {
+            if #available(iOS 26, *) {
+                RoundedRectangle(cornerRadius: 16).fill(.ultraThinMaterial)
+            } else {
+                RoundedRectangle(cornerRadius: 16).fill(Color.cardBackground)
+            }
+        }
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 

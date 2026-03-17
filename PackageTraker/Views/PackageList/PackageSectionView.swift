@@ -82,7 +82,13 @@ struct PackageSectionView: View {
                         .foregroundStyle(.white)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
-                        .background(.ultraThinMaterial)
+                        .background {
+                            if #available(iOS 26, *) {
+                                Capsule().fill(.ultraThinMaterial)
+                            } else {
+                                Capsule().fill(Color.secondaryCardBackground)
+                            }
+                        }
                         .clipShape(Capsule())
                 }
             }

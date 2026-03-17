@@ -82,7 +82,13 @@ struct RefreshPillView: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
-        .background(.ultraThinMaterial)
+        .background {
+            if #available(iOS 26, *) {
+                Capsule().fill(.ultraThinMaterial)
+            } else {
+                Capsule().fill(Color.secondaryCardBackground)
+            }
+        }
         .clipShape(Capsule())
     }
 }

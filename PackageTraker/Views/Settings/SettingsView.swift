@@ -192,6 +192,7 @@ struct SettingsView: View {
                 FirebaseSyncService.shared.syncUserPreferences(refreshInterval: newValue.rawValue)
             }
         }
+        .tint(.white)
         .preferredColorScheme(.dark)
     }
 
@@ -771,7 +772,7 @@ struct SettingsView: View {
                         Spacer()
 
                         Image(systemName: "chevron.right")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.gray)
                     }
                     .padding(16)
                 }
@@ -823,7 +824,6 @@ struct SettingsView: View {
                     }
                     .padding(16)
                 }
-                .tint(Color.gray)
                 .disabled(!notificationsEnabled)
                 .opacity(notificationsEnabled ? 1.0 : 0.5)
             }

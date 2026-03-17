@@ -67,7 +67,13 @@ struct AddMethodSheet: View {
         }
         .presentationDetents([.height(adaptiveSheetHeight)])
         .presentationDragIndicator(.hidden)
-        .presentationBackground(.clear)
+        .presentationBackground {
+            if #available(iOS 26, *) {
+                Color.clear
+            } else {
+                Rectangle().fill(.ultraThinMaterial)
+            }
+        }
         .onPreferenceChange(AddMethodContentHeightPreferenceKey.self) { height in
             guard height > 0 else { return }
             contentHeight = height
@@ -160,9 +166,7 @@ struct AddMethodSheet: View {
                 .strokeBorder(Color.white.opacity(0.18), lineWidth: 0.9)
         )
         .modifier(AILiquidGlassCapsuleModifier())
-        .shadow(color: Color(red: 0.19, green: 0.62, blue: 1.00).opacity(0.44), radius: 16, x: -8, y: 0)
-        .shadow(color: Color(red: 0.54, green: 0.42, blue: 1.00).opacity(0.30), radius: 15, x: 0, y: 0)
-        .shadow(color: Color(red: 1.00, green: 0.54, blue: 0.26).opacity(0.34), radius: 15, x: 8, y: 0)
+        .modifier(AIScanButtonShadowModifier())
     }
 
 }
@@ -184,6 +188,20 @@ private struct AILiquidGlassCapsuleModifier: ViewModifier {
         } else {
             content
                 .background(.ultraThinMaterial, in: Capsule())
+        }
+    }
+}
+
+private struct AIScanButtonShadowModifier: ViewModifier {
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(iOS 26, *) {
+            content
+                .shadow(color: Color(red: 0.19, green: 0.62, blue: 1.00).opacity(0.44), radius: 16, x: -8, y: 0)
+                .shadow(color: Color(red: 0.54, green: 0.42, blue: 1.00).opacity(0.30), radius: 15, x: 0, y: 0)
+                .shadow(color: Color(red: 1.00, green: 0.54, blue: 0.26).opacity(0.34), radius: 15, x: 8, y: 0)
+        } else {
+            content
         }
     }
 }

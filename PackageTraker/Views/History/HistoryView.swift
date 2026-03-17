@@ -45,6 +45,7 @@ struct HistoryView: View {
                 PackageDetailView(package: package)
             }
         }
+        .tint(.white)
         .preferredColorScheme(.dark)
     }
 

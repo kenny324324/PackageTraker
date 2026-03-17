@@ -130,21 +130,7 @@ struct PaywallView: View {
                         .padding(.top, 8)
                     }
                     .padding(20)
-                    .background(
-                        Group {
-                            if #available(iOS 26, *) {
-                                Rectangle()
-                                    .fill(.clear)
-                                    .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
-                            } else {
-                                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                                    .fill(.ultraThinMaterial)
-                            }
-                        }
-                    )
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 16)
-                    .shadow(color: .black.opacity(0.2), radius: 20, x: 0, y: 10)
+                    .modifier(PaywallBottomAreaModifier())
                 }
             }
             .navigationTitle(String(localized: "paywall.title"))
@@ -156,7 +142,7 @@ struct PaywallView: View {
                     } label: {
                         Image(systemName: "xmark")
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(.white.opacity(0.8))
+                            .foregroundStyle(.white)
                     }
                 }
             }
@@ -631,6 +617,28 @@ struct PaywallView: View {
                 : String(localized: "paywall.button.subscribe")
         } else {
             return String(localized: "paywall.button.subscribe")
+        }
+    }
+}
+
+/// iOS 26 懸浮玻璃式，iOS 18 貼邊毛玻璃式
+private struct PaywallBottomAreaModifier: ViewModifier {
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(iOS 26, *) {
+            content
+                .background(
+                    Rectangle()
+                        .fill(.clear)
+                        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+                )
+                .padding(.horizontal, 16)
+                .padding(.bottom, 16)
+                .shadow(color: .black.opacity(0.2), radius: 20, x: 0, y: 10)
+        } else {
+            content
+                .background(.ultraThinMaterial)
+                .ignoresSafeArea(.container, edges: .bottom)
         }
     }
 }

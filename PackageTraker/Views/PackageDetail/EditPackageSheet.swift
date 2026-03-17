@@ -69,6 +69,7 @@ struct EditPackageSheet: View {
                         dismiss()
                     }
                     .fontWeight(.semibold)
+                    .foregroundStyle(.white)
                 }
             }
             .sheet(isPresented: $showPlatformPicker) {

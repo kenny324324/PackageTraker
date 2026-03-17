@@ -283,6 +283,7 @@ struct EmailManagementSheet: View {
                     Button("完成") {
                         dismiss()
                     }
+                    .foregroundStyle(.white)
                 }
             }
             .confirmationDialog(

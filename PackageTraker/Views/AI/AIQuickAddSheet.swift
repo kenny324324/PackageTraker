@@ -269,12 +269,14 @@ private struct AIEditSheet: View {
                     Button(String(localized: "common.cancel")) {
                         dismiss()
                     }
+                    .foregroundStyle(.white)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(String(localized: "common.done")) {
                         carrier = tempCarrier
                         dismiss()
                     }
+                    .foregroundStyle(.white)
                 }
             }
         }
@@ -344,6 +346,7 @@ private struct CarrierPickerSheet: View {
                     Button(String(localized: "common.done")) {
                         isPresented = false
                     }
+                    .foregroundStyle(.white)
                 }
             }
         }
