@@ -111,7 +111,7 @@ firebase deploy --only functions                 # Deploy to Firebase
 - `PackageTimelineProvider` refreshes every 15 minutes
 - App Group: `group.com.kenny.PackageTraker` for data sharing
 - Deep link URL scheme: `packagetraker://package/{id}`
-- Currently feature-flagged off (`FeatureFlags.widgetEnabled = false`)
+- Feature flag: `FeatureFlags.widgetEnabled = true`
 
 ### Cloud Functions Backend (`functions/`)
 
@@ -186,7 +186,7 @@ String(localized: "key.name")
 emailAutoImportEnabled = false   // Gmail auto-import (disabled)
 subscriptionEnabled = true       // StoreKit 2 subscription
 aiVisionEnabled = true           // Gemini AI screenshot scan (testing: temporarily enabled)
-widgetEnabled = false            // iOS Widget Extension
+widgetEnabled = true             // iOS Widget Extension
 ```
 
 ### Singleton Services

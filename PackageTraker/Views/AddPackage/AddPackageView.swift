@@ -14,7 +14,6 @@ struct AddPackageView: View {
     @State private var showDuplicateAlert = false
 
     // OCR 相關狀態
-    @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var isProcessingOCR = false
     @State private var ocrResult: OCRResult?
     @State private var showOCRResultSheet = false
@@ -101,13 +100,6 @@ struct AddPackageView: View {
             .fullScreenCover(isPresented: $showPaywall) {
                 PaywallView()
             }
-            .onChange(of: selectedPhotoItem) { _, newItem in
-                if let newItem {
-                    Task {
-                        await processSelectedImage(newItem)
-                    }
-                }
-            }
         }
         .interactiveDismissDisabled()
         .preferredColorScheme(.dark)
@@ -123,11 +115,9 @@ struct AddPackageView: View {
 
                 Spacer()
 
-                PhotosPicker(
-                    selection: $selectedPhotoItem,
-                    matching: .images,
-                    photoLibrary: .shared()
-                ) {
+                Button {
+                    presentOCRPhotoPicker()
+                } label: {
                     HStack(spacing: 4) {
                         if isProcessingOCR {
                             ProgressView()
@@ -237,45 +227,55 @@ struct AddPackageView: View {
 
     // MARK: - OCR
 
-    private func processSelectedImage(_ item: PhotosPickerItem) async {
-        isProcessingOCR = true
-
-        defer {
-            selectedPhotoItem = nil
-            isProcessingOCR = false
+    /// 直接用 UIKit present PHPickerViewController，避免 SwiftUI PhotosPicker 在 fullScreenCover 中被意外關閉
+    private func presentOCRPhotoPicker() {
+        guard let windowScene = UIApplication.shared.connectedScenes
+                .compactMap({ $0 as? UIWindowScene }).first,
+              let rootVC = windowScene.windows.first(where: { $0.isKeyWindow })?.rootViewController else {
+            return
+        }
+        var topVC = rootVC
+        while let presented = topVC.presentedViewController {
+            topVC = presented
         }
 
-        do {
-            guard let imageData = try await item.loadTransferable(type: Data.self),
-                  let uiImage = UIImage(data: imageData) else {
-                await MainActor.run {
-                    ocrErrorMessage = String(localized: "error.imageLoadFailed")
-                    showOCRError = true
-                }
-                return
+        var config = PHPickerConfiguration()
+        config.filter = .images
+        config.selectionLimit = 1
+        let picker = PHPickerViewController(configuration: config)
+        let delegate = OCRPhotoPickerDelegate { [ocrService] image in
+            guard let image else { return }
+            Task { @MainActor in
+                await processPickedImage(image, ocrService: ocrService)
             }
+        }
+        objc_setAssociatedObject(picker, &OCRPhotoPickerDelegate.associatedKey, delegate, .OBJC_ASSOCIATION_RETAIN)
+        picker.delegate = delegate
+        topVC.present(picker, animated: true)
+    }
 
+    @MainActor
+    private func processPickedImage(_ uiImage: UIImage, ocrService: TrackingNumberOCRService) async {
+        isProcessingOCR = true
+        defer { isProcessingOCR = false }
+
+        do {
             let result = try await ocrService.recognizeTrackingNumbers(from: uiImage)
+            ocrResult = result
 
-            await MainActor.run {
-                ocrResult = result
-
-                if result.trackingNumberCandidates.count == 1,
-                   let candidate = result.trackingNumberCandidates.first,
-                   candidate.confidence >= 0.9 {
-                    handleOCRSelection(OCRSelection(
-                        trackingNumber: candidate.trackingNumber,
-                        suggestedCarrier: candidate.suggestedCarrier
-                    ))
-                } else {
-                    showOCRResultSheet = true
-                }
+            if result.trackingNumberCandidates.count == 1,
+               let candidate = result.trackingNumberCandidates.first,
+               candidate.confidence >= 0.9 {
+                handleOCRSelection(OCRSelection(
+                    trackingNumber: candidate.trackingNumber,
+                    suggestedCarrier: candidate.suggestedCarrier
+                ))
+            } else {
+                showOCRResultSheet = true
             }
         } catch {
-            await MainActor.run {
-                ocrErrorMessage = error.localizedDescription
-                showOCRError = true
-            }
+            ocrErrorMessage = error.localizedDescription
+            showOCRError = true
         }
     }
 
@@ -293,6 +293,32 @@ struct AddPackageView: View {
 
     private func hideKeyboard() {
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
+}
+
+// MARK: - OCR Photo Picker Delegate
+
+private final class OCRPhotoPickerDelegate: NSObject, PHPickerViewControllerDelegate {
+    static var associatedKey: UInt8 = 0
+
+    let completion: (UIImage?) -> Void
+
+    init(completion: @escaping (UIImage?) -> Void) {
+        self.completion = completion
+    }
+
+    func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+        picker.dismiss(animated: true)
+        guard let provider = results.first?.itemProvider,
+              provider.canLoadObject(ofClass: UIImage.self) else {
+            completion(nil)
+            return
+        }
+        provider.loadObject(ofClass: UIImage.self) { [weak self] image, _ in
+            DispatchQueue.main.async {
+                self?.completion(image as? UIImage)
+            }
+        }
     }
 }
 

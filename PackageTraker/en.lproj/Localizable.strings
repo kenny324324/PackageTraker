@@ -491,6 +491,8 @@
 // AI Carrier Select
 "ai.carrierSelect.title" = "Select Carrier";
 "ai.carrierSelect.next" = "Next";
+"ai.carrierSelect.alert.title" = "Notice";
+"ai.carrierSelect.alert.message" = "Please select a carrier first";
 "ai.error.noTrackingData" = "No tracking data found";
 "ai.scanning.cancelConfirmMessage" = "AI is analyzing. Are you sure you want to cancel?";
 

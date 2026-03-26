@@ -15,10 +15,10 @@ struct AICarrierSelectView: View {
 
     @State private var selectedCarrier: Carrier?
     @State private var searchText = ""
-    @State private var photoItem: PhotosPickerItem?
     @State private var selectedImage: UIImage?
     @State private var showScanning = false
     @State private var showPaywall = false
+    @State private var showCarrierAlert = false
 
     private var trackableCarriers: [Carrier] {
         Carrier.allCases.filter { $0.trackTwUUID != nil }
@@ -58,23 +58,24 @@ struct AICarrierSelectView: View {
                     .foregroundStyle(.white)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    PhotosPicker(
-                        selection: $photoItem,
-                        matching: .images
-                    ) {
+                    Button {
+                        if selectedCarrier == nil {
+                            showCarrierAlert = true
+                        } else {
+                            presentPhotoPicker()
+                        }
+                    } label: {
                         Text(String(localized: "ai.carrierSelect.next"))
                             .fontWeight(.semibold)
                             .foregroundStyle(.white)
                     }
                     .tint(Color.appAccent)
-                    .disabled(selectedCarrier == nil)
                 }
             }
-            .onChange(of: photoItem) { _, newItem in
-                guard let newItem else { return }
-                Task {
-                    await loadImage(from: newItem)
-                }
+            .alert(String(localized: "ai.carrierSelect.alert.title"), isPresented: $showCarrierAlert) {
+                Button(String(localized: "common.ok"), role: .cancel) {}
+            } message: {
+                Text(String(localized: "ai.carrierSelect.alert.message"))
             }
             .navigationDestination(isPresented: $showScanning) {
                 if let carrier = selectedCarrier, let image = selectedImage {
@@ -119,30 +120,82 @@ struct AICarrierSelectView: View {
         }
     }
 
-    // MARK: - Load Image
+    // MARK: - Present Photo Picker (UIKit)
 
-    private func loadImage(from item: PhotosPickerItem) async {
-        defer { photoItem = nil }
-
-        // 終身方案不限次數，其他方案檢查每日用量
+    /// 直接用 UIKit present PHPickerViewController，不走 SwiftUI sheet
+    private func presentPhotoPicker() {
+        // 終身方案不限次數，其他方案先檢查本地快取的用量
         if !SubscriptionManager.shared.isLifetime {
             if AIVisionService.shared.remainingScans <= 0 {
-                let usage = await AIVisionService.shared.fetchUsageFromServer()
-                let remaining = max(0, usage.limit - usage.used)
-                if remaining <= 0 {
-                    showPaywall = true
-                    return
+                // 本地已歸零，需要 server 確認（在選完照片後再做也行，但先擋一次）
+                Task {
+                    let usage = await AIVisionService.shared.fetchUsageFromServer()
+                    let remaining = max(0, usage.limit - usage.used)
+                    if remaining <= 0 {
+                        showPaywall = true
+                        return
+                    }
+                    await MainActor.run { showPHPicker() }
                 }
+                return
             }
         }
+        showPHPicker()
+    }
 
-        guard let imageData = try? await item.loadTransferable(type: Data.self),
-              let image = UIImage(data: imageData) else {
+    @MainActor
+    private func showPHPicker() {
+        guard let windowScene = UIApplication.shared.connectedScenes
+                .compactMap({ $0 as? UIWindowScene }).first,
+              let rootVC = windowScene.windows.first(where: { $0.isKeyWindow })?.rootViewController else {
             return
         }
+        // 找到最上層的 presented VC
+        var topVC = rootVC
+        while let presented = topVC.presentedViewController {
+            topVC = presented
+        }
 
-        selectedImage = image
-        showScanning = true
+        var config = PHPickerConfiguration()
+        config.filter = .images
+        config.selectionLimit = 1
+        let picker = PHPickerViewController(configuration: config)
+        let delegate = PHPickerDelegateHandler { [weak picker] image in
+            picker?.dismiss(animated: true)
+            if let image {
+                self.selectedImage = image
+                self.showScanning = true
+            }
+        }
+        // 存到 picker 的 associated object 避免被 ARC 回收
+        objc_setAssociatedObject(picker, &PHPickerDelegateHandler.associatedKey, delegate, .OBJC_ASSOCIATION_RETAIN)
+        picker.delegate = delegate
+        topVC.present(picker, animated: true)
+    }
+}
+
+// MARK: - PHPicker Delegate Handler
+
+private final class PHPickerDelegateHandler: NSObject, PHPickerViewControllerDelegate {
+    static var associatedKey: UInt8 = 0
+
+    let completion: (UIImage?) -> Void
+
+    init(completion: @escaping (UIImage?) -> Void) {
+        self.completion = completion
+    }
+
+    func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+        guard let provider = results.first?.itemProvider,
+              provider.canLoadObject(ofClass: UIImage.self) else {
+            completion(nil)
+            return
+        }
+        provider.loadObject(ofClass: UIImage.self) { [weak self] image, _ in
+            DispatchQueue.main.async {
+                self?.completion(image as? UIImage)
+            }
+        }
     }
 }
 

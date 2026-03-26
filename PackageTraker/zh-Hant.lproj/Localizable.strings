@@ -490,6 +490,8 @@
 // AI Carrier Select
 "ai.carrierSelect.title" = "選擇物流商";
 "ai.carrierSelect.next" = "下一步";
+"ai.carrierSelect.alert.title" = "提示";
+"ai.carrierSelect.alert.message" = "請先選擇物流商";
 "ai.error.noTrackingData" = "找不到追蹤資料";
 "ai.scanning.cancelConfirmMessage" = "AI 辨識中，確定要中斷並返回嗎？";
 
