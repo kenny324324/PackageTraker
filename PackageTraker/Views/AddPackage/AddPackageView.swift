@@ -13,7 +13,6 @@ final class AddPackageViewModel {
     // OCR 相關狀態
     var isProcessingOCR = false
     var ocrResult: OCRResult?
-    var showOCRResultSheet = false
     var showOCRError = false
     var ocrErrorMessage = ""
 
@@ -56,13 +55,35 @@ final class AddPackageViewModel {
                     suggestedCarrier: candidate.suggestedCarrier
                 ))
             } else {
-                showOCRResultSheet = true
+                presentOCRResultSheet(result: result)
             }
         } catch {
             print("🔴 [OCR] OCR 錯誤: \(error)")
             ocrErrorMessage = error.localizedDescription
             showOCRError = true
         }
+    }
+
+    /// 用 UIKit 直接 present OCR 結果 sheet（繞過 SwiftUI .sheet 在 fullScreenCover 內的 bug）
+    @MainActor
+    func presentOCRResultSheet(result: OCRResult) {
+        guard let topVC = Self.topViewController() else { return }
+
+        let sheetView = OCRResultSheet(result: result) { [weak self] selection in
+            self?.handleOCRSelection(selection)
+            topVC.dismiss(animated: true)
+        }
+        .preferredColorScheme(.dark)
+
+        let hostingVC = UIHostingController(rootView: sheetView)
+        hostingVC.modalPresentationStyle = .pageSheet
+
+        if let sheet = hostingVC.sheetPresentationController {
+            sheet.detents = [.medium(), .large()]
+            sheet.prefersGrabberVisible = true
+        }
+
+        topVC.present(hostingVC, animated: true)
     }
 
     func handleOCRSelection(_ selection: OCRSelection) {
@@ -194,14 +215,6 @@ struct AddPackageView: View {
                 Button(String(localized: "common.confirm"), role: .cancel) { }
             } message: {
                 Text(vm.ocrErrorMessage)
-            }
-            .sheet(isPresented: $vm.showOCRResultSheet) {
-                if let result = vm.ocrResult {
-                    OCRResultSheet(result: result) { selection in
-                        vm.handleOCRSelection(selection)
-                    }
-                    .presentationDetents([.medium, .large])
-                }
             }
             .fullScreenCover(isPresented: $showPaywall) {
                 PaywallView()
