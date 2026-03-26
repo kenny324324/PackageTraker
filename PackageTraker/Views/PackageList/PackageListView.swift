@@ -19,6 +19,11 @@ struct PackageListView: View {
     @Query private var linkedAccounts: [LinkedEmailAccount]
 
     @State private var showAddMethodSheet = false
+    @State private var showManualAdd = false
+    @State private var showAICarrierSelect = false
+    @State private var showPaywall = false
+    @State private var paywallLifetimeOnly = false
+    @State private var pendingAddAction: PendingAddAction = .none
     @State private var selectedPackage: Package?
     @State private var emailSyncStatus: String?
     @State private var showPendingSheet = false
@@ -75,18 +80,51 @@ struct PackageListView: View {
                 }
             }
             .sheet(isPresented: $showAddMethodSheet, onDismiss: {
-                Task {
-                    await refreshPendingPackages()
+                switch pendingAddAction {
+                case .manualAdd:
+                    showManualAdd = true
+                case .aiScan:
+                    showAICarrierSelect = true
+                case .paywall(let lifetimeOnly):
+                    paywallLifetimeOnly = lifetimeOnly
+                    showPaywall = true
+                case .none:
+                    break
                 }
+                pendingAddAction = .none
+                Task { await refreshPendingPackages() }
             }) {
-                AddMethodSheet()
+                AddMethodSheet(
+                    onManualAdd: {
+                        pendingAddAction = .manualAdd
+                        showAddMethodSheet = false
+                    },
+                    onAIScan: {
+                        pendingAddAction = .aiScan
+                        showAddMethodSheet = false
+                    },
+                    onShowPaywall: { lifetimeOnly in
+                        pendingAddAction = .paywall(lifetimeOnly: lifetimeOnly)
+                        showAddMethodSheet = false
+                    }
+                )
             }
-            .sheet(isPresented: $showAddPackage, onDismiss: {
-                Task {
-                    await refreshPendingPackages()
-                }
+            .fullScreenCover(isPresented: $showManualAdd, onDismiss: {
+                Task { await refreshPendingPackages() }
             }) {
                 AddPackageView()
+            }
+            .fullScreenCover(isPresented: $showAICarrierSelect, onDismiss: {
+                Task { await refreshPendingPackages() }
+            }) {
+                AICarrierSelectView(onDismiss: {
+                    showAICarrierSelect = false
+                })
+            }
+            .fullScreenCover(isPresented: $showPaywall, onDismiss: {
+                showAddMethodSheet = true
+            }) {
+                PaywallView(lifetimeOnly: paywallLifetimeOnly)
             }
             .sheet(item: $packageToEdit) { package in
                 EditPackageSheet(package: package)
@@ -449,6 +487,15 @@ struct PackageListView: View {
                 .foregroundStyle(.white)
         }
     }
+}
+
+// MARK: - Pending Add Action
+
+private enum PendingAddAction {
+    case none
+    case manualAdd
+    case aiScan
+    case paywall(lifetimeOnly: Bool)
 }
 
 // MARK: - Empty State

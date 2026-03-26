@@ -12,10 +12,10 @@ import SwiftData
 struct AddMethodSheet: View {
     @Environment(\.dismiss) private var dismiss
 
-    @State private var showAICarrierSelect = false
-    @State private var showManualAdd = false
-    @State private var showPaywall = false
-    @State private var paywallLifetimeOnly = false
+    var onManualAdd: () -> Void
+    var onAIScan: () -> Void
+    var onShowPaywall: (Bool) -> Void  // lifetimeOnly
+
     @State private var contentHeight: CGFloat = 0
     @State private var remainingScans: Int = AIVisionService.shared.remainingScans
     @State private var hasFetchedUsage = false
@@ -39,7 +39,7 @@ struct AddMethodSheet: View {
 
                 // 手動輸入按鈕
                 Button {
-                    showManualAdd = true
+                    onManualAdd()
                 } label: {
                     Text(String(localized: "addMethod.manualInput"))
                         .font(.system(size: 15, weight: .medium))
@@ -78,18 +78,6 @@ struct AddMethodSheet: View {
             guard height > 0 else { return }
             contentHeight = height
         }
-        .fullScreenCover(isPresented: $showAICarrierSelect) {
-            AICarrierSelectView(onDismiss: {
-                showAICarrierSelect = false
-                dismiss()
-            })
-        }
-        .fullScreenCover(isPresented: $showManualAdd) {
-            AddPackageView()
-        }
-        .fullScreenCover(isPresented: $showPaywall) {
-            PaywallView(lifetimeOnly: paywallLifetimeOnly)
-        }
         .preferredColorScheme(.dark)
         .task {
             // 刷新剩餘次數（從伺服器同步），僅執行一次避免重繪導致 PhotosPicker 滾動重置
@@ -108,19 +96,17 @@ struct AddMethodSheet: View {
         if FeatureFlags.subscriptionEnabled && !SubscriptionManager.shared.hasAIAccess {
             // 未訂閱
             Button {
-                paywallLifetimeOnly = false
-                showPaywall = true
+                onShowPaywall(false)
             } label: { aiScanLabel }
                 .buttonStyle(.plain)
         } else if FeatureFlags.subscriptionEnabled && !SubscriptionManager.shared.isLifetime && remainingScans <= 0 {
             // 訂閱制但今日次數已用完 → 直接彈升級終身方案
             Button {
-                paywallLifetimeOnly = true
-                showPaywall = true
+                onShowPaywall(true)
             } label: { aiScanLabel }
                 .buttonStyle(.plain)
         } else {
-            Button { showAICarrierSelect = true } label: { aiScanLabel }
+            Button { onAIScan() } label: { aiScanLabel }
                 .buttonStyle(.plain)
         }
     }
@@ -209,6 +195,6 @@ private struct AIScanButtonShadowModifier: ViewModifier {
 // MARK: - Preview
 
 #Preview {
-    AddMethodSheet()
+    AddMethodSheet(onManualAdd: {}, onAIScan: {}, onShowPaywall: { _ in })
         .modelContainer(for: [Package.self, TrackingEvent.self], inMemory: true)
 }
