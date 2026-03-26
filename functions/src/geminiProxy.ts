@@ -15,6 +15,7 @@ import {logger} from "firebase-functions/v2";
 import axios from "axios";
 
 const geminiApiKey = defineSecret("GEMINI_API_KEY");
+const geminiApiKeyDebug = defineSecret("GEMINI_API_KEY_DEBUG");
 
 const db = getFirestore();
 
@@ -164,7 +165,7 @@ export const analyzePackageImage = onCall(
     region: "asia-east1",
     memory: "512MiB",
     timeoutSeconds: 60,
-    secrets: [geminiApiKey],
+    secrets: [geminiApiKey, geminiApiKeyDebug],
   },
   async (request) => {
     // 1. 驗證登入
@@ -204,11 +205,19 @@ export const analyzePackageImage = onCall(
 
     const resolvedMimeType = mimeType || "image/jpeg";
 
-    // 5. 呼叫 Gemini API
-    const apiKey = geminiApiKey.value().trim();
+    // 5. 呼叫 Gemini API（debug 模式使用獨立 API Key，避免佔用正式配額）
+    const isDebug = request.data.debug === true;
+    const debugKey = geminiApiKeyDebug.value()?.trim();
+    const prodKey = geminiApiKey.value()?.trim();
+    const apiKey = (isDebug && debugKey) ? debugKey : prodKey;
+
     if (!apiKey) {
       logger.error("[GeminiProxy] GEMINI_API_KEY not configured");
       throw new HttpsError("internal", "AI service not configured");
+    }
+
+    if (isDebug) {
+      logger.info("[GeminiProxy] Using DEBUG API key", {uid});
     }
 
     let result: Record<string, unknown>;

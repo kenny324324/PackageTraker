@@ -39,6 +39,7 @@ struct AIScanningView: View {
     @State private var showError = false
     @State private var errorMessage = ""
     @State private var isNoTrackingDataError = false
+    @State private var isQuotaError = false
     @State private var showManualAdd = false
     @State private var showCancelConfirm = false
 
@@ -127,6 +128,11 @@ struct AIScanningView: View {
                 Button(String(localized: "common.ok")) {
                     onDismiss()
                 }
+            } else if isQuotaError {
+                // Quota exceeded — 重試沒用，讓使用者稍後再試
+                Button(String(localized: "common.ok")) {
+                    onCancel()
+                }
             } else {
                 Button(String(localized: "addMethod.retry")) {
                     workflowCompleted = false
@@ -198,6 +204,7 @@ struct AIScanningView: View {
         showError = false
         errorMessage = ""
         isNoTrackingDataError = false
+        isQuotaError = false
 
         do {
             // 階段 1：AI 辨識
@@ -288,6 +295,9 @@ struct AIScanningView: View {
             print("❌ [AIScanningView] 錯誤: \(error)")
             let errorType: String
             if let aiError = error as? AIVisionError {
+                if aiError.isQuotaExceeded {
+                    isQuotaError = true
+                }
                 switch aiError {
                 case .dailyLimitReached:
                     errorType = "daily_limit"

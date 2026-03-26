@@ -75,10 +75,15 @@ class AIVisionService {
         callable.timeoutInterval = 60
 
         do {
-            let result = try await callable.call([
+            var payload: [String: Any] = [
                 "imageBase64": base64Image,
                 "mimeType": "image/jpeg",
-            ])
+            ]
+            #if DEBUG
+            payload["debug"] = true
+            #endif
+
+            let result = try await callable.call(payload)
 
             // 解析回傳結果
             guard let data = result.data as? [String: Any] else {
