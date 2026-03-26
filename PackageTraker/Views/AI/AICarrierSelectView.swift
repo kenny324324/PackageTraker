@@ -9,23 +9,112 @@ import SwiftUI
 import SwiftData
 import PhotosUI
 
+// MARK: - ViewModel（用 class 持有狀態，避免 fullScreenCover 重建時 @State 被刷掉）
+
+@Observable
+final class AICarrierSelectViewModel {
+    var selectedCarrier: Carrier?
+    var selectedImage: UIImage?
+    var showScanning = false
+    var showPaywall = false
+    var showCarrierAlert = false
+    var searchText = ""
+
+    /// 檢查用量 → 呈現 PHPicker
+    func checkUsageAndPresentPicker() {
+        if !SubscriptionManager.shared.isLifetime {
+            if AIVisionService.shared.remainingScans <= 0 {
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
+                    let usage = await AIVisionService.shared.fetchUsageFromServer()
+                    let remaining = max(0, usage.limit - usage.used)
+                    if remaining <= 0 {
+                        self.showPaywall = true
+                    } else {
+                        self.presentPicker()
+                    }
+                }
+                return
+            }
+        }
+        presentPicker()
+    }
+
+    /// 用 UIKit present PHPickerViewController
+    func presentPicker() {
+        guard let topVC = Self.topViewController() else { return }
+        var config = PHPickerConfiguration()
+        config.filter = .images
+        config.selectionLimit = 1
+        let picker = PHPickerViewController(configuration: config)
+        let delegate = ImagePickerDelegate { [weak self] image in
+            guard let self, let image else { return }
+            print("🟢 [AI] ImagePickerDelegate 拿到圖片 \(image.size)")
+            self.selectedImage = image
+            self.showScanning = true
+            print("🟢 [AI] showScanning = \(self.showScanning)")
+        }
+        objc_setAssociatedObject(picker, &ImagePickerDelegate.associatedKey, delegate, .OBJC_ASSOCIATION_RETAIN)
+        picker.delegate = delegate
+        topVC.present(picker, animated: true)
+    }
+
+    static func topViewController() -> UIViewController? {
+        guard let windowScene = UIApplication.shared.connectedScenes
+                .compactMap({ $0 as? UIWindowScene }).first,
+              let rootVC = windowScene.windows.first(where: { $0.isKeyWindow })?.rootViewController else {
+            return nil
+        }
+        var topVC = rootVC
+        while let presented = topVC.presentedViewController {
+            topVC = presented
+        }
+        return topVC
+    }
+}
+
+// MARK: - PHPicker Delegate（callback-based，不用 continuation）
+
+private final class ImagePickerDelegate: NSObject, PHPickerViewControllerDelegate {
+    static var associatedKey: UInt8 = 0
+    let completion: (UIImage?) -> Void
+
+    init(completion: @escaping (UIImage?) -> Void) {
+        self.completion = completion
+    }
+
+    func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+        if let provider = results.first?.itemProvider,
+           provider.canLoadObject(ofClass: UIImage.self) {
+            provider.loadObject(ofClass: UIImage.self) { [weak self] image, _ in
+                DispatchQueue.main.async {
+                    picker.dismiss(animated: true) {
+                        self?.completion(image as? UIImage)
+                    }
+                }
+            }
+        } else {
+            picker.dismiss(animated: true) { [weak self] in
+                self?.completion(nil)
+            }
+        }
+    }
+}
+
+// MARK: - AICarrierSelectView
+
 /// AI 掃描流程第一步：選擇物流商
 struct AICarrierSelectView: View {
     let onDismiss: () -> Void  // 關閉整個 AI 流程（回首頁）
 
-    @State private var selectedCarrier: Carrier?
-    @State private var searchText = ""
-    @State private var selectedImage: UIImage?
-    @State private var showScanning = false
-    @State private var showPaywall = false
-    @State private var showCarrierAlert = false
+    @State private var vm = AICarrierSelectViewModel()
 
     private var trackableCarriers: [Carrier] {
         Carrier.allCases.filter { $0.trackTwUUID != nil }
     }
 
     private var filteredCarriers: [Carrier] {
-        let keyword = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let keyword = vm.searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !keyword.isEmpty else { return trackableCarriers }
         return trackableCarriers.filter { carrier in
             carrier.displayName.localizedCaseInsensitiveContains(keyword)
@@ -35,6 +124,7 @@ struct AICarrierSelectView: View {
     }
 
     var body: some View {
+        @Bindable var vm = vm
         NavigationStack {
             List {
                 ForEach(filteredCarriers, id: \.rawValue) { carrier in
@@ -46,7 +136,7 @@ struct AICarrierSelectView: View {
             }
             .listStyle(.plain)
             .scrollDismissesKeyboard(.interactively)
-            .searchable(text: $searchText, prompt: String(localized: "carrier.searchPlaceholder"))
+            .searchable(text: $vm.searchText, prompt: String(localized: "carrier.searchPlaceholder"))
             .adaptiveBackground()
             .navigationTitle(String(localized: "ai.carrierSelect.title"))
             .navigationBarTitleDisplayMode(.inline)
@@ -59,10 +149,10 @@ struct AICarrierSelectView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        if selectedCarrier == nil {
-                            showCarrierAlert = true
+                        if vm.selectedCarrier == nil {
+                            vm.showCarrierAlert = true
                         } else {
-                            presentPhotoPicker()
+                            vm.checkUsageAndPresentPicker()
                         }
                     } label: {
                         Text(String(localized: "ai.carrierSelect.next"))
@@ -72,23 +162,23 @@ struct AICarrierSelectView: View {
                     .tint(Color.appAccent)
                 }
             }
-            .alert(String(localized: "ai.carrierSelect.alert.title"), isPresented: $showCarrierAlert) {
+            .alert(String(localized: "ai.carrierSelect.alert.title"), isPresented: $vm.showCarrierAlert) {
                 Button(String(localized: "common.ok"), role: .cancel) {}
             } message: {
                 Text(String(localized: "ai.carrierSelect.alert.message"))
             }
-            .navigationDestination(isPresented: $showScanning) {
-                if let carrier = selectedCarrier, let image = selectedImage {
+            .navigationDestination(isPresented: $vm.showScanning) {
+                if let carrier = vm.selectedCarrier, let image = vm.selectedImage {
                     AIScanningView(
                         carrier: carrier,
                         image: image,
                         onDismiss: onDismiss,
-                        onCancel: { showScanning = false }
+                        onCancel: { vm.showScanning = false }
                     )
                 }
             }
         }
-        .fullScreenCover(isPresented: $showPaywall) {
+        .fullScreenCover(isPresented: $vm.showPaywall) {
             PaywallView(lifetimeOnly: true)
         }
         .preferredColorScheme(.dark)
@@ -98,7 +188,7 @@ struct AICarrierSelectView: View {
 
     private func carrierRow(_ carrier: Carrier) -> some View {
         Button {
-            selectedCarrier = carrier
+            vm.selectedCarrier = carrier
         } label: {
             VStack(spacing: 0) {
                 HStack(spacing: 12) {
@@ -106,7 +196,7 @@ struct AICarrierSelectView: View {
                     Text(carrier.displayName)
                         .foregroundStyle(.white)
                     Spacer()
-                    if carrier == selectedCarrier {
+                    if carrier == vm.selectedCarrier {
                         Image(systemName: "checkmark")
                             .foregroundStyle(Color.appAccent)
                     }
@@ -116,84 +206,6 @@ struct AICarrierSelectView: View {
 
                 Divider()
                     .padding(.leading, 56)
-            }
-        }
-    }
-
-    // MARK: - Present Photo Picker (UIKit)
-
-    /// 直接用 UIKit present PHPickerViewController，不走 SwiftUI sheet
-    private func presentPhotoPicker() {
-        // 終身方案不限次數，其他方案先檢查本地快取的用量
-        if !SubscriptionManager.shared.isLifetime {
-            if AIVisionService.shared.remainingScans <= 0 {
-                // 本地已歸零，需要 server 確認（在選完照片後再做也行，但先擋一次）
-                Task {
-                    let usage = await AIVisionService.shared.fetchUsageFromServer()
-                    let remaining = max(0, usage.limit - usage.used)
-                    if remaining <= 0 {
-                        showPaywall = true
-                        return
-                    }
-                    await MainActor.run { showPHPicker() }
-                }
-                return
-            }
-        }
-        showPHPicker()
-    }
-
-    @MainActor
-    private func showPHPicker() {
-        guard let windowScene = UIApplication.shared.connectedScenes
-                .compactMap({ $0 as? UIWindowScene }).first,
-              let rootVC = windowScene.windows.first(where: { $0.isKeyWindow })?.rootViewController else {
-            return
-        }
-        // 找到最上層的 presented VC
-        var topVC = rootVC
-        while let presented = topVC.presentedViewController {
-            topVC = presented
-        }
-
-        var config = PHPickerConfiguration()
-        config.filter = .images
-        config.selectionLimit = 1
-        let picker = PHPickerViewController(configuration: config)
-        let delegate = PHPickerDelegateHandler { [weak picker] image in
-            picker?.dismiss(animated: true)
-            if let image {
-                self.selectedImage = image
-                self.showScanning = true
-            }
-        }
-        // 存到 picker 的 associated object 避免被 ARC 回收
-        objc_setAssociatedObject(picker, &PHPickerDelegateHandler.associatedKey, delegate, .OBJC_ASSOCIATION_RETAIN)
-        picker.delegate = delegate
-        topVC.present(picker, animated: true)
-    }
-}
-
-// MARK: - PHPicker Delegate Handler
-
-private final class PHPickerDelegateHandler: NSObject, PHPickerViewControllerDelegate {
-    static var associatedKey: UInt8 = 0
-
-    let completion: (UIImage?) -> Void
-
-    init(completion: @escaping (UIImage?) -> Void) {
-        self.completion = completion
-    }
-
-    func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
-        guard let provider = results.first?.itemProvider,
-              provider.canLoadObject(ofClass: UIImage.self) else {
-            completion(nil)
-            return
-        }
-        provider.loadObject(ofClass: UIImage.self) { [weak self] image, _ in
-            DispatchQueue.main.async {
-                self?.completion(image as? UIImage)
             }
         }
     }

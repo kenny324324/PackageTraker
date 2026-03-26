@@ -175,7 +175,6 @@ struct PackageListView: View {
             }
         }
         .toolbar(selectedPackage == nil ? .visible : .hidden, for: .tabBar)
-        .animation(.easeInOut(duration: 0.3), value: selectedPackage)
         .preferredColorScheme(.dark)
     }
 

@@ -67,18 +67,21 @@ struct TimelineEventRow: View {
                             .fill(event.status.color.opacity(ripple1 ? 0 : 0.3))
                             .frame(width: 12, height: 12)
                             .scaleEffect(ripple1 ? 2.5 : 1)
+                            .animation(.easeOut(duration: 2).repeatForever(autoreverses: false), value: ripple1)
 
                         // 第二層波紋（延遲）
                         Circle()
                             .fill(event.status.color.opacity(ripple2 ? 0 : 0.3))
                             .frame(width: 12, height: 12)
                             .scaleEffect(ripple2 ? 2.5 : 1)
+                            .animation(.easeOut(duration: 2).repeatForever(autoreverses: false), value: ripple2)
 
                         // 第三層波紋（更多延遲）
                         Circle()
                             .fill(event.status.color.opacity(ripple3 ? 0 : 0.3))
                             .frame(width: 12, height: 12)
                             .scaleEffect(ripple3 ? 2.5 : 1)
+                            .animation(.easeOut(duration: 2).repeatForever(autoreverses: false), value: ripple3)
                     }
 
                     // 主圓點
@@ -125,22 +128,14 @@ struct TimelineEventRow: View {
         }
         .onAppear {
             // 啟動多層波紋動畫（交錯啟動）
+            // 用直接設值 + .animation(value:) 取代 withAnimation，避免動畫洩漏到 ScrollView
             if isFirst {
-                // 第一層波紋
-                withAnimation(.easeOut(duration: 2).repeatForever(autoreverses: false)) {
-                    ripple1 = true
-                }
-                // 第二層波紋（延遲 0.6 秒）
+                ripple1 = true
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-                    withAnimation(.easeOut(duration: 2).repeatForever(autoreverses: false)) {
-                        ripple2 = true
-                    }
+                    ripple2 = true
                 }
-                // 第三層波紋（延遲 1.2 秒）
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-                    withAnimation(.easeOut(duration: 2).repeatForever(autoreverses: false)) {
-                        ripple3 = true
-                    }
+                    ripple3 = true
                 }
             }
         }

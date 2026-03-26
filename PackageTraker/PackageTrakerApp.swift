@@ -161,10 +161,11 @@ struct PackageTrakerApp: App {
                     .background(.red.opacity(0.85), in: Capsule())
                     .padding(.top, 4)
                     .transition(.move(edge: .top).combined(with: .opacity))
+                    .animation(.easeInOut(duration: 0.3), value: NetworkMonitor.shared.isConnected)
                 }
             }
-            .animation(.easeOut(duration: 0.4), value: appFlow) // 驅動覆蓋層的淡入淡出轉場
-            .animation(.easeInOut(duration: 0.3), value: NetworkMonitor.shared.isConnected)
+            // appFlow 轉場動畫已由 withAnimation(.easeOut) 驅動，不需要額外 .animation
+            // NetworkMonitor 動畫由 overlay 內的 .transition 處理
             .preferredColorScheme(.dark)
             .task {
                 let result = await ForceUpdateService.shared.checkForUpdate()

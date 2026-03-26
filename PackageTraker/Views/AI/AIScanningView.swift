@@ -67,13 +67,14 @@ struct AIScanningView: View {
                         .fontWeight(.semibold)
                         .foregroundStyle(.white)
                         .contentTransition(.numericText())
+                        .animation(.easeInOut(duration: 0.4), value: loadingStage)
 
                     Text(stageSubtitle)
                         .font(.subheadline)
                         .foregroundStyle(.white.opacity(0.6))
                         .contentTransition(.numericText())
+                        .animation(.easeInOut(duration: 0.4), value: loadingStage)
                 }
-                .animation(.easeInOut(duration: 0.4), value: loadingStage)
 
                 Spacer()
             }
@@ -446,6 +447,8 @@ struct OrganicOrbAnimation: View {
                         y: cos(phase + Double(i) * 1.7) * 6
                     )
                     .blur(radius: 20 + CGFloat(i) * 5)
+                    .animation(.linear(duration: 20).repeatForever(autoreverses: false), value: outerRotation)
+                    .animation(.linear(duration: 6).repeatForever(autoreverses: false), value: phase)
             }
 
             // 中層流體光球
@@ -473,10 +476,13 @@ struct OrganicOrbAnimation: View {
                             y: cos(phase + Double(i) * 2.0) * 12
                         )
                         .blur(radius: 8)
+                        .animation(.linear(duration: 6).repeatForever(autoreverses: false), value: phase)
                 }
             }
             .scaleEffect(breatheScale)
             .rotationEffect(.degrees(innerRotation))
+            .animation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true), value: breatheScale)
+            .animation(.linear(duration: 12).repeatForever(autoreverses: false), value: innerRotation)
 
             // 核心光點
             Circle()
@@ -496,6 +502,7 @@ struct OrganicOrbAnimation: View {
                 .frame(width: 70, height: 70)
                 .scaleEffect(breatheScale)
                 .blur(radius: 2)
+                .animation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true), value: breatheScale)
 
             // 只在完成顯示中心圖標，辨識中不顯示星星
             if stage == .complete {
@@ -504,6 +511,7 @@ struct OrganicOrbAnimation: View {
                     .foregroundStyle(.white)
                     .scaleEffect(breatheScale * 0.9)
                     .shadow(color: .white.opacity(0.5), radius: 8)
+                    .animation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true), value: breatheScale)
             }
         }
         .onAppear {
@@ -511,38 +519,19 @@ struct OrganicOrbAnimation: View {
         }
         .onChange(of: stage) { _, _ in
             // 階段切換時加一個彈跳
-            withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) {
-                breatheScale = 1.15
-            }
+            breatheScale = 1.15
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                withAnimation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true)) {
-                    breatheScale = 1.0
-                }
+                breatheScale = 1.0
             }
         }
-        .animation(.easeInOut(duration: 1.0), value: stage)
     }
 
     private func startAnimations() {
-        // 呼吸縮放
-        withAnimation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true)) {
-            breatheScale = 1.08
-        }
-
-        // 內圈旋轉
-        withAnimation(.linear(duration: 12).repeatForever(autoreverses: false)) {
-            innerRotation = 360
-        }
-
-        // 外圈旋轉（反方向）
-        withAnimation(.linear(duration: 20).repeatForever(autoreverses: false)) {
-            outerRotation = -360
-        }
-
-        // 相位偏移（控制流體位移）
-        withAnimation(.linear(duration: 6).repeatForever(autoreverses: false)) {
-            phase = .pi * 2
-        }
+        // 直接設值，動畫由各元素的 .animation(value:) 驅動，避免 withAnimation 洩漏
+        breatheScale = 1.08
+        innerRotation = 360
+        outerRotation = -360
+        phase = .pi * 2
     }
 }
 

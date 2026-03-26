@@ -90,6 +90,11 @@ struct SettingsView: View {
                         widgetSection
                     }
 
+                    // 我的統計
+                    if FeatureFlags.personalStatsEnabled {
+                        personalStatsSection
+                    }
+
                     // 社群統計
                     if appStatsService.isLoaded {
                         appStatsSection
@@ -402,6 +407,38 @@ struct SettingsView: View {
     }
 
     // MARK: - Rate App Section
+
+    // MARK: - Personal Stats Section
+
+    private var personalStatsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            NavigationLink(destination: PersonalStatsView()) {
+                HStack(spacing: 14) {
+                    Image(systemName: "chart.bar.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 30, height: 30)
+                        .background(Color.purple)
+                        .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+
+                    Text(String(localized: "settings.personalStats"))
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.white)
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                }
+                .padding(16)
+            }
+            .buttonStyle(.plain)
+            .background(Color.secondaryCardBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 20))
+        }
+    }
 
     // MARK: - App Stats Section
 

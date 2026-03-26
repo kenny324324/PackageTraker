@@ -100,6 +100,15 @@
 "settings.title" = "Settings";
 "settings.about" = "About";
 "settings.developer" = "Developer";
+// Personal Stats
+"settings.personalStats" = "My Statistics";
+"stats.personal.title" = "My Statistics";
+"stats.personal.totalPackages" = "Total Packages";
+"stats.personal.activePackages" = "Active";
+"stats.personal.topCarriers" = "Most Used Carriers";
+"stats.personal.monthlyTrend" = "Monthly Trend";
+"stats.personal.empty" = "Start tracking to see your statistics";
+
 "settings.community" = "Pickup Community";
 "settings.stats.users.label" = "Users";
 "settings.stats.packages.label" = "Tracked";

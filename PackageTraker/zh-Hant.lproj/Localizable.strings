@@ -100,6 +100,15 @@
 "settings.title" = "設定";
 "settings.about" = "關於";
 "settings.developer" = "開發者";
+// 個人統計
+"settings.personalStats" = "我的統計";
+"stats.personal.title" = "我的統計";
+"stats.personal.totalPackages" = "總包裹數";
+"stats.personal.activePackages" = "追蹤中";
+"stats.personal.topCarriers" = "常用物流商";
+"stats.personal.monthlyTrend" = "每月趨勢";
+"stats.personal.empty" = "開始追蹤包裹來查看統計";
+
 "settings.community" = "取貨吧社群";
 "settings.stats.users.label" = "使用者";
 "settings.stats.packages.label" = "追蹤包裹";

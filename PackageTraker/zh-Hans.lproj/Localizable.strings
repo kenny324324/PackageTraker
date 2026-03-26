@@ -100,6 +100,15 @@
 "settings.title" = "设置";
 "settings.about" = "关于";
 "settings.developer" = "开发者";
+// 个人统计
+"settings.personalStats" = "我的统计";
+"stats.personal.title" = "我的统计";
+"stats.personal.totalPackages" = "总包裹数";
+"stats.personal.activePackages" = "追踪中";
+"stats.personal.topCarriers" = "常用物流商";
+"stats.personal.monthlyTrend" = "每月趋势";
+"stats.personal.empty" = "开始追踪包裹来查看统计";
+
 "settings.community" = "取货吧社群";
 "settings.stats.users.label" = "使用者";
 "settings.stats.packages.label" = "追踪包裹";
