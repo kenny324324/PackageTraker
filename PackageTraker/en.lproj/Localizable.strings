@@ -100,9 +100,14 @@
 "settings.title" = "Settings";
 "settings.about" = "About";
 "settings.developer" = "Developer";
+"settings.community" = "Pickup Community";
+"settings.stats.users.label" = "Users";
+"settings.stats.packages.label" = "Tracked";
+"settings.stats.delivered.label" = "Delivered 🎉";
+"settings.stats.updateInterval" = "Updated hourly";
 "settings.rateApp" = "Rate App";
-"settings.rateApp.title" = "Rate PackageTraker";
-"settings.rateApp.description" = "If you find PackageTraker helpful, please leave us a review. We'd really appreciate it :)";
+"settings.rateApp.title" = "Rate Pickup";
+"settings.rateApp.description" = "If you find Pickup helpful, please leave us a review. We'd really appreciate it :)";
 "settings.reportIssue" = "Report an Issue";
 "settings.privacyPolicy" = "Privacy Policy";
 "settings.otherApps" = "Our Other Apps";

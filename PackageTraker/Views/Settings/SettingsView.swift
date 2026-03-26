@@ -48,6 +48,7 @@ struct SettingsView: View {
     @ObservedObject private var themeManager = ThemeManager.shared
     @ObservedObject private var authService = FirebaseAuthService.shared
     @ObservedObject private var subscriptionManager = SubscriptionManager.shared
+    @StateObject private var appStatsService = AppStatsService.shared
 
     // 通知設定（持久化到 UserDefaults，並同步到 Firestore）
     @AppStorage("notificationsEnabled") private var notificationsEnabled = true
@@ -81,13 +82,18 @@ struct SettingsView: View {
                     // 一般設定
                     generalSection
 
+                    // 通知設定
+                    notificationSection
+
                     // 小工具
                     if FeatureFlags.widgetEnabled {
                         widgetSection
                     }
 
-                    // 通知設定
-                    notificationSection
+                    // 社群統計
+                    if appStatsService.isLoaded {
+                        appStatsSection
+                    }
 
                     // 評分卡片
                     rateAppSection
@@ -166,6 +172,9 @@ struct SettingsView: View {
             .onAppear {
                 checkNotificationPermission()
                 loadDisplayName()
+            }
+            .task {
+                await appStatsService.fetchStats()
             }
             .onChange(of: notificationsEnabled) { oldValue, newValue in
                 if newValue && !oldValue {
@@ -394,9 +403,93 @@ struct SettingsView: View {
 
     // MARK: - Rate App Section
 
+    // MARK: - App Stats Section
+
+    private var appStatsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text(String(localized: "settings.community"))
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .foregroundStyle(.white)
+
+                Spacer()
+
+                Text(String(localized: "settings.stats.updateInterval"))
+                    .font(.caption2)
+                    .foregroundStyle(Color(.systemGray3))
+            }
+
+            HStack(spacing: 0) {
+                // 使用者數
+                statsColumn(
+                    value: appStatsService.totalUsers,
+                    diff: appStatsService.diffUsers,
+                    label: String(localized: "settings.stats.users.label")
+                )
+
+                // 豎線分隔
+                Color.white.opacity(0.1)
+                    .frame(width: 1)
+                    .padding(.vertical, 16)
+
+                // 追蹤包裹數
+                statsColumn(
+                    value: appStatsService.totalPackages,
+                    diff: appStatsService.diffPackages,
+                    label: String(localized: "settings.stats.packages.label")
+                )
+
+                // 豎線分隔
+                Color.white.opacity(0.1)
+                    .frame(width: 1)
+                    .padding(.vertical, 16)
+
+                // 送達數
+                statsColumn(
+                    value: appStatsService.totalDelivered,
+                    diff: appStatsService.diffDelivered,
+                    label: String(localized: "settings.stats.delivered.label")
+                )
+            }
+            .padding(.vertical, 20)
+            .background(Color.secondaryCardBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 20))
+        }
+    }
+
+    private func statsColumn(value: Int, diff: Int, label: String) -> some View {
+        VStack(spacing: 8) {
+            AnimatedNumberView(
+                value: value,
+                font: .system(size: 28, weight: .bold, design: .rounded),
+                fontWeight: .bold,
+                textColor: .white
+            )
+            .frame(height: 32)
+            .overlay(alignment: .topTrailing) {
+                if diff > 0 {
+                    Text("+\(diff)")
+                        .font(.system(size: 10, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.green)
+                        .offset(x: 20, y: -2)
+                }
+            }
+
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
     private var rateAppSection: some View {
         Button {
-            requestReview()
+            if let url = URL(string: "https://apps.apple.com/app/id6758759908?action=write-review") {
+                UIApplication.shared.open(url)
+            }
         } label: {
             HStack(alignment: .center, spacing: 16) {
                 VStack(alignment: .leading, spacing: 8) {
@@ -408,7 +501,6 @@ struct SettingsView: View {
                     Text(String(localized: "settings.rateApp.description"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                        .lineLimit(2)
 
                     // 星星
                     HStack(spacing: 4) {

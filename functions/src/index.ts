@@ -14,3 +14,4 @@ export {onPackageStatusChange} from "./triggers";
 export {dailyPickupReminder} from "./dailyReminder";
 export {onSystemAlertCreated} from "./alertEmail";
 export {analyzePackageImage, getAIUsage} from "./geminiProxy";
+export {updateAppStats} from "./statsAggregator";

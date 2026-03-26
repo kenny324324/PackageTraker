@@ -100,6 +100,11 @@
 "settings.title" = "设置";
 "settings.about" = "关于";
 "settings.developer" = "开发者";
+"settings.community" = "取货吧社群";
+"settings.stats.users.label" = "使用者";
+"settings.stats.packages.label" = "追踪包裹";
+"settings.stats.delivered.label" = "已送达 🎉";
+"settings.stats.updateInterval" = "每小时更新一次";
 "settings.rateApp" = "给予评分";
 "settings.rateApp.title" = "评分取货吧";
 "settings.rateApp.description" = "如果你觉得取货吧对你有帮助，请帮我们写个好评，非常感谢 :)";
