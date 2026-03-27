@@ -164,8 +164,7 @@ struct PackageTrakerApp: App {
                     .animation(.easeInOut(duration: 0.3), value: NetworkMonitor.shared.isConnected)
                 }
             }
-            // appFlow 轉場動畫已由 withAnimation(.easeOut) 驅動，不需要額外 .animation
-            // NetworkMonitor 動畫由 overlay 內的 .transition 處理
+            .animation(.easeOut(duration: 0.4), value: appFlow)
             .preferredColorScheme(.dark)
             .task {
                 let result = await ForceUpdateService.shared.checkForUpdate()

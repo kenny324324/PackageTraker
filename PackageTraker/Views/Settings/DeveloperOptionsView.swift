@@ -185,6 +185,19 @@ struct DeveloperOptionsView: View {
                 Text("重置本地每日掃描次數快取。終身方案不受次數限制。")
             }
 
+            // MARK: - 動畫預覽
+            Section {
+                NavigationLink {
+                    OrbAnimationPreviewView()
+                } label: {
+                    Label("光球動畫預覽", systemImage: "sparkles")
+                }
+            } header: {
+                Text("動畫預覽")
+            } footer: {
+                Text("預覽 AI 掃描光球動畫效果，可切換不同階段。不消耗 API 額度。")
+            }
+
             // MARK: - 系統資訊
             Section {
                 HStack {
@@ -430,10 +443,89 @@ struct DeveloperOptionsView: View {
     }
 }
 
+// MARK: - 光球動畫預覽頁
+
+/// 獨立預覽 OrganicOrbAnimation，可切換階段，不消耗 API
+struct OrbAnimationPreviewView: View {
+    @State private var stage: AIScanningView.ScanStage = .aiRecognition
+
+    var body: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                Spacer()
+
+                OrganicOrbAnimation(stage: stage)
+                    .frame(height: 280)
+
+                Spacer()
+                    .frame(height: 40)
+
+                // 階段標示
+                Text(stageName)
+                    .font(.title3)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.white)
+                    .contentTransition(.numericText())
+                    .animation(.easeInOut(duration: 0.4), value: stage)
+
+                Spacer()
+
+                // 階段切換按鈕
+                HStack(spacing: 12) {
+                    stageButton("AI 辨識", stage: .aiRecognition, color: .purple)
+                    stageButton("API 驗證", stage: .apiVerification, color: .blue)
+                    stageButton("完成", stage: .complete, color: .green)
+                    stageButton("失敗", stage: .failed, color: .red)
+                }
+                .padding(.bottom, 60)
+            }
+        }
+        .navigationTitle("光球動畫")
+        .navigationBarTitleDisplayMode(.inline)
+        .preferredColorScheme(.dark)
+    }
+
+    private var stageName: String {
+        switch stage {
+        case .aiRecognition: return "AI 辨識中"
+        case .apiVerification: return "API 驗證中"
+        case .complete: return "完成"
+        case .failed: return "失敗"
+        }
+    }
+
+    private func stageButton(_ title: String, stage: AIScanningView.ScanStage, color: Color) -> some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.5)) {
+                self.stage = stage
+            }
+        } label: {
+            Text(title)
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .foregroundStyle(self.stage == stage ? .white : .white.opacity(0.6))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(
+                    Capsule()
+                        .fill(self.stage == stage ? color.opacity(0.5) : .white.opacity(0.1))
+                )
+        }
+    }
+}
+
 #Preview {
     NavigationStack {
         DeveloperOptionsView()
     }
     .modelContainer(for: Package.self, inMemory: true)
+}
+
+#Preview("Orb Preview") {
+    NavigationStack {
+        OrbAnimationPreviewView()
+    }
 }
 #endif

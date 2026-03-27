@@ -22,6 +22,7 @@ struct AIScanningView: View {
         case aiRecognition
         case apiVerification
         case complete
+        case failed
     }
 
     // 結果
@@ -54,9 +55,10 @@ struct AIScanningView: View {
             VStack(spacing: 0) {
                 Spacer()
 
-                // 有機光影球動畫
+                // 有機光影球動畫（阻止 loadingStage 的隱式 layout 動畫）
                 OrganicOrbAnimation(stage: loadingStage)
                     .frame(height: 280)
+                    .animation(nil, value: loadingStage)
 
                 Spacer()
                     .frame(height: 40)
@@ -76,6 +78,7 @@ struct AIScanningView: View {
                         .contentTransition(.numericText())
                         .animation(.easeInOut(duration: 0.4), value: loadingStage)
                 }
+                .frame(height: 50)
 
                 Spacer()
             }
@@ -171,6 +174,8 @@ struct AIScanningView: View {
             return String(localized: "addMethod.loading.apiVerification")
         case .complete:
             return String(localized: "query.found")
+        case .failed:
+            return String(localized: "ai.error.title")
         }
     }
 
@@ -180,7 +185,7 @@ struct AIScanningView: View {
             return String(localized: "addMethod.loading.aiRecognitionDesc")
         case .apiVerification:
             return String(localized: "addMethod.loading.apiVerificationDesc")
-        case .complete:
+        case .complete, .failed:
             return ""
         }
     }
@@ -284,11 +289,15 @@ struct AIScanningView: View {
         } catch is CancellationError {
             print("🚫 [AIScanningView] Task 被取消 (CancellationError)！")
             AnalyticsService.logAIScanFailed(errorType: "cancelled")
+            withAnimation { loadingStage = .failed }
+            UINotificationFeedbackGenerator().notificationOccurred(.error)
             errorMessage = String(localized: "error.networkError")
             showError = true
         } catch let urlError as URLError where urlError.code == .cancelled {
             print("🚫 [AIScanningView] URLSession 被取消 (URLError.cancelled)！")
             AnalyticsService.logAIScanFailed(errorType: "url_cancelled")
+            withAnimation { loadingStage = .failed }
+            UINotificationFeedbackGenerator().notificationOccurred(.error)
             errorMessage = String(localized: "error.networkError")
             showError = true
         } catch {
@@ -318,6 +327,8 @@ struct AIScanningView: View {
                 errorType = "unknown"
             }
             AnalyticsService.logAIScanFailed(errorType: errorType)
+            withAnimation { loadingStage = .failed }
+            UINotificationFeedbackGenerator().notificationOccurred(.error)
             errorMessage = friendlyErrorMessage(for: error)
             showError = true
         }
@@ -405,7 +416,7 @@ struct OrganicOrbAnimation: View {
 
     // 動畫參數
     @State private var phase: CGFloat = 0
-    @State private var breatheScale: CGFloat = 1.0
+    @State private var breatheOpacity: CGFloat = 1.0
     @State private var innerRotation: Double = 0
     @State private var outerRotation: Double = 0
 
@@ -429,36 +440,40 @@ struct OrganicOrbAnimation: View {
                 Color(red: 0.1, green: 0.6, blue: 0.7),
                 Color(red: 0.3, green: 0.9, blue: 0.6)
             ]
+        case .failed:
+            return [
+                Color(red: 0.9, green: 0.15, blue: 0.15),
+                Color(red: 0.8, green: 0.1, blue: 0.3),
+                Color(red: 1.0, green: 0.25, blue: 0.2)
+            ]
         }
     }
 
     var body: some View {
+        // .drawingGroup() 將整個 ZStack 合成為單一 Metal 渲染層
+        // rotation/blur/offset 全在 GPU 繪圖層處理，不影響 SwiftUI layout bounds
         ZStack {
             // 外層光暈
             ForEach(0..<3, id: \.self) { i in
-                Ellipse()
+                Circle()
                     .fill(
                         RadialGradient(
                             colors: [
-                                primaryColors[i % primaryColors.count].opacity(0.3),
-                                primaryColors[i % primaryColors.count].opacity(0.05),
+                                primaryColors[i % primaryColors.count].opacity(0.2),
+                                primaryColors[i % primaryColors.count].opacity(0.06),
+                                primaryColors[i % primaryColors.count].opacity(0.02),
                                 .clear
                             ],
                             center: .center,
-                            startRadius: 20,
-                            endRadius: 120
+                            startRadius: 10,
+                            endRadius: 140
                         )
                     )
                     .frame(width: 200 + CGFloat(i) * 30,
-                           height: 180 + CGFloat(i) * 20)
+                           height: 200 + CGFloat(i) * 30)
                     .rotationEffect(.degrees(outerRotation + Double(i) * 120))
-                    .offset(
-                        x: sin(phase + Double(i) * 2.1) * 8,
-                        y: cos(phase + Double(i) * 1.7) * 6
-                    )
-                    .blur(radius: 20 + CGFloat(i) * 5)
-                    .animation(.linear(duration: 20).repeatForever(autoreverses: false), value: outerRotation)
-                    .animation(.linear(duration: 6).repeatForever(autoreverses: false), value: phase)
+                    .blur(radius: 14 + CGFloat(i) * 4)
+                    .animation(.linear(duration: 40).repeatForever(autoreverses: false), value: outerRotation)
             }
 
             // 中層流體光球
@@ -468,77 +483,79 @@ struct OrganicOrbAnimation: View {
                         .fill(
                             RadialGradient(
                                 colors: [
-                                    primaryColors[i % primaryColors.count].opacity(0.6),
-                                    primaryColors[(i + 1) % primaryColors.count].opacity(0.2),
+                                    primaryColors[i % primaryColors.count].opacity(0.4),
+                                    primaryColors[(i + 1) % primaryColors.count].opacity(0.12),
+                                    primaryColors[(i + 2) % primaryColors.count].opacity(0.04),
                                     .clear
                                 ],
                                 center: UnitPoint(
-                                    x: 0.5 + sin(phase + Double(i) * 1.5) * 0.2,
-                                    y: 0.5 + cos(phase + Double(i) * 1.8) * 0.2
+                                    x: 0.5 + sin(phase + Double(i) * 1.5) * 0.15,
+                                    y: 0.5
                                 ),
                                 startRadius: 5,
-                                endRadius: 60
+                                endRadius: 70
                             )
                         )
-                        .frame(width: 100, height: 100)
-                        .offset(
-                            x: sin(phase + Double(i) * 1.6) * 15,
-                            y: cos(phase + Double(i) * 2.0) * 12
-                        )
+                        .frame(width: 110, height: 110)
+                        .offset(x: sin(phase + Double(i) * 1.6) * 12)
                         .blur(radius: 8)
-                        .animation(.linear(duration: 6).repeatForever(autoreverses: false), value: phase)
+                        .animation(.linear(duration: 14).repeatForever(autoreverses: false), value: phase)
                 }
             }
-            .scaleEffect(breatheScale)
+            .opacity(breatheOpacity)
             .rotationEffect(.degrees(innerRotation))
-            .animation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true), value: breatheScale)
-            .animation(.linear(duration: 12).repeatForever(autoreverses: false), value: innerRotation)
+            .animation(.easeInOut(duration: 3.5).repeatForever(autoreverses: true), value: breatheOpacity)
+            .animation(.linear(duration: 24).repeatForever(autoreverses: false), value: innerRotation)
 
             // 核心光點
             Circle()
                 .fill(
                     RadialGradient(
                         colors: [
-                            .white.opacity(0.9),
-                            .white.opacity(0.4),
-                            primaryColors[0].opacity(0.3),
+                            .white.opacity(0.7),
+                            .white.opacity(0.25),
+                            primaryColors[0].opacity(0.15),
                             .clear
                         ],
                         center: .center,
                         startRadius: 2,
-                        endRadius: 35
+                        endRadius: 40
                     )
                 )
-                .frame(width: 70, height: 70)
-                .scaleEffect(breatheScale)
-                .blur(radius: 2)
-                .animation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true), value: breatheScale)
+                .frame(width: 80, height: 80)
+                .opacity(breatheOpacity)
+                .blur(radius: 3)
+                .animation(.easeInOut(duration: 3.5).repeatForever(autoreverses: true), value: breatheOpacity)
 
-            // 只在完成顯示中心圖標，辨識中不顯示星星
+            // 完成 / 失敗圖標
             if stage == .complete {
                 Image(systemName: "checkmark")
                     .font(.system(size: 24, weight: .medium))
                     .foregroundStyle(.white)
-                    .scaleEffect(breatheScale * 0.9)
                     .shadow(color: .white.opacity(0.5), radius: 8)
-                    .animation(.easeInOut(duration: 2.5).repeatForever(autoreverses: true), value: breatheScale)
+            } else if stage == .failed {
+                Image(systemName: "xmark")
+                    .font(.system(size: 24, weight: .medium))
+                    .foregroundStyle(.white)
+                    .shadow(color: .white.opacity(0.5), radius: 8)
             }
         }
+        .frame(width: 280, height: 280)
+        .drawingGroup()
         .onAppear {
             startAnimations()
         }
         .onChange(of: stage) { _, _ in
-            // 階段切換時加一個彈跳
-            breatheScale = 1.15
+            breatheOpacity = 1.0
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                breatheScale = 1.0
+                breatheOpacity = 0.7
             }
         }
     }
 
     private func startAnimations() {
         // 直接設值，動畫由各元素的 .animation(value:) 驅動，避免 withAnimation 洩漏
-        breatheScale = 1.08
+        breatheOpacity = 0.7
         innerRotation = 360
         outerRotation = -360
         phase = .pi * 2

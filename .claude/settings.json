@@ -2,7 +2,15 @@
   "permissions": {
     "allow": [
       "Bash(git status:*)",
-      "Read(//Applications/**)"
+      "Read(//Applications/**)",
+      "Bash(xcrun simctl:*)",
+      "Bash(timeout 30 firebase functions:shell)",
+      "Bash(printf 'updateAppStats\\({}\\)\\\\n')",
+      "Bash(timeout 45 firebase functions:shell)",
+      "Bash(timeout 60 firebase functions:shell)",
+      "Bash(node -e \":*)",
+      "Bash(firebase setup:emulators:firestore)",
+      "Bash(firebase emulators:exec --only firestore \"echo test\")"
     ],
     "additionalDirectories": [
       "/Users/jonathanyu/Library/Developer/Xcode/DerivedData/PackageTraker-fkrwlhiqmnwpitbxaytwxrenrxxt"
