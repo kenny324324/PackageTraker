@@ -56,7 +56,9 @@ final class FirebasePushService: NSObject, ObservableObject {
 
         let defaults = UserDefaults.standard
         do {
-            try await db.collection("users").document(userId).setData([
+            // 必須使用 updateData — setData(merge:true) 會把 dot-notation key 當作字面欄位名，
+            // 而 updateData 才會正確解析成巢狀 field path（fcmTokens -> deviceId -> ...）
+            try await db.collection("users").document(userId).updateData([
                 "fcmTokens.\(deviceId)": [
                     "token": token,
                     "lastActive": FieldValue.serverTimestamp(),
@@ -66,9 +68,9 @@ final class FirebasePushService: NSObject, ObservableObject {
                         "shippedNotification": defaults.bool(forKey: "shippedNotificationEnabled"),
                         "pickupReminder": defaults.bool(forKey: "pickupReminderEnabled")
                     ]
-                ],
+                ] as [String: Any],
                 "lastActive": FieldValue.serverTimestamp()
-            ], merge: true)
+            ])
             print("[FCM] ✅ Token uploaded for device \(deviceId)")
         } catch {
             print("[FCM] ❌ Failed to upload token: \(error.localizedDescription)")
@@ -91,9 +93,9 @@ final class FirebasePushService: NSObject, ObservableObject {
 
         Task {
             do {
-                try await db.collection("users").document(userId).setData([
+                try await db.collection("users").document(userId).updateData([
                     "fcmTokens.\(deviceId).notificationSettings": settings
-                ], merge: true)
+                ])
                 print("[FCM] ✅ Device notification settings synced")
             } catch {
                 print("[FCM] ❌ Failed to sync notification settings: \(error.localizedDescription)")
