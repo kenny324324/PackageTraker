@@ -21,6 +21,8 @@
 		31FB3D692F39959A00104C5C /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 31FB3D682F39959A00104C5C /* FirebaseMessaging */; };
 		31FB3D6B2F39967700104C5C /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 31FB3D6A2F39967700104C5C /* GoogleService-Info.plist */; };
 		32A4D1B92F5B8C4100F6AA01 /* FluidGradient in Frameworks */ = {isa = PBXBuildFile; productRef = 32A4D1BA2F5B8C4100F6AA01 /* FluidGradient */; };
+		32B4A1022F850A0100A1B2C3 /* SpriteKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 32B4A1012F850A0100A1B2C3 /* SpriteKit.framework */; };
+		32B4A1042F850A0100A1B2C3 /* CoreMotion.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 32B4A1032F850A0100A1B2C3 /* CoreMotion.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -73,6 +75,8 @@
 		31F66DE62F309B9E0068C3FB /* PackageTrakerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PackageTrakerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		31F66DF02F309B9E0068C3FB /* PackageTrakerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PackageTrakerUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		31FB3D6A2F39967700104C5C /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		32B4A1012F850A0100A1B2C3 /* SpriteKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SpriteKit.framework; path = System/Library/Frameworks/SpriteKit.framework; sourceTree = SDKROOT; };
+		32B4A1032F850A0100A1B2C3 /* CoreMotion.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMotion.framework; path = System/Library/Frameworks/CoreMotion.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -148,6 +152,8 @@
 				31870CFC2F4EC6A6003666F3 /* FirebaseCrashlytics in Frameworks */,
 				31FB3D672F39959A00104C5C /* FirebaseFirestore in Frameworks */,
 				318658322F3C6F3F00CAC4AC /* StoreKit.framework in Frameworks */,
+				32B4A1022F850A0100A1B2C3 /* SpriteKit.framework in Frameworks */,
+				32B4A1042F850A0100A1B2C3 /* CoreMotion.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -172,6 +178,8 @@
 			isa = PBXGroup;
 			children = (
 				318658312F3C6F3F00CAC4AC /* StoreKit.framework */,
+				32B4A1012F850A0100A1B2C3 /* SpriteKit.framework */,
+				32B4A1032F850A0100A1B2C3 /* CoreMotion.framework */,
 				31D4CE602F5A921B00476EED /* WidgetKit.framework */,
 				31D4CE622F5A921B00476EED /* SwiftUI.framework */,
 			);
@@ -483,7 +491,7 @@
 				CODE_SIGN_ENTITLEMENTS = PackageTrakerWidget/PackageTrakerWidget.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 260326;
+				CURRENT_PROJECT_VERSION = 260330;
 				DEVELOPMENT_TEAM = 5353WH6FVX;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = PackageTrakerWidget/Info.plist;
@@ -495,7 +503,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.2;
+				MARKETING_VERSION = 1.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kenny.PackageTraker.PackageTrakerWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -517,7 +525,7 @@
 				CODE_SIGN_ENTITLEMENTS = PackageTrakerWidget/PackageTrakerWidget.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 260326;
+				CURRENT_PROJECT_VERSION = 260330;
 				DEVELOPMENT_TEAM = 5353WH6FVX;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = PackageTrakerWidget/Info.plist;
@@ -529,7 +537,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.2;
+				MARKETING_VERSION = 1.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kenny.PackageTraker.PackageTrakerWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -672,7 +680,7 @@
 				CODE_SIGN_ENTITLEMENTS = PackageTraker/PackageTraker.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 260326;
+				CURRENT_PROJECT_VERSION = 260330;
 				DEVELOPMENT_TEAM = 5353WH6FVX;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -685,7 +693,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.2;
+				MARKETING_VERSION = 1.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kenny.PackageTraker;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -707,7 +715,7 @@
 				CODE_SIGN_ENTITLEMENTS = PackageTraker/PackageTraker.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 260326;
+				CURRENT_PROJECT_VERSION = 260330;
 				DEVELOPMENT_TEAM = 5353WH6FVX;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -720,7 +728,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.2;
+				MARKETING_VERSION = 1.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kenny.PackageTraker;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -739,11 +747,11 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 260326;
+				CURRENT_PROJECT_VERSION = 260330;
 				DEVELOPMENT_TEAM = 5353WH6FVX;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
-				MARKETING_VERSION = 1.2;
+				MARKETING_VERSION = 1.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kenny.PackageTrakerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
@@ -761,11 +769,11 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 260326;
+				CURRENT_PROJECT_VERSION = 260330;
 				DEVELOPMENT_TEAM = 5353WH6FVX;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
-				MARKETING_VERSION = 1.2;
+				MARKETING_VERSION = 1.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kenny.PackageTrakerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
@@ -782,10 +790,10 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 260326;
+				CURRENT_PROJECT_VERSION = 260330;
 				DEVELOPMENT_TEAM = 5353WH6FVX;
 				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.2;
+				MARKETING_VERSION = 1.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kenny.PackageTrakerUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
@@ -802,10 +810,10 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 260326;
+				CURRENT_PROJECT_VERSION = 260330;
 				DEVELOPMENT_TEAM = 5353WH6FVX;
 				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.2;
+				MARKETING_VERSION = 1.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kenny.PackageTrakerUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;

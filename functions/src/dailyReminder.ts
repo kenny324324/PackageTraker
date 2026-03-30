@@ -10,6 +10,7 @@ import {onSchedule} from "firebase-functions/v2/scheduler";
 import {getFirestore, FieldValue} from "firebase-admin/firestore";
 import {logger} from "firebase-functions/v2";
 import {sendPushToAllDevices, extractAllTokens} from "./services/pushNotification";
+import {logNotification} from "./services/notificationLogger";
 import {getDailyReminderText, normalizeLang} from "./i18n/notifications";
 
 export const dailyPickupReminder = onSchedule(
@@ -88,6 +89,20 @@ export const dailyPickupReminder = onSchedule(
           count: String(pendingPackages.length),
         },
       }, "pickupReminder");
+
+      // 寫入通知日誌
+      await logNotification({
+        userId,
+        type: "dailyReminder",
+        title: text.title,
+        body: text.body,
+        targetDeviceCount: tokens.length,
+        failedDeviceIds,
+        success: tokens.length > 0 && failedDeviceIds.length < tokens.length,
+        metadata: {
+          reminderPackageCount: pendingPackages.length,
+        },
+      });
 
       // 清理失效的 token
       if (failedDeviceIds.length > 0) {

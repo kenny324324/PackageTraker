@@ -31,6 +31,8 @@
 	</array>
 	<key>GIDClientID</key>
 	<string>148590699171-818pb3egia5prvvrel89h923e69dhul1.apps.googleusercontent.com</string>
+	<key>NSMotionUsageDescription</key>
+	<string>傾斜手機來移動包裹球</string>
 	<key>NSUserNotificationsUsageDescription</key>
 	<string>我們需要通知權限來提醒您包裹到貨和取貨</string>
 	<key>UIBackgroundModes</key>

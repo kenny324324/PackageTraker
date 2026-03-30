@@ -198,6 +198,25 @@ struct DeveloperOptionsView: View {
                 Text("預覽 AI 掃描光球動畫效果，可切換不同階段。不消耗 API 額度。")
             }
 
+            // MARK: - Admin
+            Section {
+                NavigationLink {
+                    AdminStatsView()
+                } label: {
+                    Label("資料庫統計", systemImage: "chart.bar.doc.horizontal")
+                }
+
+                NavigationLink {
+                    NotificationLogsView()
+                } label: {
+                    Label("通知記錄", systemImage: "bell.and.waves.left.and.right")
+                }
+            } header: {
+                Text("Admin")
+            } footer: {
+                Text("查看所有使用者與訂閱統計、通知發送記錄。需要網路連線，載入可能較慢。")
+            }
+
             // MARK: - 系統資訊
             Section {
                 HStack {

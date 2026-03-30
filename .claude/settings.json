@@ -10,7 +10,11 @@
       "Bash(timeout 60 firebase functions:shell)",
       "Bash(node -e \":*)",
       "Bash(firebase setup:emulators:firestore)",
-      "Bash(firebase emulators:exec --only firestore \"echo test\")"
+      "Bash(firebase emulators:exec --only firestore \"echo test\")",
+      "Bash(plutil -lint \"/Users/jonathanyu/Desktop/Side Project/Swift/PackageTraker/PackageTraker.xcodeproj/project.pbxproj\")",
+      "Bash(gcloud functions:*)",
+      "Bash(GOOGLE_APPLICATION_CREDENTIALS=\"\" node -e \":*)",
+      "Bash(GOOGLE_APPLICATION_CREDENTIALS=\"$HOME/.config/firebase/jonathan3240601_gmail_com_application_default_credentials.json\" node -e \":*)"
     ],
     "additionalDirectories": [
       "/Users/jonathanyu/Library/Developer/Xcode/DerivedData/PackageTraker-fkrwlhiqmnwpitbxaytwxrenrxxt"

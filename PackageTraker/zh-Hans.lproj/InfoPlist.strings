@@ -5,4 +5,5 @@
 
 "CFBundleDisplayName" = "取货吧";
 "CFBundleName" = "取货吧";
+"NSMotionUsageDescription" = "倾斜手机来移动包裹球";
 "NSUserNotificationsUsageDescription" = "我们需要通知权限来提醒您包裹到货和取货";

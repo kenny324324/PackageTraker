@@ -101,8 +101,10 @@ firebase deploy --only functions                 # Deploy to Firebase
 
 - `MainTabView.swift` - 3 tabs: PackageList (0), History (1), Settings (2). Uses `@Binding var selectedTab: Int` from `PackageTrakerApp`
 - `SplashView.swift` - Cold start animation for already-authenticated users
-- Subdirectories per feature: `Auth/`, `PackageList/`, `AddPackage/`, `AI/`, `PackageDetail/`, `History/`, `Settings/`, `Subscription/`
+- Subdirectories per feature: `Auth/`, `PackageList/`, `AddPackage/`, `AI/`, `PackageDetail/`, `History/`, `Settings/`, `Subscription/`, `Stats/`
 - AI scanning flow: `AddMethodSheet` → `AICarrierSelectView` (user picks carrier) → `AIScanningView` → `AIQuickAddSheet` → `PackageInfoView`
+- Stats views (`Views/Stats/`): `PersonalStatsView` (free: jar + highlights + carrier ranking + monthly trend; Pro: spending analytics + delivery speed), `AllCarriersStatsView`, `AllCarrierSpendingView`, `AllDeliverySpeedView`, `PlatformSpendingChartView` (donut chart)
+- Pro stats overlay: `.proStatsOverlay()` modifier (blur + lock + PaywallView) — defined in `ProStatsOverlay.swift`
 
 ### Widget Extension (`PackageTrakerWidget/`)
 

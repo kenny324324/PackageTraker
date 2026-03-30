@@ -16,6 +16,7 @@ import {
   extractAllTokens,
   NotificationType,
 } from "./services/pushNotification";
+import {logNotification} from "./services/notificationLogger";
 import {getNotificationText, normalizeLang} from "./i18n/notifications";
 import {getCarrierDisplayName} from "./utils/carrierNames";
 
@@ -119,6 +120,22 @@ export const onPackageStatusChange = onDocumentUpdated(
         status: after.status,
       },
     }, notificationType);
+
+    // 寫入通知日誌
+    await logNotification({
+      userId,
+      type: "statusChange",
+      title: text.title,
+      body: text.body,
+      targetDeviceCount: tokens.length,
+      failedDeviceIds,
+      success: tokens.length > 0 && failedDeviceIds.length < tokens.length,
+      metadata: {
+        packageId,
+        trackingNumber: after.trackingNumber || "",
+        status: after.status,
+      },
+    });
 
     // 清理失效的 token
     if (failedDeviceIds.length > 0) {

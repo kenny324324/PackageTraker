@@ -17,22 +17,34 @@ struct MainTabView: View {
                 }
                 .tag(0)
 
+            // 個人統計
+            NavigationStack {
+                PersonalStatsView()
+            }
+                .tabItem {
+                    Label(String(localized: "tab.stats"), systemImage: "chart.bar.fill")
+                }
+                .tag(1)
+
             // 歷史記錄
             HistoryView()
                 .tabItem {
                     Label(String(localized: "tab.history"), systemImage: "archivebox")
                 }
-                .tag(1)
+                .tag(2)
 
             // 設定
             SettingsView()
                 .tabItem {
                     Label(String(localized: "tab.settings"), systemImage: "gearshape.fill")
                 }
-                .tag(2)
+                .tag(3)
         }
         .tint(themeManager.currentColor)
         .preferredColorScheme(.dark)
+        .onChange(of: selectedTab) {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        }
     }
 }
 

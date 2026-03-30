@@ -5,4 +5,5 @@
 
 "CFBundleDisplayName" = "Pickup";
 "CFBundleName" = "Pickup";
+"NSMotionUsageDescription" = "Tilt your phone to move the package balls around.";
 "NSUserNotificationsUsageDescription" = "We need notification permissions to alert you when packages arrive and remind you to pick them up.";

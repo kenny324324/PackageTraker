@@ -6,6 +6,7 @@
 // Tab Bar
 "tab.packages" = "包裹";
 "tab.history" = "歷史";
+"tab.stats" = "統計";
 "tab.settings" = "設定";
 
 // Home
@@ -101,13 +102,36 @@
 "settings.about" = "關於";
 "settings.developer" = "開發者";
 // 個人統計
-"settings.personalStats" = "我的統計";
 "stats.personal.title" = "我的統計";
-"stats.personal.totalPackages" = "總包裹數";
-"stats.personal.activePackages" = "追蹤中";
 "stats.personal.topCarriers" = "常用物流商";
 "stats.personal.monthlyTrend" = "每月趨勢";
 "stats.personal.empty" = "開始追蹤包裹來查看統計";
+"stats.personal.viewAll" = "查看全部";
+"stats.allCarriers.title" = "全部物流商";
+// Pro 消費分析
+"stats.spending.title" = "消費分析";
+"stats.spending.highlight.title" = "本月消費";
+"stats.spending.trend.title" = "每月消費";
+"stats.spending.platform.title" = "購物平台";
+"stats.spending.carrier.title" = "物流商消費";
+"stats.delivery.speed.title" = "配送速度";
+"stats.spending.deltaUp.%@" = "較上月 ↑%@";
+"stats.spending.deltaDown.%@" = "較上月 ↓%@";
+"stats.spending.deltaFlat" = "與上月持平";
+"stats.spending.noData" = "尚無消費資料";
+"stats.spending.platform.other" = "其他";
+"stats.delivery.speed.days.%@" = "%@ 天";
+"stats.pro.unlock" = "升級 PRO 解鎖";
+// 個人高光
+"stats.highlight.title" = "個人高光時刻";
+"stats.highlight.bannerPrefix" = "你已超越 ";
+"stats.highlight.bannerSuffix" = "% 的使用者！";
+"stats.highlight.favoriteCarrier" = "最愛物流商";
+"stats.highlight.carrierPercent.%lld" = "佔了你 %lld%% 的包裹";
+"stats.highlight.peakMonth" = "收貨高峰";
+"stats.highlight.peakMonthCount.%lld" = "共收了 %lld 個包裹";
+"stats.highlight.trackingDays" = "追蹤天數";
+"stats.highlight.dayUnit" = "天";
 
 "settings.community" = "取貨吧社群";
 "settings.stats.users.label" = "使用者";

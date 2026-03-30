@@ -26,5 +26,5 @@ struct FeatureFlags {
     static let widgetEnabled = true
 
     /// 個人統計儀表板（未來上線）
-    static let personalStatsEnabled = false
+    static let personalStatsEnabled = true
 }

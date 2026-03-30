@@ -6,6 +6,7 @@
 // Tab Bar
 "tab.packages" = "Packages";
 "tab.history" = "History";
+"tab.stats" = "Stats";
 "tab.settings" = "Settings";
 
 // Home
@@ -101,13 +102,36 @@
 "settings.about" = "About";
 "settings.developer" = "Developer";
 // Personal Stats
-"settings.personalStats" = "My Statistics";
 "stats.personal.title" = "My Statistics";
-"stats.personal.totalPackages" = "Total Packages";
-"stats.personal.activePackages" = "Active";
 "stats.personal.topCarriers" = "Most Used Carriers";
 "stats.personal.monthlyTrend" = "Monthly Trend";
 "stats.personal.empty" = "Start tracking to see your statistics";
+"stats.personal.viewAll" = "View All";
+"stats.allCarriers.title" = "All Carriers";
+// Pro Spending Analytics
+"stats.spending.title" = "Spending Analytics";
+"stats.spending.highlight.title" = "This Month";
+"stats.spending.trend.title" = "Monthly Spending";
+"stats.spending.platform.title" = "Platforms";
+"stats.spending.carrier.title" = "Carrier Spending";
+"stats.delivery.speed.title" = "Delivery Speed";
+"stats.spending.deltaUp.%@" = "↑%@ vs last month";
+"stats.spending.deltaDown.%@" = "↓%@ vs last month";
+"stats.spending.deltaFlat" = "Same as last month";
+"stats.spending.noData" = "No spending data";
+"stats.spending.platform.other" = "Other";
+"stats.delivery.speed.days.%@" = "%@ days";
+"stats.pro.unlock" = "Upgrade to PRO";
+// Highlights
+"stats.highlight.title" = "Highlights";
+"stats.highlight.bannerPrefix" = "You've surpassed ";
+"stats.highlight.bannerSuffix" = "% of users!";
+"stats.highlight.favoriteCarrier" = "Favorite Carrier";
+"stats.highlight.carrierPercent.%lld" = "Makes up %lld%% of your packages";
+"stats.highlight.peakMonth" = "Peak Month";
+"stats.highlight.peakMonthCount.%lld" = "Received %lld packages";
+"stats.highlight.trackingDays" = "Days Tracking";
+"stats.highlight.dayUnit" = "days";
 
 "settings.community" = "Pickup Community";
 "settings.stats.users.label" = "Users";
