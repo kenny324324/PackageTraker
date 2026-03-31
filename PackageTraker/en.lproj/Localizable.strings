@@ -61,6 +61,7 @@
 "query.cancelTitle" = "Leave Query";
 "query.cancelMessage" = "Still searching for your package. Are you sure you want to leave?";
 "query.cancelConfirm" = "Leave";
+"query.doNotLeave" = "Please keep the app open while processing";
 
 // Payment Method
 "payment.prepaid" = "Prepaid";
@@ -197,6 +198,7 @@
 "common.done" = "Done";
 "common.clear" = "Clear";
 "common.update" = "Update";
+"common.paste" = "Paste";
 
 // Error
 "error.duplicateTitle" = "Duplicate";

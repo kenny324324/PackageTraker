@@ -109,17 +109,15 @@ struct PackageListView: View {
                     }
                 )
             }
-            .fullScreenCover(isPresented: $showManualAdd, onDismiss: {
+            .sheet(isPresented: $showManualAdd, onDismiss: {
                 Task { await refreshPendingPackages() }
             }) {
                 AddPackageView()
             }
-            .fullScreenCover(isPresented: $showAICarrierSelect, onDismiss: {
+            .sheet(isPresented: $showAICarrierSelect, onDismiss: {
                 Task { await refreshPendingPackages() }
             }) {
-                AICarrierSelectView(onDismiss: {
-                    showAICarrierSelect = false
-                })
+                AICarrierSelectView()
             }
             .fullScreenCover(isPresented: $showPaywall, onDismiss: {
                 showAddMethodSheet = true

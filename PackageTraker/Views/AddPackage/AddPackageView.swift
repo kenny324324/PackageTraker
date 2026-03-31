@@ -2,16 +2,20 @@ import SwiftUI
 import SwiftData
 import PhotosUI
 
-// MARK: - ViewModel（用 class 持有狀態，避免 fullScreenCover 重建時 @State 被刷掉）
+// MARK: - ViewModel（封裝 OCR/PHPicker 相關邏輯）
 @Observable
 final class AddPackageViewModel {
     var trackingNumber = ""
     var selectedCarrier: Carrier?
     var selectedCategory: CarrierCategory = .convenienceStore
 
+    // 導航狀態（放在 class 內避免 view 重建時遺失）
+    var showQueryPage = false
+
     // OCR 相關狀態
     var isProcessingOCR = false
     var ocrResult: OCRResult?
+    var showOCRResultSheet = false
     var showOCRError = false
     var ocrErrorMessage = ""
 
@@ -54,35 +58,13 @@ final class AddPackageViewModel {
                     suggestedCarrier: candidate.suggestedCarrier
                 ))
             } else {
-                presentOCRResultSheet(result: result)
+                showOCRResultSheet = true
             }
         } catch {
             print("🔴 [OCR] OCR 錯誤: \(error)")
             ocrErrorMessage = error.localizedDescription
             showOCRError = true
         }
-    }
-
-    /// 用 UIKit 直接 present OCR 結果 sheet（繞過 SwiftUI .sheet 在 fullScreenCover 內的 bug）
-    @MainActor
-    func presentOCRResultSheet(result: OCRResult) {
-        guard let topVC = Self.topViewController() else { return }
-
-        let sheetView = OCRResultSheet(result: result) { [weak self] selection in
-            self?.handleOCRSelection(selection)
-            topVC.dismiss(animated: true)
-        }
-        .preferredColorScheme(.dark)
-
-        let hostingVC = UIHostingController(rootView: sheetView)
-        hostingVC.modalPresentationStyle = .pageSheet
-
-        if let sheet = hostingVC.sheetPresentationController {
-            sheet.detents = [.medium(), .large()]
-            sheet.prefersGrabberVisible = true
-        }
-
-        topVC.present(hostingVC, animated: true)
     }
 
     func handleOCRSelection(_ selection: OCRSelection) {
@@ -146,7 +128,6 @@ struct AddPackageView: View {
 
     @State private var vm = AddPackageViewModel()
 
-    @State private var showQueryPage = false
     @State private var showDuplicateAlert = false
     @State private var showPaywall = false
 
@@ -187,7 +168,7 @@ struct AddPackageView: View {
                         if existingPackages.contains(where: { $0.trackingNumber == normalized }) {
                             showDuplicateAlert = true
                         } else {
-                            showQueryPage = true
+                            vm.showQueryPage = true
                         }
                     }
                     .buttonStyle(.borderedProminent)
@@ -195,13 +176,13 @@ struct AddPackageView: View {
                     .disabled(vm.trackingNumber.isEmpty || vm.selectedCarrier == nil)
                 }
             }
-            .navigationDestination(isPresented: $showQueryPage) {
+            .navigationDestination(isPresented: $vm.showQueryPage) {
                 if let carrier = vm.selectedCarrier {
                     PackageQueryView(
                         trackingNumber: vm.trackingNumber.trimmingCharacters(in: .whitespacesAndNewlines).uppercased(),
                         carrier: carrier,
                         onComplete: { dismiss() },
-                        popToRoot: { showQueryPage = false }
+                        popToRoot: { vm.showQueryPage = false }
                     )
                 }
             }
@@ -217,6 +198,16 @@ struct AddPackageView: View {
             }
             .fullScreenCover(isPresented: $showPaywall) {
                 PaywallView()
+            }
+            .sheet(isPresented: $vm.showOCRResultSheet) {
+                if let result = vm.ocrResult {
+                    OCRResultSheet(result: result) { selection in
+                        vm.handleOCRSelection(selection)
+                        vm.showOCRResultSheet = false
+                    }
+                    .presentationDetents([.medium, .large])
+                    .preferredColorScheme(.dark)
+                }
             }
         }
         .interactiveDismissDisabled()
@@ -246,17 +237,32 @@ struct AddPackageView: View {
                         Text(String(localized: "add.ocrButton"))
                     }
                     .font(.subheadline)
-                    .foregroundStyle(Color.appAccent)
+                    .foregroundStyle(.white)
                 }
                 .disabled(vm.isProcessingOCR)
             }
 
-            TextField(String(localized: "add.trackingNumberPlaceholder"), text: $vm.trackingNumber)
-                .textFieldStyle(.plain)
-                .font(.system(size: 18, design: .monospaced))
-                .adaptiveInputStyle()
-                .autocorrectionDisabled()
-                .textInputAutocapitalization(.characters)
+            HStack {
+                TextField(String(localized: "add.trackingNumberPlaceholder"), text: $vm.trackingNumber)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 18, design: .monospaced))
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.characters)
+
+                if vm.trackingNumber.isEmpty, UIPasteboard.general.hasStrings {
+                    Button {
+                        if let text = UIPasteboard.general.string?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty {
+                            vm.trackingNumber = text
+                        }
+                    } label: {
+                        Label(String(localized: "common.paste"), systemImage: "doc.on.clipboard")
+                            .font(.subheadline)
+                            .foregroundStyle(.white)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .adaptiveInputStyle()
 
             Text(String(localized: "add.supportedCarriers"))
                 .font(.caption)

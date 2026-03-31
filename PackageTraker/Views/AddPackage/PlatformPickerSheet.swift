@@ -20,7 +20,7 @@ struct PlatformPickerSheet: View {
             VStack(spacing: 0) {
                 // 搜索框
                 searchBar
-                
+
                 // 平台列表
                 platformList
             }

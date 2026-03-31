@@ -61,6 +61,7 @@
 "query.cancelTitle" = "离开查询";
 "query.cancelMessage" = "正在寻找这件包裹，确定要离开吗？";
 "query.cancelConfirm" = "确定离开";
+"query.doNotLeave" = "处理中，请勿离开 APP 以免流程中断";
 
 // Payment Method
 "payment.prepaid" = "已付款";
@@ -197,6 +198,7 @@
 "common.done" = "完成";
 "common.clear" = "清除";
 "common.update" = "更新";
+"common.paste" = "粘贴";
 
 // Error
 "error.duplicateTitle" = "单号已存在";

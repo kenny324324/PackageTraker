@@ -61,6 +61,7 @@
 "query.cancelTitle" = "離開查詢";
 "query.cancelMessage" = "正在尋找這件包裹，確定要離開嗎？";
 "query.cancelConfirm" = "確定離開";
+"query.doNotLeave" = "處理中，請勿離開 APP 以免流程中斷";
 
 // Payment Method
 "payment.prepaid" = "已付款";
@@ -197,6 +198,7 @@
 "common.done" = "完成";
 "common.clear" = "清除";
 "common.update" = "更新";
+"common.paste" = "貼上";
 
 // Error
 "error.duplicateTitle" = "單號已存在";

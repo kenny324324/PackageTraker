@@ -1,6 +1,28 @@
 import SwiftUI
 import UIKit
 
+// MARK: - ViewModel（導航與查詢結果狀態，避免 view 重建時遺失）
+@Observable
+final class PackageQueryViewModel {
+    // 查詢結果 + 導航
+    var trackingResult: TrackingResult?
+    var fetchedRelationId: String?
+    var showStep2 = false
+
+    // 動畫狀態
+    var fillProgress: CGFloat = 0
+    var logoScale: CGFloat = 1.0
+    var isFound = false
+
+    // 錯誤處理
+    var showError = false
+    var errorMessage = ""
+    var showCancelAlert = false
+
+    // 防止 .task 重複執行
+    var queryStarted = false
+}
+
 /// 查詢包裹 — 中間過場頁面（填色動畫 + 自動導航）
 struct PackageQueryView: View {
     @Environment(\.dismiss) private var dismiss
@@ -15,24 +37,12 @@ struct PackageQueryView: View {
     var prefillPickupLocation: String? = nil
     var prefillPickupCode: String? = nil
 
-    // 動畫狀態
-    @State private var fillProgress: CGFloat = 0
-    @State private var logoScale: CGFloat = 1.0
-    @State private var isFound = false
-
-    // 查詢結果
-    @State private var trackingResult: TrackingResult?
-    @State private var fetchedRelationId: String?
-    @State private var showStep2 = false
-
-    // 錯誤處理
-    @State private var showError = false
-    @State private var errorMessage = ""
-    @State private var showCancelAlert = false
+    @State private var vm = PackageQueryViewModel()
 
     private let trackingManager = TrackingManager()
 
     var body: some View {
+        @Bindable var vm = vm
         VStack(spacing: 24) {
             Spacer()
 
@@ -56,21 +66,29 @@ struct PackageQueryView: View {
                             VStack(spacing: 0) {
                                 Spacer(minLength: 0)
                                 Rectangle()
-                                    .frame(height: geo.size.height * fillProgress)
+                                    .frame(height: geo.size.height * vm.fillProgress)
+                                    .animation(.easeOut(duration: 4.0), value: vm.fillProgress)
                             }
                         }
                     )
             }
-            .scaleEffect(logoScale)
+            .scaleEffect(vm.logoScale)
+            .animation(.spring(response: 0.35, dampingFraction: 0.5), value: vm.logoScale)
 
             // 狀態文字
-            Text(isFound ? String(localized: "query.found") : String(localized: "query.searching"))
+            Text(vm.isFound ? String(localized: "query.found") : String(localized: "query.searching"))
                 .font(.headline)
-                .foregroundStyle(isFound ? .primary : .secondary)
+                .foregroundStyle(vm.isFound ? .primary : .secondary)
                 .contentTransition(.numericText())
-                .animation(.easeInOut(duration: 0.3), value: isFound)
+                .animation(.easeInOut(duration: 0.3), value: vm.isFound)
 
             Spacer()
+
+            Text(String(localized: "query.doNotLeave"))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.bottom, 16)
+                .opacity(vm.isFound ? 0 : 1)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .adaptiveBackground()
@@ -80,7 +98,7 @@ struct PackageQueryView: View {
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button {
-                    showCancelAlert = true
+                    vm.showCancelAlert = true
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "chevron.left")
@@ -98,9 +116,9 @@ struct PackageQueryView: View {
                 .disabled(true)
             }
         }
-        .navigationDestination(isPresented: $showStep2) {
-            if let result = trackingResult,
-               let relationId = fetchedRelationId {
+        .navigationDestination(isPresented: $vm.showStep2) {
+            if let result = vm.trackingResult,
+               let relationId = vm.fetchedRelationId {
                 PackageInfoView(
                     trackingNumber: trackingNumber,
                     carrier: carrier,
@@ -114,14 +132,14 @@ struct PackageQueryView: View {
                 )
             }
         }
-        .alert(String(localized: "error.queryFailed"), isPresented: $showError) {
+        .alert(String(localized: "error.queryFailed"), isPresented: $vm.showError) {
             Button(String(localized: "common.confirm"), role: .cancel) {
                 dismiss()
             }
         } message: {
-            Text(errorMessage)
+            Text(vm.errorMessage)
         }
-        .alert(String(localized: "query.cancelTitle"), isPresented: $showCancelAlert) {
+        .alert(String(localized: "query.cancelTitle"), isPresented: $vm.showCancelAlert) {
             Button(String(localized: "common.cancel"), role: .cancel) { }
             Button(String(localized: "query.cancelConfirm"), role: .destructive) {
                 dismiss()
@@ -137,10 +155,11 @@ struct PackageQueryView: View {
     // MARK: - Query + Animation
 
     private func performQuery() async {
-        // 開始緩慢填色（背景動畫）
-        withAnimation(.easeOut(duration: 4.0)) {
-            fillProgress = 0.7
-        }
+        guard !vm.queryStarted else { return }
+        vm.queryStarted = true
+
+        // 開始緩慢填色（動畫由 Rectangle 上的 .animation() 驅動）
+        vm.fillProgress = 0.7
 
         do {
             let relationId = try await trackingManager.importPackage(number: trackingNumber, carrier: carrier)
@@ -148,45 +167,37 @@ struct PackageQueryView: View {
             let result = try await trackingManager.track(number: trackingNumber, carrier: carrier)
 
             if result.events.isEmpty {
-                errorMessage = String(localized: "error.noHistory")
-                showError = true
+                vm.errorMessage = String(localized: "error.noHistory")
+                vm.showError = true
                 return
             }
 
             // 查詢成功 → 儲存結果
-            trackingResult = result
-            fetchedRelationId = relationId
+            vm.trackingResult = result
+            vm.fetchedRelationId = relationId
 
             // 快速填滿
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                fillProgress = 1.0
-            }
+            vm.fillProgress = 1.0
 
             // 標記已找到
-            withAnimation {
-                isFound = true
-            }
+            vm.isFound = true
 
             // 震動回饋
             let generator = UINotificationFeedbackGenerator()
             generator.notificationOccurred(.success)
 
             // 彈跳動畫
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.5)) {
-                logoScale = 1.15
-            }
+            vm.logoScale = 1.15
             try? await Task.sleep(for: .milliseconds(200))
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                logoScale = 1.0
-            }
+            vm.logoScale = 1.0
 
             // 延遲後自動導航
             try? await Task.sleep(for: .milliseconds(800))
-            showStep2 = true
+            vm.showStep2 = true
 
         } catch {
-            errorMessage = mapErrorMessage(error)
-            showError = true
+            vm.errorMessage = mapErrorMessage(error)
+            vm.showError = true
         }
     }
 

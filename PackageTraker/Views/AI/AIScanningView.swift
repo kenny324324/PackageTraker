@@ -8,15 +8,38 @@
 import SwiftUI
 import SwiftData
 
+// MARK: - ViewModel（導航與結果狀態，避免 view 重建時遺失）
+@Observable
+final class AIScanningViewModel {
+    // 載入狀態
+    var loadingStage: AIScanningView.ScanStage = .aiRecognition
+
+    // 結果
+    var aiResult: AIVisionResult?
+    var apiTrackingResult: TrackingResult?
+    var apiRelationId: String?
+
+    // 導航
+    var navigateToQuickAdd = false
+    var workflowCompleted = false
+    var isProcessingWorkflow = false
+    var workflowTask: Task<Void, Never>?
+
+    // 錯誤
+    var showError = false
+    var errorMessage = ""
+    var isNoTrackingDataError = false
+    var isQuotaError = false
+    var showManualAdd = false
+    var showCancelConfirm = false
+}
+
 /// AI 掃描全頁面（全高，類似 PackageQueryView 的過場）
 struct AIScanningView: View {
     let carrier: Carrier       // 使用者選的物流商
     let image: UIImage
     let onDismiss: () -> Void  // 成功新增後關閉整個流程
     let onCancel: () -> Void   // 取消回到選擇頁
-
-    // 載入狀態
-    @State private var loadingStage: ScanStage = .aiRecognition
 
     enum ScanStage: Equatable {
         case aiRecognition
@@ -25,29 +48,13 @@ struct AIScanningView: View {
         case failed
     }
 
-    // 結果
-    @State private var aiResult: AIVisionResult?
-    @State private var apiTrackingResult: TrackingResult?
-    @State private var apiRelationId: String?
-
-    // 顯示結果
-    @State private var navigateToQuickAdd = false
-    @State private var workflowCompleted = false
-    @State private var isProcessingWorkflow = false
-    @State private var workflowTask: Task<Void, Never>?
-
-    // 錯誤
-    @State private var showError = false
-    @State private var errorMessage = ""
-    @State private var isNoTrackingDataError = false
-    @State private var isQuotaError = false
-    @State private var showManualAdd = false
-    @State private var showCancelConfirm = false
+    @State private var vm = AIScanningViewModel()
 
     private let trackingManager = TrackingManager()
     private let aiService = AIVisionService.shared
 
     var body: some View {
+        @Bindable var vm = vm
         ZStack {
             // 背景
             Color.black.ignoresSafeArea()
@@ -56,9 +63,9 @@ struct AIScanningView: View {
                 Spacer()
 
                 // 有機光影球動畫（阻止 loadingStage 的隱式 layout 動畫）
-                OrganicOrbAnimation(stage: loadingStage)
+                OrganicOrbAnimation(stage: vm.loadingStage)
                     .frame(height: 280)
-                    .animation(nil, value: loadingStage)
+                    .animation(nil, value: vm.loadingStage)
 
                 Spacer()
                     .frame(height: 40)
@@ -70,17 +77,23 @@ struct AIScanningView: View {
                         .fontWeight(.semibold)
                         .foregroundStyle(.white)
                         .contentTransition(.numericText())
-                        .animation(.easeInOut(duration: 0.4), value: loadingStage)
+                        .animation(.easeInOut(duration: 0.4), value: vm.loadingStage)
 
                     Text(stageSubtitle)
                         .font(.subheadline)
                         .foregroundStyle(.white.opacity(0.6))
                         .contentTransition(.numericText())
-                        .animation(.easeInOut(duration: 0.4), value: loadingStage)
+                        .animation(.easeInOut(duration: 0.4), value: vm.loadingStage)
                 }
                 .frame(height: 50)
 
                 Spacer()
+
+                Text(String(localized: "query.doNotLeave"))
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.4))
+                    .padding(.bottom, 16)
+                    .opacity(vm.loadingStage == .complete || vm.loadingStage == .failed ? 0 : 1)
             }
         }
         .navigationBarTitleDisplayMode(.inline)
@@ -88,64 +101,65 @@ struct AIScanningView: View {
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button(String(localized: "common.cancel")) {
-                    showCancelConfirm = true
+                    vm.showCancelConfirm = true
                 }
                 .foregroundStyle(.white)
             }
         }
-        .navigationDestination(isPresented: $navigateToQuickAdd) {
-            if let aiResult = aiResult,
-               let trackingResult = apiTrackingResult,
-               let relationId = apiRelationId {
+        .navigationDestination(isPresented: $vm.navigateToQuickAdd) {
+            if let aiResult = vm.aiResult,
+               let trackingResult = vm.apiTrackingResult,
+               let relationId = vm.apiRelationId {
                 AIQuickAddSheet(
                     aiResult: aiResult,
                     trackingResult: trackingResult,
                     relationId: relationId,
                     onDismiss: {
-                        navigateToQuickAdd = false
                         onDismiss()
                     }
                 )
             }
         }
-        .fullScreenCover(isPresented: $showManualAdd) {
-            if let result = aiResult {
+        .sheet(isPresented: $vm.showManualAdd) {
+            if let result = vm.aiResult {
                 NavigationStack {
                     PackageQueryView(
                         trackingNumber: result.trackingNumber ?? "",
                         carrier: self.carrier,
                         onComplete: { onDismiss() },
-                        popToRoot: { showManualAdd = false }
+                        popToRoot: { vm.showManualAdd = false }
                     )
                 }
+                .interactiveDismissDisabled()
+                .preferredColorScheme(.dark)
             }
         }
-        .alert(String(localized: "ai.scanning.cancelConfirmMessage"), isPresented: $showCancelConfirm) {
+        .alert(String(localized: "ai.scanning.cancelConfirmMessage"), isPresented: $vm.showCancelConfirm) {
             Button(String(localized: "common.confirm")) {
                 onCancel()
             }
             Button(String(localized: "common.cancel"), role: .cancel) {}
         }
-        .alert(String(localized: "ai.error.title"), isPresented: $showError) {
-            if isNoTrackingDataError {
+        .alert(String(localized: "ai.error.title"), isPresented: $vm.showError) {
+            if vm.isNoTrackingDataError {
                 Button(String(localized: "common.ok")) {
                     onDismiss()
                 }
-            } else if isQuotaError {
+            } else if vm.isQuotaError {
                 // Quota exceeded — 重試沒用，讓使用者稍後再試
                 Button(String(localized: "common.ok")) {
                     onCancel()
                 }
             } else {
                 Button(String(localized: "addMethod.retry")) {
-                    workflowCompleted = false
+                    vm.workflowCompleted = false
                     Task { await processAIWorkflow() }
                 }
-                if let trackingNumber = aiResult?.trackingNumber,
+                if let trackingNumber = vm.aiResult?.trackingNumber,
                    CarrierDetector.isValidFormat(trackingNumber) {
                     Button(String(localized: "addMethod.manualInput")) {
-                        showError = false
-                        showManualAdd = true
+                        vm.showError = false
+                        vm.showManualAdd = true
                     }
                 }
                 Button(String(localized: "common.cancel"), role: .cancel) {
@@ -153,12 +167,12 @@ struct AIScanningView: View {
                 }
             }
         } message: {
-            Text(errorMessage)
+            Text(vm.errorMessage)
         }
         .preferredColorScheme(.dark)
         .onAppear {
-            guard workflowTask == nil, !isProcessingWorkflow, !workflowCompleted else { return }
-            workflowTask = Task { @MainActor in
+            guard vm.workflowTask == nil, !vm.isProcessingWorkflow, !vm.workflowCompleted else { return }
+            vm.workflowTask = Task { @MainActor in
                 await processAIWorkflow()
             }
         }
@@ -167,7 +181,7 @@ struct AIScanningView: View {
     // MARK: - Stage Text
 
     private var stageTitle: String {
-        switch loadingStage {
+        switch vm.loadingStage {
         case .aiRecognition:
             return String(localized: "addMethod.loading.aiRecognition")
         case .apiVerification:
@@ -180,7 +194,7 @@ struct AIScanningView: View {
     }
 
     private var stageSubtitle: String {
-        switch loadingStage {
+        switch vm.loadingStage {
         case .aiRecognition:
             return String(localized: "addMethod.loading.aiRecognitionDesc")
         case .apiVerification:
@@ -194,35 +208,35 @@ struct AIScanningView: View {
 
     private func processAIWorkflow() async {
         // 防止 .task 重複執行（view lifecycle 可能觸發多次）
-        guard !workflowCompleted, !isProcessingWorkflow else {
-            print("⚠️ [AIScanningView] processAIWorkflow skipped (completed=\(workflowCompleted), processing=\(isProcessingWorkflow))")
+        guard !vm.workflowCompleted, !vm.isProcessingWorkflow else {
+            print("⚠️ [AIScanningView] processAIWorkflow skipped (completed=\(vm.workflowCompleted), processing=\(vm.isProcessingWorkflow))")
             return
         }
 
         print("🟢 [AIScanningView] processAIWorkflow 開始")
-        isProcessingWorkflow = true
+        vm.isProcessingWorkflow = true
         defer {
-            isProcessingWorkflow = false
+            vm.isProcessingWorkflow = false
             print("🔚 [AIScanningView] processAIWorkflow 結束")
         }
 
-        showError = false
-        errorMessage = ""
-        isNoTrackingDataError = false
-        isQuotaError = false
+        vm.showError = false
+        vm.errorMessage = ""
+        vm.isNoTrackingDataError = false
+        vm.isQuotaError = false
 
         do {
             // 階段 1：AI 辨識
-            loadingStage = .aiRecognition
+            vm.loadingStage = .aiRecognition
             AnalyticsService.logAIScanStarted()
 
             print("📸 [AIScanningView] 開始 AI 辨識...")
             let result = try await analyzeImageWithRetry(image)
             print("✅ [AIScanningView] AI 辨識完成")
-            self.aiResult = result
+            vm.aiResult = result
 
             // 階段 2：API 驗證
-            withAnimation { loadingStage = .apiVerification }
+            vm.loadingStage = .apiVerification
 
             guard let trackingNumber = result.trackingNumber, !trackingNumber.isEmpty else {
                 throw TrackingError.invalidTrackingNumber
@@ -266,12 +280,12 @@ struct AIScanningView: View {
                 throw TrackingError.noTrackingData
             }
 
-            self.aiResult = result
-            self.apiTrackingResult = trackResult
-            self.apiRelationId = relationId
+            vm.aiResult = result
+            vm.apiTrackingResult = trackResult
+            vm.apiRelationId = relationId
 
             // 完成
-            withAnimation { loadingStage = .complete }
+            vm.loadingStage = .complete
             AnalyticsService.logAIScanCompleted(
                 carrier: carrier.displayName,
                 hasPickupCode: result.pickupCode != nil
@@ -283,29 +297,29 @@ struct AIScanningView: View {
 
             // 短暫延遲後顯示結果
             try? await Task.sleep(for: .milliseconds(600))
-            workflowCompleted = true
-            navigateToQuickAdd = true
+            vm.workflowCompleted = true
+            vm.navigateToQuickAdd = true
 
         } catch is CancellationError {
             print("🚫 [AIScanningView] Task 被取消 (CancellationError)！")
             AnalyticsService.logAIScanFailed(errorType: "cancelled")
-            withAnimation { loadingStage = .failed }
+            vm.loadingStage = .failed
             UINotificationFeedbackGenerator().notificationOccurred(.error)
-            errorMessage = String(localized: "error.networkError")
-            showError = true
+            vm.errorMessage = String(localized: "error.networkError")
+            vm.showError = true
         } catch let urlError as URLError where urlError.code == .cancelled {
             print("🚫 [AIScanningView] URLSession 被取消 (URLError.cancelled)！")
             AnalyticsService.logAIScanFailed(errorType: "url_cancelled")
-            withAnimation { loadingStage = .failed }
+            vm.loadingStage = .failed
             UINotificationFeedbackGenerator().notificationOccurred(.error)
-            errorMessage = String(localized: "error.networkError")
-            showError = true
+            vm.errorMessage = String(localized: "error.networkError")
+            vm.showError = true
         } catch {
             print("❌ [AIScanningView] 錯誤: \(error)")
             let errorType: String
             if let aiError = error as? AIVisionError {
                 if aiError.isQuotaExceeded {
-                    isQuotaError = true
+                    vm.isQuotaError = true
                 }
                 switch aiError {
                 case .dailyLimitReached:
@@ -319,7 +333,7 @@ struct AIScanningView: View {
             } else if let trackingError = error as? TrackingError {
                 if case .noTrackingData = trackingError {
                     errorType = "no_tracking_data"
-                    isNoTrackingDataError = true
+                    vm.isNoTrackingDataError = true
                 } else {
                     errorType = "tracking_error"
                 }
@@ -327,10 +341,10 @@ struct AIScanningView: View {
                 errorType = "unknown"
             }
             AnalyticsService.logAIScanFailed(errorType: errorType)
-            withAnimation { loadingStage = .failed }
+            vm.loadingStage = .failed
             UINotificationFeedbackGenerator().notificationOccurred(.error)
-            errorMessage = friendlyErrorMessage(for: error)
-            showError = true
+            vm.errorMessage = friendlyErrorMessage(for: error)
+            vm.showError = true
         }
     }
 

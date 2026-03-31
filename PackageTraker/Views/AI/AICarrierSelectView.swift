@@ -9,7 +9,7 @@ import SwiftUI
 import SwiftData
 import PhotosUI
 
-// MARK: - ViewModel（用 class 持有狀態，避免 fullScreenCover 重建時 @State 被刷掉）
+// MARK: - ViewModel（封裝 PHPicker/用量檢查相關邏輯）
 
 @Observable
 final class AICarrierSelectViewModel {
@@ -105,7 +105,7 @@ private final class ImagePickerDelegate: NSObject, PHPickerViewControllerDelegat
 
 /// AI 掃描流程第一步：選擇物流商
 struct AICarrierSelectView: View {
-    let onDismiss: () -> Void  // 關閉整個 AI 流程（回首頁）
+    @Environment(\.dismiss) private var dismiss
 
     @State private var vm = AICarrierSelectViewModel()
 
@@ -143,7 +143,7 @@ struct AICarrierSelectView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button(String(localized: "common.cancel")) {
-                        onDismiss()
+                        dismiss()
                     }
                     .foregroundStyle(.white)
                 }
@@ -172,7 +172,7 @@ struct AICarrierSelectView: View {
                     AIScanningView(
                         carrier: carrier,
                         image: image,
-                        onDismiss: onDismiss,
+                        onDismiss: { dismiss() },
                         onCancel: { vm.showScanning = false }
                     )
                 }
@@ -181,6 +181,7 @@ struct AICarrierSelectView: View {
         .fullScreenCover(isPresented: $vm.showPaywall) {
             PaywallView(lifetimeOnly: true)
         }
+        .interactiveDismissDisabled()
         .preferredColorScheme(.dark)
     }
 
@@ -301,6 +302,6 @@ private struct AuroraGlowBackground: View {
 // MARK: - Preview
 
 #Preview {
-    AICarrierSelectView(onDismiss: {})
+    AICarrierSelectView()
         .modelContainer(for: [Package.self, TrackingEvent.self], inMemory: true)
 }

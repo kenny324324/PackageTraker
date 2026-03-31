@@ -100,6 +100,7 @@ struct PackageInfoView: View {
         .sheet(isPresented: $showPlatformPicker) {
             PlatformPickerSheet(selectedPlatform: $selectedPlatform)
                 .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.hidden)
         }
         .onAppear {
             if let name = prefillName, customName.isEmpty {
@@ -315,7 +316,11 @@ struct PackageInfoView: View {
         ReviewPromptService.recordPackageAdded()
         ReviewPromptService.requestReviewIfAppropriate()
 
-        onComplete()
+        // 延到下一個 run loop，避免 modelContext.save() 觸發的 @Query 更新
+        // 與 dismiss 在同一 cycle 執行導致 sheet 關閉動畫被吃掉
+        DispatchQueue.main.async {
+            onComplete()
+        }
     }
 
     private func updateExistingPackage() {
@@ -333,7 +338,9 @@ struct PackageInfoView: View {
         // 同步到 Firestore
         FirebaseSyncService.shared.syncPackage(package)
 
-        onComplete()
+        DispatchQueue.main.async {
+            onComplete()
+        }
     }
 
     private func hideKeyboard() {
