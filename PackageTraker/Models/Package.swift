@@ -15,6 +15,9 @@ final class Package {
     var lastUpdated: Date
     var createdAt: Date
     var isArchived: Bool
+    var notifyShipped: Bool = true   // 寄件通知（Pro）
+    var notifyInTransit: Bool = true // 運送中通知（Pro）
+    var notifyArrived: Bool = true   // 到店通知（Pro）
     var latestDescription: String?  // 最新狀態描述
     
     // 額外資訊（7-11、全家等）
@@ -45,6 +48,9 @@ final class Package {
         lastUpdated: Date = Date(),
         createdAt: Date = Date(),
         isArchived: Bool = false,
+        notifyShipped: Bool = true,
+        notifyInTransit: Bool = true,
+        notifyArrived: Bool = true,
         latestDescription: String? = nil,
         storeName: String? = nil,
         serviceType: String? = nil,
@@ -65,6 +71,9 @@ final class Package {
         self.lastUpdated = lastUpdated
         self.createdAt = createdAt
         self.isArchived = isArchived
+        self.notifyShipped = notifyShipped
+        self.notifyInTransit = notifyInTransit
+        self.notifyArrived = notifyArrived
         self.latestDescription = latestDescription
         self.storeName = storeName
         self.serviceType = serviceType

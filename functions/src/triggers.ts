@@ -56,6 +56,28 @@ export const onPackageStatusChange = onDocumentUpdated(
       return;
     }
 
+    // Per-package 通知設定（欄位不存在時預設啟用）
+    if (after.status === "shipped" && after.notifyShipped === false) {
+      logger.info("[Trigger] Package shipped notification disabled, skipping");
+      return;
+    }
+    if (after.status === "inTransit") {
+      // pending → inTransit 視為寄件通知，檢查 notifyShipped
+      if (before.status === "pending" && after.notifyShipped === false) {
+        logger.info("[Trigger] Package shipped notification disabled (pending->inTransit), skipping");
+        return;
+      }
+      // 其他 → inTransit 檢查 notifyInTransit
+      if (before.status !== "pending" && after.notifyInTransit === false) {
+        logger.info("[Trigger] Package inTransit notification disabled, skipping");
+        return;
+      }
+    }
+    if (after.status === "arrivedAtStore" && after.notifyArrived === false) {
+      logger.info("[Trigger] Package arrival notification disabled, skipping");
+      return;
+    }
+
     // 取得用戶資料
     const db = getFirestore();
     const userDoc = await db.collection("users").doc(userId).get();

@@ -91,6 +91,11 @@
 "detail.serviceType" = "Service Type";
 "detail.delete" = "Delete Package";
 "detail.deleteConfirm" = "Delete this package?";
+"detail.notify.enableAll" = "Enable Notifications";
+"detail.notify.disableAll" = "Mute Notifications";
+"detail.notify.shipped" = "Shipped";
+"detail.notify.inTransit" = "In Transit";
+"detail.notify.arrived" = "Arrived at Store";
 
 // History
 "history.title" = "History";

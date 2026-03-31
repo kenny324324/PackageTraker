@@ -67,7 +67,7 @@ struct PackageQueryView: View {
                                 Spacer(minLength: 0)
                                 Rectangle()
                                     .frame(height: geo.size.height * vm.fillProgress)
-                                    .animation(.easeOut(duration: 4.0), value: vm.fillProgress)
+                                    .animation(vm.isFound ? .easeOut(duration: 0.3) : .easeOut(duration: 2.5), value: vm.fillProgress)
                             }
                         }
                     )
@@ -176,10 +176,8 @@ struct PackageQueryView: View {
             vm.trackingResult = result
             vm.fetchedRelationId = relationId
 
-            // 快速填滿
+            // 填滿 + 標記已找到（同時發生）
             vm.fillProgress = 1.0
-
-            // 標記已找到
             vm.isFound = true
 
             // 震動回饋

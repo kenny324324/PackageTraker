@@ -91,6 +91,11 @@
 "detail.serviceType" = "服务类型";
 "detail.delete" = "删除包裹";
 "detail.deleteConfirm" = "确定要删除此包裹？";
+"detail.notify.enableAll" = "开启通知";
+"detail.notify.disableAll" = "关闭通知";
+"detail.notify.shipped" = "卖家寄件";
+"detail.notify.inTransit" = "运送中";
+"detail.notify.arrived" = "到店通知";
 
 // History
 "history.title" = "历史记录";

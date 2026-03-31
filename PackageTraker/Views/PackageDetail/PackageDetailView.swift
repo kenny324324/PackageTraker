@@ -11,9 +11,11 @@ struct PackageDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(PackageRefreshService.self) private var refreshService
 
+    @ObservedObject private var subscriptionManager = SubscriptionManager.shared
     @State private var showDeleteConfirmation = false
     @State private var isRefreshing = false
     @State private var showEditSheet = false
+    @State private var showPaywall = false
 
     /// 追蹤事件（按時間降序排列，去重）
     private var events: [TrackingEvent] {
@@ -86,6 +88,9 @@ struct PackageDetailView: View {
         }
         .sheet(isPresented: $showEditSheet) {
             EditPackageSheet(package: package)
+        }
+        .fullScreenCover(isPresented: $showPaywall) {
+            PaywallView()
         }
         .safeAreaInset(edge: .bottom) {
             bottomToolbar
@@ -342,6 +347,9 @@ struct PackageDetailView: View {
             }
             .adaptiveToolbarButtonStyle()
 
+            // 通知設定按鈕（Pro）
+            notificationMenuButton
+
             Spacer()
 
             // 刪除按鈕（靠右，帶文字）
@@ -363,6 +371,101 @@ struct PackageDetailView: View {
         }
         .padding(.horizontal, 24)
         .padding(.vertical, 12)
+    }
+
+    /// 通知鈴鐺 icon（根據 3 個開關狀態）
+    private var bellIconName: String {
+        let allOn = package.notifyShipped && package.notifyInTransit && package.notifyArrived
+        let allOff = !package.notifyShipped && !package.notifyInTransit && !package.notifyArrived
+        if allOff { return "bell.slash.fill" }
+        if allOn { return "bell.fill" }
+        return "bell.badge"
+    }
+
+    /// 是否所有通知都關閉
+    private var allNotificationsOff: Bool {
+        !package.notifyShipped && !package.notifyInTransit && !package.notifyArrived
+    }
+
+    /// Pro 功能是否啟用
+    private var isPro: Bool {
+        !FeatureFlags.subscriptionEnabled || subscriptionManager.isPro
+    }
+
+    /// 通知設定 Menu 按鈕
+    private var notificationMenuButton: some View {
+        Menu {
+            // 全部開/關（所有用戶可用）
+            Button {
+                let newValue = allNotificationsOff
+                package.notifyShipped = newValue
+                package.notifyInTransit = newValue
+                package.notifyArrived = newValue
+                saveAndSync()
+            } label: {
+                Label(
+                    allNotificationsOff
+                        ? String(localized: "detail.notify.enableAll")
+                        : String(localized: "detail.notify.disableAll"),
+                    systemImage: allNotificationsOff ? "bell.fill" : "bell.slash.fill"
+                )
+            }
+
+            Divider()
+
+            // 階段選項（Pro 專屬）
+            Button {
+                if isPro {
+                    package.notifyShipped.toggle()
+                    saveAndSync()
+                } else {
+                    showPaywall = true
+                }
+            } label: {
+                Label(
+                    String(localized: "detail.notify.shipped") + (isPro ? "" : " (PRO)"),
+                    systemImage: package.notifyShipped ? "checkmark.circle.fill" : "circle"
+                )
+            }
+            Button {
+                if isPro {
+                    package.notifyInTransit.toggle()
+                    saveAndSync()
+                } else {
+                    showPaywall = true
+                }
+            } label: {
+                Label(
+                    String(localized: "detail.notify.inTransit") + (isPro ? "" : " (PRO)"),
+                    systemImage: package.notifyInTransit ? "checkmark.circle.fill" : "circle"
+                )
+            }
+            Button {
+                if isPro {
+                    package.notifyArrived.toggle()
+                    saveAndSync()
+                } else {
+                    showPaywall = true
+                }
+            } label: {
+                Label(
+                    String(localized: "detail.notify.arrived") + (isPro ? "" : " (PRO)"),
+                    systemImage: package.notifyArrived ? "checkmark.circle.fill" : "circle"
+                )
+            }
+        } label: {
+            Image(systemName: bellIconName)
+                .font(.title3)
+                .foregroundStyle(allNotificationsOff ? Color.secondary : Color.white)
+                .frame(width: 50, height: 50)
+        }
+        .adaptiveToolbarButtonStyle()
+    }
+
+    /// 儲存並同步到 Firestore
+    private func saveAndSync() {
+        try? modelContext.save()
+        FirebaseSyncService.shared.syncPackage(package)
     }
 
     // MARK: - Actions

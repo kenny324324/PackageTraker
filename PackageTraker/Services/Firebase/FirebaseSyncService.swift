@@ -511,6 +511,9 @@ final class FirebaseSyncService: ObservableObject {
             lastUpdated: lastUpdated,
             createdAt: createdAt,
             isArchived: data["isArchived"] as? Bool ?? false,
+            notifyShipped: data["notifyShipped"] as? Bool ?? true,
+            notifyInTransit: data["notifyInTransit"] as? Bool ?? true,
+            notifyArrived: data["notifyArrived"] as? Bool ?? true,
             latestDescription: data["latestDescription"] as? String,
             storeName: data["storeName"] as? String,
             serviceType: data["serviceType"] as? String,
@@ -531,6 +534,9 @@ final class FirebaseSyncService: ObservableObject {
         if let v = data["status"] as? String { package.statusRawValue = v }
         if let v = data["lastUpdated"] as? Timestamp { package.lastUpdated = v.dateValue() }
         if let v = data["isArchived"] as? Bool { package.isArchived = v }
+        if let v = data["notifyShipped"] as? Bool { package.notifyShipped = v }
+        if let v = data["notifyInTransit"] as? Bool { package.notifyInTransit = v }
+        if let v = data["notifyArrived"] as? Bool { package.notifyArrived = v }
         if let v = data["latestDescription"] as? String { package.latestDescription = v }
         if let v = data["customName"] as? String { package.customName = v }
         if let v = data["pickupCode"] as? String { package.pickupCode = v }
@@ -638,7 +644,10 @@ final class FirebaseSyncService: ObservableObject {
             "status": package.statusRawValue,
             "lastUpdated": Timestamp(date: package.lastUpdated),
             "createdAt": Timestamp(date: package.createdAt),
-            "isArchived": package.isArchived
+            "isArchived": package.isArchived,
+            "notifyShipped": package.notifyShipped,
+            "notifyInTransit": package.notifyInTransit,
+            "notifyArrived": package.notifyArrived
         ]
 
         if let v = package.trackTwRelationId { data["trackTwRelationId"] = v }
