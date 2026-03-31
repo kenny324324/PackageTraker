@@ -18,7 +18,6 @@ struct AddMethodSheet: View {
 
     @State private var contentHeight: CGFloat = 0
     @State private var remainingScans: Int = AIVisionService.shared.remainingScans
-    @State private var hasFetchedUsage = false
 
     private var adaptiveSheetHeight: CGFloat {
         max(184, min(248, contentHeight + 80))
@@ -79,14 +78,10 @@ struct AddMethodSheet: View {
             contentHeight = height
         }
         .preferredColorScheme(.dark)
-        .task {
-            // 刷新剩餘次數（從伺服器同步），僅執行一次避免重繪導致 PhotosPicker 滾動重置
-            guard !hasFetchedUsage else { return }
-            hasFetchedUsage = true
-            if SubscriptionManager.shared.hasAIAccess {
-                let usage = await AIVisionService.shared.fetchUsageFromServer()
-                remainingScans = max(0, usage.limit - usage.used)
-            }
+        .onAppear {
+            // 使用本地快取的剩餘次數（不呼叫 Cloud Function，避免 TestFlight 閃退）
+            // 伺服器同步在每次 AI 掃描成功後自動執行，快取值已足夠準確
+            remainingScans = AIVisionService.shared.remainingScans
         }
     }
 

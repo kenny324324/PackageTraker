@@ -6,6 +6,8 @@ import WidgetKit
 
 /// 集中管理所有包裹刷新邏輯
 /// 由 PackageTrakerApp 建立並透過 environment 注入
+/// @MainActor 確保 ModelContext 存取安全（API 網路 I/O 仍透過 await 懸停並行）
+@MainActor
 @Observable
 final class PackageRefreshService {
 
@@ -45,10 +47,10 @@ final class PackageRefreshService {
         // 防止同一包裹同時刷新
         let didStart = await refreshingNumbers.begin(package.trackingNumber)
         guard didStart else { return false }
-        defer { Task { await refreshingNumbers.end(package.trackingNumber) } }
 
         do {
             let result = try await trackingManager.track(package: package)
+            await refreshingNumbers.end(package.trackingNumber)
             // 取消的任務不寫入結果
             guard !Task.isCancelled else { return false }
             applyTrackingResult(result, to: package)
@@ -59,11 +61,13 @@ final class PackageRefreshService {
             updateWidgetFromContext(context)
             return true
         } catch is CancellationError {
-            // timeout 取消是正常行為，不印錯誤
+            await refreshingNumbers.end(package.trackingNumber)
             return false
         } catch let error as URLError where error.code == .cancelled {
+            await refreshingNumbers.end(package.trackingNumber)
             return false
         } catch {
+            await refreshingNumbers.end(package.trackingNumber)
             // 被包裝在 TrackingError.networkError 裡的取消也靜默處理
             if case TrackingError.networkError(let underlying) = error,
                underlying is CancellationError || (underlying as? URLError)?.code == .cancelled {
@@ -138,34 +142,23 @@ final class PackageRefreshService {
     // MARK: - 帶 Timeout 的批次刷新（用於 Splash）
 
     /// 帶 timeout 的批次刷新，超時後放棄未完成的包裹
-    func refreshAllWithTimeout(
+    nonisolated func refreshAllWithTimeout(
         _ packages: [Package],
         in context: ModelContext,
         timeout: TimeInterval = 10.0,
         maxConcurrent: Int = 3
     ) async {
-        let refreshTask = Task {
-            await self.refreshAll(packages, in: context, maxConcurrent: maxConcurrent)
-        }
-
-        let didTimeout = await withTaskGroup(of: Bool.self) { group in
+        await withTaskGroup(of: Void.self) { group in
             group.addTask {
-                await refreshTask.value
-                return false
+                await self.refreshAll(packages, in: context, maxConcurrent: maxConcurrent)
             }
             group.addTask {
                 try? await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
-                return true
             }
-
-            let firstResult = await group.next() ?? false
+            // 第一個完成（刷新或 timeout）後取消剩餘的
+            await group.next()
             group.cancelAll()
-            return firstResult
-        }
-
-        if didTimeout {
-            refreshTask.cancel()
-            _ = await refreshTask.result
+            // withTaskGroup scope 隱式等待所有 child task 結束，安全清理
         }
     }
 

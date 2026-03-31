@@ -8,8 +8,6 @@
 import Foundation
 import UIKit
 import FirebaseAuth
-import FirebaseFirestore
-import FirebaseFunctions
 
 /// AI 截圖辨識服務
 @MainActor
@@ -30,9 +28,9 @@ class AIVisionService {
     private let dailyCountKey = "ai.dailyUsage.count"
     private let dailyDateKey = "ai.dailyUsage.date"
 
-    // MARK: - Firebase Functions
+    // MARK: - Cloud Function 直連（繞過 Firebase Functions SDK 的 async let 崩潰）
 
-    private lazy var functions = Functions.functions(region: "asia-east1")
+    private let cloudFunctionBaseURL = "https://asia-east1-packagetraker-e80b0.cloudfunctions.net"
 
     // MARK: - Usage Tracking
 
@@ -47,9 +45,7 @@ class AIVisionService {
 
     /// 從伺服器取得今日 AI 用量並更新本地快取
     func fetchUsageFromServer() async -> (used: Int, limit: Int) {
-        let callable = functions.httpsCallable("getAIUsage")
-        guard let result = try? await callable.call(),
-              let data = result.data as? [String: Any] else {
+        guard let data = try? await callCloudFunction(name: "getAIUsage", data: nil, timeout: 15) else {
             return (0, dailyLimit)
         }
         let used = data["used"] as? Int ?? 0
@@ -70,10 +66,6 @@ class AIVisionService {
 
         let base64Image = imageData.base64EncodedString()
 
-        // 呼叫 Cloud Function
-        let callable = functions.httpsCallable("analyzePackageImage")
-        callable.timeoutInterval = 60
-
         do {
             var payload: [String: Any] = [
                 "imageBase64": base64Image,
@@ -83,12 +75,7 @@ class AIVisionService {
             payload["debug"] = true
             #endif
 
-            let result = try await callable.call(payload)
-
-            // 解析回傳結果
-            guard let data = result.data as? [String: Any] else {
-                throw AIVisionError.parseError
-            }
+            let data = try await callCloudFunction(name: "analyzePackageImage", data: payload, timeout: 60)
 
             let aiResult = try parseCloudFunctionResult(data)
 
@@ -101,6 +88,76 @@ class AIVisionService {
             // 將 Cloud Function 錯誤轉換為 AIVisionError
             throw mapCloudFunctionError(error)
         }
+    }
+
+    // MARK: - Direct Cloud Function Call（繞過 HTTPSCallable）
+
+    /// 直接用 URLSession 呼叫 Cloud Function，避免 Firebase Functions SDK
+    /// 的 async let 在 iOS 26 Swift runtime 觸發 task deallocation crash
+    private func callCloudFunction(
+        name: String,
+        data payload: [String: Any]?,
+        timeout: TimeInterval
+    ) async throws -> [String: Any] {
+        // 取得 Firebase Auth ID token
+        guard let user = Auth.auth().currentUser else {
+            throw CloudFunctionError.unauthenticated
+        }
+        let idToken = try await user.getIDToken()
+
+        // 建構 request
+        let url = URL(string: "\(cloudFunctionBaseURL)/\(name)")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(idToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = timeout
+
+        // Firebase callable 協定：body = {"data": <payload>}
+        let body: [String: Any] = ["data": payload ?? NSNull()]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        // 發送請求
+        let (responseData, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw CloudFunctionError.invalidResponse
+        }
+
+        // 解析 JSON response
+        guard let json = try? JSONSerialization.jsonObject(with: responseData) as? [String: Any] else {
+            // 嘗試解析 error response
+            if let errorJson = try? JSONSerialization.jsonObject(with: responseData) as? [String: Any],
+               let error = errorJson["error"] as? [String: Any] {
+                let message = error["message"] as? String ?? "Unknown error"
+                let status = error["status"] as? String ?? ""
+                throw CloudFunctionError.functionError(
+                    code: httpResponse.statusCode,
+                    message: message,
+                    status: status
+                )
+            }
+            throw CloudFunctionError.invalidResponse
+        }
+
+        // HTTP error
+        guard (200...299).contains(httpResponse.statusCode) else {
+            let error = json["error"] as? [String: Any]
+            let message = error?["message"] as? String ?? json["error"] as? String ?? "HTTP \(httpResponse.statusCode)"
+            let status = error?["status"] as? String ?? ""
+            throw CloudFunctionError.functionError(
+                code: httpResponse.statusCode,
+                message: message,
+                status: status
+            )
+        }
+
+        // Firebase callable 協定：response = {"result": <data>}
+        guard let result = json["result"] as? [String: Any] else {
+            throw CloudFunctionError.invalidResponse
+        }
+
+        return result
     }
 
     // MARK: - Private Methods
@@ -134,27 +191,35 @@ class AIVisionService {
 
     /// 將 Cloud Function 錯誤對應到 AIVisionError
     private func mapCloudFunctionError(_ error: Error) -> AIVisionError {
-        let nsError = error as NSError
-
-        // Firebase Functions 錯誤
-        if nsError.domain == FunctionsErrorDomain {
-            switch FunctionsErrorCode(rawValue: nsError.code) {
-            case .resourceExhausted:
-                let message = nsError.localizedDescription.lowercased()
-                if message.contains("daily") {
-                    return .dailyLimitReached
-                }
-                return .apiError(statusCode: 429, rawMessage: nsError.localizedDescription)
-            case .permissionDenied:
-                return .proRequired
+        // 自訂 CloudFunctionError
+        if let cfError = error as? CloudFunctionError {
+            switch cfError {
             case .unauthenticated:
                 return .subscriptionRequired
-            case .invalidArgument:
-                return .invalidImage
-            case .internal:
-                return .apiError(statusCode: nil, rawMessage: nsError.localizedDescription)
-            default:
-                return .apiError(statusCode: nil, rawMessage: nsError.localizedDescription)
+            case .functionError(let code, let message, let status):
+                let msg = message.lowercased()
+                // 429 或 RESOURCE_EXHAUSTED → quota
+                if code == 429 || status == "RESOURCE_EXHAUSTED" {
+                    if msg.contains("daily") {
+                        return .dailyLimitReached
+                    }
+                    return .apiError(statusCode: 429, rawMessage: message)
+                }
+                // 403 或 PERMISSION_DENIED
+                if code == 403 || status == "PERMISSION_DENIED" {
+                    return .proRequired
+                }
+                // 401 或 UNAUTHENTICATED
+                if code == 401 || status == "UNAUTHENTICATED" {
+                    return .subscriptionRequired
+                }
+                // 400 或 INVALID_ARGUMENT
+                if code == 400 || status == "INVALID_ARGUMENT" {
+                    return .invalidImage
+                }
+                return .apiError(statusCode: code, rawMessage: message)
+            case .invalidResponse:
+                return .parseError
             }
         }
 
@@ -178,4 +243,12 @@ class AIVisionService {
         formatter.timeZone = TimeZone(identifier: "Asia/Taipei")
         return formatter.string(from: Date())
     }
+}
+
+// MARK: - Cloud Function Error
+
+private enum CloudFunctionError: Error {
+    case unauthenticated
+    case functionError(code: Int, message: String, status: String)
+    case invalidResponse
 }
