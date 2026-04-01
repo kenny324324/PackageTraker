@@ -50,9 +50,23 @@ export const onPackageStatusChange = onDocumentUpdated(
       return;
     }
 
-    // 避免重複推播
-    if (after.lastNotifiedStatus === after.status) {
-      logger.info("[Trigger] Already notified for this status, skipping");
+    // 原子性防重複推播：用 transaction 確保只有一個 trigger 能搶到發送權
+    const db = getFirestore();
+    const docRef = event.data.after.ref;
+    const shouldNotify = await db.runTransaction(async (transaction) => {
+      const doc = await transaction.get(docRef);
+      const current = doc.data();
+      if (!current) return false;
+      if (current.lastNotifiedStatus === after.status) {
+        return false; // 另一個 trigger 已經搶先設定了
+      }
+      // 原子性寫入，後續 trigger 會看到已設定的值
+      transaction.update(docRef, {lastNotifiedStatus: after.status});
+      return true;
+    });
+
+    if (!shouldNotify) {
+      logger.info("[Trigger] Already notified (transaction check), skipping");
       return;
     }
 
@@ -79,7 +93,6 @@ export const onPackageStatusChange = onDocumentUpdated(
     }
 
     // 取得用戶資料
-    const db = getFirestore();
     const userDoc = await db.collection("users").doc(userId).get();
     const userData = userDoc.data();
 
@@ -175,10 +188,6 @@ export const onPackageStatusChange = onDocumentUpdated(
       }
     }
 
-    // 更新 lastNotifiedStatus 防止重複推播
-    await event.data.after.ref.update({
-      lastNotifiedStatus: after.status,
-    });
     logger.info(`[Trigger] Push sent to user ${userId} (${after.status}, ${lang})`);
   }
 );

@@ -12,6 +12,7 @@ import {onSchedule} from "firebase-functions/v2/scheduler";
 import {defineSecret} from "firebase-functions/params";
 import {getFirestore, FieldValue} from "firebase-admin/firestore";
 import {logger} from "firebase-functions/v2";
+import {createHash} from "crypto";
 import {TrackTwAPI} from "./services/trackTwApi";
 import {fromTrackTw, isCompletedStatus} from "./utils/statusMapper";
 
@@ -104,7 +105,7 @@ export const packageTrackingScheduler = onSchedule(
 
           totalProcessed++;
 
-          // 4. 狀態有變化時更新 Firestore
+          // 4. 狀態有變化時更新 Firestore（含 events subcollection）
           if (newStatus !== oldStatus) {
             logger.info(
               `[Scheduler] ${pkg.trackingNumber}: ${oldStatus} -> ${newStatus}`
@@ -122,7 +123,33 @@ export const packageTrackingScheduler = onSchedule(
               updateData.storeName = storeName;
             }
 
-            await packageDoc.ref.update(updateData);
+            // 用 batch 同時更新 package + events（單次原子寫入）
+            const batch = db.batch();
+            batch.update(packageDoc.ref, updateData);
+
+            // 寫入 events subcollection（確定性 ID 避免重複）
+            for (const entry of tracking.package_history) {
+              const eventStatus = fromTrackTw(
+                entry.checkpoint_status,
+                entry.status
+              );
+              const timestamp = new Date(entry.time * 1000);
+              const eventId = deterministicEventId(
+                pkg.trackingNumber as string,
+                timestamp,
+                entry.status
+              );
+              const eventRef = packageDoc.ref
+                .collection("events")
+                .doc(eventId);
+              batch.set(eventRef, {
+                timestamp: timestamp,
+                status: eventStatus,
+                description: entry.status,
+              });
+            }
+
+            await batch.commit();
             totalUpdated++;
           }
         } catch (error: unknown) {
@@ -168,4 +195,28 @@ export const packageTrackingScheduler = onSchedule(
 function extractStoreName(status: string): string | null {
   const match = status.match(/\[([^\]]+)\]/);
   return match ? match[1] : null;
+}
+
+/**
+ * 產生確定性 event ID（與 iOS 端 TrackingEvent.deterministicId 一致）。
+ * SHA256("{trackingNumber}|{unix_seconds}|{description}") → 前 16 bytes → UUID v5 format
+ */
+function deterministicEventId(
+  trackingNumber: string,
+  timestamp: Date,
+  description: string
+): string {
+  const key = `${trackingNumber}|${Math.floor(timestamp.getTime() / 1000)}|${description}`;
+  const hash = createHash("sha256").update(key, "utf8").digest();
+  const bytes = Array.from(hash.subarray(0, 16));
+  bytes[6] = (bytes[6] & 0x0f) | 0x50; // UUID version 5
+  bytes[8] = (bytes[8] & 0x3f) | 0x80; // variant
+  const hex = bytes.map((b) => b.toString(16).padStart(2, "0")).join("");
+  return [
+    hex.slice(0, 8),
+    hex.slice(8, 12),
+    hex.slice(12, 16),
+    hex.slice(16, 20),
+    hex.slice(20, 32),
+  ].join("-").toUpperCase();
 }

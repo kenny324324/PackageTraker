@@ -55,8 +55,9 @@ final class PackageRefreshService {
             guard !Task.isCancelled else { return false }
             applyTrackingResult(result, to: package)
             try? context.save()
-            // 同步到 Firestore
-            FirebaseSyncService.shared.syncPackage(package)
+            // 不回寫 Firestore：Scheduler 是 Firestore 狀態的唯一寫入者，
+            // Client 刷新只更新本地 SwiftData 供即時顯示。
+            // 避免 Client + Scheduler 同時寫入觸發多次 onDocumentUpdated 推播。
             // 更新 Widget 資料
             updateWidgetFromContext(context)
             return true
