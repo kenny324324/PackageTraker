@@ -436,6 +436,12 @@
 "paywall.comparison.widget" = "桌面小组件";
 "paywall.comparison.widget.free" = "小型";
 "paywall.comparison.widget.pro" = "全尺寸";
+"paywall.comparison.spending" = "消费分析";
+"paywall.comparison.spending.free" = "—";
+"paywall.comparison.spending.pro" = "✓";
+"paywall.comparison.notification" = "个别通知设置";
+"paywall.comparison.notification.free" = "—";
+"paywall.comparison.notification.pro" = "✓";
 "paywall.feature.packages" = "包裹数量";
 "paywall.feature.themes" = "主题颜色";
 "paywall.feature.ocr" = "截图识别";

@@ -433,6 +433,12 @@
 "paywall.comparison.widget" = "桌面小工具";
 "paywall.comparison.widget.free" = "小型";
 "paywall.comparison.widget.pro" = "全尺寸";
+"paywall.comparison.spending" = "消費分析";
+"paywall.comparison.spending.free" = "—";
+"paywall.comparison.spending.pro" = "✓";
+"paywall.comparison.notification" = "個別通知設定";
+"paywall.comparison.notification.free" = "—";
+"paywall.comparison.notification.pro" = "✓";
 "paywall.features" = "功能";
 "paywall.free" = "免費";
 "paywall.pro" = "Pro";

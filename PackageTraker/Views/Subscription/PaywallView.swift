@@ -56,17 +56,33 @@ struct PaywallView: View {
                         // 功能比較表
                         featureComparisonSection
                             .padding(.horizontal, 20)
+                            .padding(.bottom, -12)
 
                         // 訂閱方案選擇
                         planSelectionSection
                     }
-                    .padding(.bottom, 200) // Space for bottom button area
+                    .padding(.bottom, 220) // Space for bottom button area
                 }
+
+                // 底部漸層遮罩（z-index 在 ScrollView 上方、底部容器下方）
+                VStack(spacing: 0) {
+                    Spacer()
+                    LinearGradient(
+                        colors: [Color.appBackground.opacity(0), Color.appBackground],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: 60)
+                    Color.appBackground
+                        .frame(height: 80)
+                }
+                .ignoresSafeArea(.container, edges: .bottom)
+                .allowsHitTesting(false)
 
                 // 固定在底部的訂閱按鈕
                 VStack(spacing: 0) {
                     Spacer()
-                    
+
                     // 底部區域背景
                     VStack(spacing: 0) {
                         if lifetimeOnly {
@@ -322,8 +338,10 @@ struct PaywallView: View {
                     .preference(key: CardWidthKey.self, value: geo.size.width)
                     .preference(key: CardHeightKey.self, value: geo.size.height)
             })
-            .frame(width: cardWidth > 0 ? cardWidth : nil,
-                   height: cardHeight > 0 ? cardHeight : nil,
+            .frame(minWidth: 180,
+                   idealWidth: cardWidth > 0 ? cardWidth : nil,
+                   maxWidth: cardWidth > 0 ? cardWidth : nil,
+                   minHeight: cardHeight > 0 ? cardHeight : nil,
                    alignment: .top)
             .background(
                 LinearGradient(
@@ -337,7 +355,7 @@ struct PaywallView: View {
                 RoundedRectangle(cornerRadius: 20)
                     .stroke(Color.white.opacity(0.3), lineWidth: 1)
             )
-            .shadow(color: .orange.opacity(isSelected ? 0.4 : 0), radius: 10, x: 0, y: 5)
+            .shadow(color: .clear, radius: 0)
         }
         .buttonStyle(.plain)
     }
@@ -428,8 +446,10 @@ struct PaywallView: View {
                     .preference(key: CardWidthKey.self, value: geo.size.width)
                     .preference(key: CardHeightKey.self, value: geo.size.height)
             })
-            .frame(width: cardWidth > 0 ? cardWidth : nil,
-                   height: cardHeight > 0 ? cardHeight : nil,
+            .frame(minWidth: 180,
+                   idealWidth: cardWidth > 0 ? cardWidth : nil,
+                   maxWidth: cardWidth > 0 ? cardWidth : nil,
+                   minHeight: cardHeight > 0 ? cardHeight : nil,
                    alignment: .top)
             .background(Color.secondaryCardBackground)
             .clipShape(RoundedRectangle(cornerRadius: 20))
@@ -513,6 +533,26 @@ struct PaywallView: View {
                     feature: String(localized: "paywall.comparison.widget"),
                     freeValue: String(localized: "paywall.comparison.widget.free"),
                     proValue: String(localized: "paywall.comparison.widget.pro")
+                )
+
+                Divider().background(Color.white.opacity(0.1))
+
+                comparisonRow(
+                    icon: "chart.pie.fill",
+                    feature: String(localized: "paywall.comparison.spending"),
+                    freeValue: String(localized: "paywall.comparison.spending.free"),
+                    proValue: String(localized: "paywall.comparison.spending.pro"),
+                    isCheckmark: true
+                )
+
+                Divider().background(Color.white.opacity(0.1))
+
+                comparisonRow(
+                    icon: "bell.badge.fill",
+                    feature: String(localized: "paywall.comparison.notification"),
+                    freeValue: String(localized: "paywall.comparison.notification.free"),
+                    proValue: String(localized: "paywall.comparison.notification.pro"),
+                    isCheckmark: true
                 )
             }
             .background(Color.white.opacity(0.05))
@@ -633,7 +673,7 @@ private struct PaywallBottomAreaModifier: ViewModifier {
                         .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
                 )
                 .padding(.horizontal, 16)
-                .padding(.bottom, 16)
+                .padding(.bottom, 8)
                 .shadow(color: .black.opacity(0.2), radius: 20, x: 0, y: 10)
         } else {
             content

@@ -437,6 +437,12 @@
 "paywall.comparison.widget" = "Home Widget";
 "paywall.comparison.widget.free" = "Small";
 "paywall.comparison.widget.pro" = "All Sizes";
+"paywall.comparison.spending" = "Spending Analytics";
+"paywall.comparison.spending.free" = "—";
+"paywall.comparison.spending.pro" = "✓";
+"paywall.comparison.notification" = "Per-Package Alerts";
+"paywall.comparison.notification.free" = "—";
+"paywall.comparison.notification.pro" = "✓";
 "paywall.feature.packages" = "Packages";
 "paywall.feature.themes" = "Premium Themes";
 "paywall.feature.ocr" = "Screenshot OCR";
