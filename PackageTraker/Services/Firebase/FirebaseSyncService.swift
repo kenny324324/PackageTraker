@@ -43,14 +43,16 @@ final class FirebaseSyncService: ObservableObject {
 
     // MARK: - 單一包裹同步（fire-and-forget）
 
-    func syncPackage(_ package: Package) {
+    /// includeStatus: 只在新增包裹時傳 true，一般編輯/通知設定不寫入 status，
+    /// 避免 client 本地刷新的 status 回寫 Firestore 觸發重複推播。
+    func syncPackage(_ package: Package, includeStatus: Bool = false) {
         guard let userId else { return }
 
         // 標記本地寫入（防迴圈）
         markLocalWrite(package.id.uuidString)
 
         // 擷取資料（在 @MainActor 上安全讀取 SwiftData）
-        let packageData = packageToFirestoreData(package)
+        let packageData = packageToFirestoreData(package, includeStatus: includeStatus)
         let packageDocId = package.id.uuidString
         let eventsData = package.events.map { event in
             (id: event.id.uuidString, data: eventToFirestoreData(event))
@@ -133,7 +135,7 @@ final class FirebaseSyncService: ObservableObject {
         print("[Sync] Starting bulk sync of \(packages.count) packages...")
 
         for package in packages {
-            let packageData = packageToFirestoreData(package)
+            let packageData = packageToFirestoreData(package, includeStatus: true)
             let packageDocId = package.id.uuidString
             let eventsData = package.events.map { event in
                 (id: event.id.uuidString, data: eventToFirestoreData(event))
@@ -637,18 +639,23 @@ final class FirebaseSyncService: ObservableObject {
 
     // MARK: - Data Conversion (Upload)
 
-    private func packageToFirestoreData(_ package: Package) -> [String: Any] {
+    private func packageToFirestoreData(_ package: Package, includeStatus: Bool = false) -> [String: Any] {
         var data: [String: Any] = [
             "trackingNumber": package.trackingNumber,
             "carrier": package.carrierRawValue,
-            "status": package.statusRawValue,
-            "lastUpdated": Timestamp(date: package.lastUpdated),
             "createdAt": Timestamp(date: package.createdAt),
             "isArchived": package.isArchived,
             "notifyShipped": package.notifyShipped,
             "notifyInTransit": package.notifyInTransit,
             "notifyArrived": package.notifyArrived
         ]
+
+        // status 和 lastUpdated 只在新增包裹時寫入，
+        // 平時由 Scheduler 作為唯一寫入者，避免 client 回寫觸發重複推播
+        if includeStatus {
+            data["status"] = package.statusRawValue
+            data["lastUpdated"] = Timestamp(date: package.lastUpdated)
+        }
 
         if let v = package.trackTwRelationId { data["trackTwRelationId"] = v }
         if let v = package.customName { data["customName"] = v }

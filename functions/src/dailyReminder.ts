@@ -88,6 +88,8 @@ export const dailyPickupReminder = onSchedule(
           type: "dailyReminder",
           count: String(pendingPackages.length),
         },
+        collapseId: `daily-reminder-${userId}`,
+        threadId: "daily-reminder",
       }, "pickupReminder");
 
       // 寫入通知日誌

@@ -21,6 +21,8 @@ interface AdminUser {
   lastActive: string | null;
   createdAt: string | null;
   language: string | null;
+  appVersion: string | null;
+  iosVersion: string | null;
 }
 
 export const getAdminStats = onCall(
@@ -97,6 +99,8 @@ export const getAdminStats = onCall(
           lastActive,
           createdAt,
           language: data.language ?? null,
+          appVersion: data.appVersion ?? null,
+          iosVersion: data.iosVersion ?? null,
         });
       }
 

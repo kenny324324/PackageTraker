@@ -305,8 +305,8 @@ struct PackageInfoView: View {
         modelContext.insert(package)
         try? modelContext.save()
 
-        // 同步到 Firestore
-        FirebaseSyncService.shared.syncPackage(package)
+        // 同步到 Firestore（新增包裹需寫入初始 status）
+        FirebaseSyncService.shared.syncPackage(package, includeStatus: true)
 
         // 更新 Widget
         WidgetDataService.shared.updateWidgetData(packages: existingPackages + [package])

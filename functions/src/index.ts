@@ -17,3 +17,4 @@ export {analyzePackageImage, getAIUsage} from "./geminiProxy";
 export {updateAppStats, updatePercentiles} from "./statsAggregator";
 export {getAdminStats} from "./adminStats";
 export {getNotificationLogs} from "./adminNotificationLogs";
+export {getUserDetail} from "./adminUserDetail";

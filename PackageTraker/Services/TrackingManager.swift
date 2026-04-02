@@ -17,9 +17,6 @@ final class TrackingManager: ObservableObject {
 
     /// 追蹤單一包裹（傳入 Package 物件，自動載入 relation ID 快取）
     func track(package: Package) async throws -> TrackingResult {
-        // 記錄舊狀態
-        let oldStatus = package.status
-
         // 載入已儲存的 relation ID，避免重複 import
         if let relationId = package.trackTwRelationId {
             await apiService.setRelationId(relationId, for: package.trackingNumber)
@@ -27,14 +24,8 @@ final class TrackingManager: ObservableObject {
 
         let result = try await track(number: package.trackingNumber, carrier: package.carrier)
 
-        // 偵測狀態變化，觸發通知
-        if oldStatus != result.currentStatus {
-            await NotificationManager.shared.handleStatusChange(
-                package: package,
-                oldStatus: oldStatus,
-                newStatus: result.currentStatus
-            )
-        }
+        // 狀態變化通知統一由 Cloud Functions FCM push 處理，
+        // 不在 client 端發本地通知，避免與 FCM 重複。
 
         return result
     }

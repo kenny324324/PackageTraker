@@ -154,6 +154,8 @@ export const onPackageStatusChange = onDocumentUpdated(
         trackingNumber: after.trackingNumber || "",
         status: after.status,
       },
+      collapseId: `${packageId}-${after.status}`,
+      threadId: packageId,
     }, notificationType);
 
     // 寫入通知日誌

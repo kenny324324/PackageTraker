@@ -59,10 +59,26 @@ private enum ResultFilter: String, CaseIterable {
 struct NotificationLogsView: View {
     @State private var isLoading = false
     @State private var errorMessage: String?
-    @State private var logs: [NotificationLog] = []
+    @State private var allLogs: [NotificationLog] = []
     @State private var typeFilter: LogTypeFilter = .all
     @State private var resultFilter: ResultFilter = .all
     @State private var queryLimit = 100
+
+    private var logs: [NotificationLog] {
+        allLogs.filter { log in
+            let typeMatch: Bool = switch typeFilter {
+            case .all: true
+            case .statusChange: log.type == "statusChange"
+            case .dailyReminder: log.type == "dailyReminder"
+            }
+            let resultMatch: Bool = switch resultFilter {
+            case .all: true
+            case .success: log.success
+            case .failed: !log.success
+            }
+            return typeMatch && resultMatch
+        }
+    }
 
     private let functions = Functions.functions(region: "asia-east1")
     private let isoFormatter: ISO8601DateFormatter = {
@@ -77,7 +93,7 @@ struct NotificationLogsView: View {
             logsSection
         }
         .overlay {
-            if isLoading && logs.isEmpty {
+            if isLoading && allLogs.isEmpty {
                 ProgressView("載入中⋯")
             }
         }
@@ -94,12 +110,6 @@ struct NotificationLogsView: View {
         }
         .task {
             await fetchLogs()
-        }
-        .onChange(of: typeFilter) {
-            Task { await fetchLogs() }
-        }
-        .onChange(of: resultFilter) {
-            Task { await fetchLogs() }
         }
         .navigationTitle("通知記錄")
         .navigationBarTitleDisplayMode(.inline)
@@ -137,7 +147,7 @@ struct NotificationLogsView: View {
                     logRow(log)
                 }
 
-                if logs.count >= queryLimit {
+                if allLogs.count >= queryLimit {
                     Button {
                         queryLimit += 100
                         Task { await fetchLogs() }
@@ -242,19 +252,7 @@ struct NotificationLogsView: View {
         isLoading = true
         defer { isLoading = false }
 
-        var params: [String: Any] = ["limit": queryLimit]
-
-        if typeFilter != .all {
-            switch typeFilter {
-            case .statusChange: params["type"] = "statusChange"
-            case .dailyReminder: params["type"] = "dailyReminder"
-            case .all: break
-            }
-        }
-
-        if resultFilter != .all {
-            params["success"] = (resultFilter == .success)
-        }
+        let params: [String: Any] = ["limit": queryLimit]
 
         do {
             let callable = functions.httpsCallable("getNotificationLogs")
@@ -267,7 +265,7 @@ struct NotificationLogsView: View {
                 return
             }
 
-            logs = logsData.map { dict in
+            allLogs = logsData.map { dict in
                 let metadata = dict["metadata"] as? [String: Any] ?? [:]
                 return NotificationLog(
                     id: dict["id"] as? String ?? UUID().uuidString,

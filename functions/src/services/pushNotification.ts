@@ -12,6 +12,10 @@ export interface PushPayload {
   title: string;
   body: string;
   data?: Record<string, string>;
+  /** APNS collapse ID — 同 key 的通知在 iOS 上只顯示最新一則 */
+  collapseId?: string;
+  /** APNS thread ID — 同 thread 的通知在通知中心分組顯示 */
+  threadId?: string;
 }
 
 /** 推播類型，對應裝置通知設定的開關 */
@@ -40,6 +44,13 @@ export async function sendPushNotification(
   fcmToken: string,
   payload: PushPayload
 ): Promise<boolean> {
+  const apnsHeaders: Record<string, string> = {
+    "apns-priority": "10",
+  };
+  if (payload.collapseId) {
+    apnsHeaders["apns-collapse-id"] = payload.collapseId;
+  }
+
   const message = {
     token: fcmToken,
     notification: {
@@ -48,14 +59,13 @@ export async function sendPushNotification(
     },
     data: payload.data || {},
     apns: {
-      headers: {
-        "apns-priority": "10",
-      },
+      headers: apnsHeaders,
       payload: {
         aps: {
           sound: "default",
           badge: 1,
           "content-available": 1,
+          ...(payload.threadId ? {"thread-id": payload.threadId} : {}),
         },
       },
     },
@@ -144,6 +154,13 @@ export async function sendPushToAllDevices(
   }
 
   // 多 token 用 multicast
+  const multicastApnsHeaders: Record<string, string> = {
+    "apns-priority": "10",
+  };
+  if (payload.collapseId) {
+    multicastApnsHeaders["apns-collapse-id"] = payload.collapseId;
+  }
+
   const message = {
     notification: {
       title: payload.title,
@@ -151,14 +168,13 @@ export async function sendPushToAllDevices(
     },
     data: payload.data || {},
     apns: {
-      headers: {
-        "apns-priority": "10",
-      },
+      headers: multicastApnsHeaders,
       payload: {
         aps: {
           sound: "default",
           badge: 1,
           "content-available": 1,
+          ...(payload.threadId ? {"thread-id": payload.threadId} : {}),
         },
       },
     },

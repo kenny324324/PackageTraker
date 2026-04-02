@@ -12,6 +12,7 @@ import FirebaseCore
 import FirebaseFirestore
 import AuthenticationServices
 import CryptoKit
+import UIKit
 
 /// Firebase 認證服務：處理 Apple Sign In 與用戶管理
 @MainActor
@@ -33,6 +34,11 @@ final class FirebaseAuthService: NSObject, ObservableObject {
             Task { @MainActor in
                 self?.currentUser = user
                 self?.isAuthenticated = user != nil
+
+                // 每次 app 啟動恢復 session 時更新版本資訊
+                if let uid = user?.uid {
+                    self?.updateVersionInfo(uid: uid)
+                }
             }
         }
     }
@@ -101,7 +107,9 @@ final class FirebaseAuthService: NSObject, ObservableObject {
             // 文件已存在：更新 lastActive、語系，並補齊可能缺少的欄位
             var updateData: [String: Any] = [
                 "lastActive": FieldValue.serverTimestamp(),
-                "language": detectLanguage()
+                "language": detectLanguage(),
+                "appVersion": AppConfiguration.fullVersionString,
+                "iosVersion": UIDevice.current.systemVersion
             ]
 
             let data = userDoc?.data()
@@ -127,6 +135,8 @@ final class FirebaseAuthService: NSObject, ObservableObject {
             "createdAt": FieldValue.serverTimestamp(),
             "lastActive": FieldValue.serverTimestamp(),
             "language": detectLanguage(),
+            "appVersion": AppConfiguration.fullVersionString,
+            "iosVersion": UIDevice.current.systemVersion,
             "notificationSettings": [
                 "enabled": true,
                 "arrivalNotification": true,
@@ -136,6 +146,17 @@ final class FirebaseAuthService: NSObject, ObservableObject {
         ]
 
         try? await userRef.setData(userData)
+    }
+
+    // MARK: - 版本資訊更新
+
+    /// 每次 app 啟動時更新 Firestore 中的版本資訊
+    private func updateVersionInfo(uid: String) {
+        let db = Firestore.firestore()
+        db.collection("users").document(uid).updateData([
+            "appVersion": AppConfiguration.fullVersionString,
+            "iosVersion": UIDevice.current.systemVersion
+        ])
     }
 
     // MARK: - 語系偵測
