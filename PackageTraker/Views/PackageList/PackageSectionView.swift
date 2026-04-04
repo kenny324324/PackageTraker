@@ -22,6 +22,7 @@ struct PackageSectionView: View {
     var namespace: Namespace.ID?
     var onPackageTap: ((Package) -> Void)? = nil
     var onPackageEdit: ((Package) -> Void)? = nil
+    var onPackageMarkComplete: ((Package) -> Void)? = nil
     var onPackageDelete: ((Package) -> Void)? = nil
     
     @State private var sortOption: PackageSortOption = .addedDate
@@ -107,6 +108,7 @@ struct PackageSectionView: View {
                                 namespace: namespace,
                                 onTap: { onPackageTap?(package) },
                                 onEdit: { onPackageEdit?(package) },
+                                onMarkComplete: { onPackageMarkComplete?(package) },
                                 onDelete: { onPackageDelete?(package) }
                             )
                             .frame(width: cardWidth)

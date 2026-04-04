@@ -91,6 +91,10 @@
 "detail.serviceType" = "Service Type";
 "detail.delete" = "Delete Package";
 "detail.deleteConfirm" = "Delete this package?";
+"detail.markComplete" = "Picked Up";
+"detail.markCompleteConfirm" = "Mark as picked up?";
+"detail.markCompleteMessage" = "This action cannot be undone";
+"detail.markCompleteEvent" = "Manually marked as picked up";
 "detail.notify.enableAll" = "Enable Notifications";
 "detail.notify.disableAll" = "Mute Notifications";
 "detail.notify.shipped" = "Shipped";

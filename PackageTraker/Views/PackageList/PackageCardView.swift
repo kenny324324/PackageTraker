@@ -6,6 +6,7 @@ struct PackageCardView: View {
     var namespace: Namespace.ID?
     var onTap: (() -> Void)? = nil
     var onEdit: (() -> Void)? = nil
+    var onMarkComplete: (() -> Void)? = nil
     var onDelete: (() -> Void)? = nil
 
     var body: some View {
@@ -73,6 +74,14 @@ struct PackageCardView: View {
         .contextMenu {
             Button(String(localized: "common.edit")) {
                 onEdit?()
+            }
+            if !package.status.isCompleted {
+                Button {
+                    onMarkComplete?()
+                } label: {
+                    Text(String(localized: "detail.markComplete"))
+                        .foregroundStyle(.green)
+                }
             }
             Button(String(localized: "common.delete"), role: .destructive) {
                 onDelete?()

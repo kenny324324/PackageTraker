@@ -13,6 +13,7 @@ struct PackageDetailView: View {
 
     @ObservedObject private var subscriptionManager = SubscriptionManager.shared
     @State private var showDeleteConfirmation = false
+    @State private var showCompleteConfirmation = false
     @State private var isRefreshing = false
     @State private var showEditSheet = false
     @State private var showPaywall = false
@@ -80,10 +81,9 @@ struct PackageDetailView: View {
                 }
             }
             ToolbarItem(placement: .topBarTrailing) {
-                Button(String(localized: "detail.edit")) {
-                    showEditSheet = true
+                if !package.status.isCompleted {
+                    markCompleteButton
                 }
-                .foregroundStyle(.white)
             }
         }
         .sheet(isPresented: $showEditSheet) {
@@ -100,11 +100,27 @@ struct PackageDetailView: View {
             // 進入詳細頁時，只在資料過期時才刷新
             await refreshIfNeeded()
         }
-        .confirmationDialog(String(localized: "detail.deleteConfirm"), isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
-            Button(String(localized: "common.delete"), role: .destructive) {
-                deletePackage()
-            }
-            Button(String(localized: "common.cancel"), role: .cancel) { }
+        .overlay {
+            Color.clear
+                .alert(String(localized: "detail.deleteConfirm"), isPresented: $showDeleteConfirmation) {
+                    Button(String(localized: "common.delete"), role: .destructive) {
+                        deletePackage()
+                    }
+                    Button(String(localized: "common.cancel"), role: .cancel) { }
+                }
+                .tint(.white)
+        }
+        .overlay {
+            Color.clear
+                .alert(String(localized: "detail.markCompleteConfirm"), isPresented: $showCompleteConfirmation) {
+                    Button(String(localized: "detail.markComplete")) {
+                        markAsDelivered()
+                    }
+                    Button(String(localized: "common.cancel"), role: .cancel) { }
+                } message: {
+                    Text(String(localized: "detail.markCompleteMessage"))
+                }
+                .tint(.white)
         }
     }
 
@@ -338,7 +354,13 @@ struct PackageDetailView: View {
 
     private var bottomToolbar: some View {
         HStack {
-            // 複製單號按鈕（靠左）
+            // 編輯按鈕
+            editButton
+
+            // 通知設定按鈕（Pro）
+            notificationMenuButton
+
+            // 複製單號按鈕
             Button(action: copyTrackingNumber) {
                 Image(systemName: "doc.on.doc")
                     .font(.title3)
@@ -347,30 +369,66 @@ struct PackageDetailView: View {
             }
             .adaptiveToolbarButtonStyle()
 
-            // 通知設定按鈕（Pro）
-            notificationMenuButton
-
             Spacer()
 
-            // 刪除按鈕（靠右，帶文字）
-            Button {
-                showDeleteConfirmation = true
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "trash")
-                        .font(.title3)
-                    Text(String(localized: "common.delete"))
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                }
-                .foregroundStyle(.white)
-                .padding(.horizontal, 20)
-                .padding(.vertical, 14)
-            }
-            .adaptiveCapsuleButtonStyle(tint: .red)
+            // 刪除按鈕（靠右）
+            deleteButton
         }
         .padding(.horizontal, 24)
         .padding(.vertical, 12)
+    }
+
+    @ViewBuilder
+    private var markCompleteButton: some View {
+        if #available(iOS 26, *) {
+            Button {
+                showCompleteConfirmation = true
+            } label: {
+                Text(String(localized: "detail.markComplete"))
+                    .foregroundStyle(.white)
+            }
+            .buttonStyle(.glassProminent)
+            .tint(.green)
+        } else {
+            Button {
+                showCompleteConfirmation = true
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "checkmark.circle.fill")
+                    Text(String(localized: "detail.markComplete"))
+                        .fontWeight(.medium)
+                }
+                .font(.subheadline)
+                .foregroundStyle(.white)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color.green, in: Capsule())
+            }
+        }
+    }
+
+    private var editButton: some View {
+        Button {
+            showEditSheet = true
+        } label: {
+            Image(systemName: "pencil")
+                .font(.title3)
+                .foregroundStyle(.black)
+                .frame(width: 50, height: 50)
+        }
+        .adaptiveToolbarButtonStyle(tint: .white)
+    }
+
+    private var deleteButton: some View {
+        Button {
+            showDeleteConfirmation = true
+        } label: {
+            Image(systemName: "trash")
+                .font(.title3)
+                .foregroundStyle(.white)
+                .frame(width: 50, height: 50)
+        }
+        .adaptiveToolbarButtonStyle(tint: .red)
     }
 
     /// 通知鈴鐺 icon（根據 3 個開關狀態）
@@ -489,6 +547,34 @@ struct PackageDetailView: View {
         WidgetDataService.shared.updateWidgetData(packages: remainingPackages)
         WidgetCenter.shared.reloadAllTimelines()
         dismiss()
+    }
+
+    private func markAsDelivered() {
+        let now = Date()
+        let description = String(localized: "detail.markCompleteEvent")
+
+        // 更新狀態
+        package.status = .delivered
+        package.lastUpdated = now
+        package.latestDescription = description
+
+        // 建立手動完成事件
+        let event = TrackingEvent(
+            id: TrackingEvent.deterministicId(trackingNumber: package.trackingNumber, timestamp: now, description: description),
+            timestamp: now,
+            status: .delivered,
+            description: description
+        )
+        event.package = package
+        package.events.append(event)
+
+        try? modelContext.save()
+        FirebaseSyncService.shared.syncPackage(package, includeStatus: true)
+
+        // 更新 Widget
+        let allPackages = (try? modelContext.fetch(FetchDescriptor<Package>())) ?? []
+        WidgetDataService.shared.updateWidgetData(packages: allPackages)
+        WidgetCenter.shared.reloadAllTimelines()
     }
 
     /// 只在資料過期時自動刷新（5 分鐘內不重複呼叫 API）

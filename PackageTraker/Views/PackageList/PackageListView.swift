@@ -29,8 +29,10 @@ struct PackageListView: View {
     @State private var showPendingSheet = false
     @State private var showDeliveredSheet = false
 
-    // 編輯和刪除
+    // 編輯、完成、刪除
     @State private var packageToEdit: Package?
+    @State private var packageToMarkComplete: Package?
+    @State private var showCompleteConfirmation = false
     @State private var packageToDelete: Package?
     @State private var showDeleteConfirmation = false
 
@@ -127,15 +129,35 @@ struct PackageListView: View {
             .sheet(item: $packageToEdit) { package in
                 EditPackageSheet(package: package)
             }
-            .confirmationDialog(String(localized: "detail.deleteConfirm"), isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
-                Button(String(localized: "common.delete"), role: .destructive) {
-                    if let package = packageToDelete {
-                        deletePackage(package)
+            .overlay {
+                Color.clear
+                    .alert(String(localized: "detail.deleteConfirm"), isPresented: $showDeleteConfirmation) {
+                        Button(String(localized: "common.delete"), role: .destructive) {
+                            if let package = packageToDelete {
+                                deletePackage(package)
+                            }
+                        }
+                        Button(String(localized: "common.cancel"), role: .cancel) {
+                            packageToDelete = nil
+                        }
                     }
-                }
-                Button(String(localized: "common.cancel"), role: .cancel) {
-                    packageToDelete = nil
-                }
+                    .tint(.white)
+            }
+            .overlay {
+                Color.clear
+                    .alert(String(localized: "detail.markCompleteConfirm"), isPresented: $showCompleteConfirmation) {
+                        Button(String(localized: "detail.markComplete")) {
+                            if let package = packageToMarkComplete {
+                                markAsDelivered(package)
+                            }
+                        }
+                        Button(String(localized: "common.cancel"), role: .cancel) {
+                            packageToMarkComplete = nil
+                        }
+                    } message: {
+                        Text(String(localized: "detail.markCompleteMessage"))
+                    }
+                    .tint(.white)
             }
             .sheet(isPresented: $showPendingSheet) {
                 PackageListSheetView(
@@ -189,6 +211,31 @@ struct PackageListView: View {
         WidgetCenter.shared.reloadAllTimelines()
     }
 
+    private func markAsDelivered(_ package: Package) {
+        let now = Date()
+        let description = String(localized: "detail.markCompleteEvent")
+
+        package.status = .delivered
+        package.lastUpdated = now
+        package.latestDescription = description
+
+        let event = TrackingEvent(
+            id: TrackingEvent.deterministicId(trackingNumber: package.trackingNumber, timestamp: now, description: description),
+            timestamp: now,
+            status: .delivered,
+            description: description
+        )
+        event.package = package
+        package.events.append(event)
+
+        try? modelContext.save()
+        packageToMarkComplete = nil
+        FirebaseSyncService.shared.syncPackage(package, includeStatus: true)
+
+        WidgetDataService.shared.updateWidgetData(packages: packages)
+        WidgetCenter.shared.reloadAllTimelines()
+    }
+
     // MARK: - Views
 
     private var packageListContent: some View {
@@ -221,6 +268,10 @@ struct PackageListView: View {
                             },
                             onPackageEdit: { package in
                                 packageToEdit = package
+                            },
+                            onPackageMarkComplete: { package in
+                                packageToMarkComplete = package
+                                showCompleteConfirmation = true
                             },
                             onPackageDelete: { package in
                                 packageToDelete = package
