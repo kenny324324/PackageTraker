@@ -210,6 +210,45 @@ struct DeveloperOptionsView: View {
                 Text("重置本地每日掃描次數快取。終身方案不受次數限制。")
             }
 
+            // MARK: - 轉換率測試
+            Section {
+                HStack {
+                    Text("AI 試用已用")
+                    Spacer()
+                    Text("\(UserDefaults.standard.integer(forKey: "aiTrialUsedCount")) / 3")
+                        .foregroundStyle(.secondary)
+                }
+
+                HStack {
+                    Text("累計新增包裹")
+                    Spacer()
+                    Text("\(UserDefaults.standard.integer(forKey: "totalPackagesAdded"))")
+                        .foregroundStyle(.secondary)
+                }
+
+                HStack {
+                    Text("軟 Paywall")
+                    Spacer()
+                    Text(UserDefaults.standard.bool(forKey: "hasSeenSoftPaywall") ? "已顯示" : "未顯示")
+                        .foregroundStyle(UserDefaults.standard.bool(forKey: "hasSeenSoftPaywall") ? .red : .green)
+                }
+
+                Button {
+                    UserDefaults.standard.set(0, forKey: "aiTrialUsedCount")
+                    UserDefaults.standard.set(false, forKey: "hasSeenSoftPaywall")
+                    UserDefaults.standard.set(0, forKey: "totalPackagesAdded")
+                    UserDefaults.standard.set(Date(), forKey: "appFirstLaunchDate")
+                    print("[Debug] 轉換率測試狀態已全部重置")
+                } label: {
+                    Label("重置所有轉換率狀態", systemImage: "arrow.counterclockwise")
+                        .foregroundStyle(.red)
+                }
+            } header: {
+                Text("轉換率測試")
+            } footer: {
+                Text("重置 AI 試用次數、軟 Paywall 顯示狀態、累計新增包裹數、首次安裝日期。")
+            }
+
             // MARK: - 動畫預覽
             Section {
                 NavigationLink {

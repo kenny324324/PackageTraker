@@ -564,3 +564,28 @@
 "settings.widget.title" = "Widget";
 "settings.widget.hint" = "Long press home screen → tap \"+\" → search \"PackageTraker\" to add";
 "settings.widget.freeDesc" = "Free tier shows pickup reminders. Upgrade to Pro for full tracking.";
+
+// AI Trial Upsell
+"aiTrial.remaining.%lld.%lld" = "AI Scan (%lld/%lld remaining)";
+"aiTrial.exhausted.title" = "Free Trial Used Up";
+"aiTrial.exhausted.subtitle" = "Upgrade to Pro for unlimited AI scans and more package tracking";
+"aiTrial.exhausted.viewPlans" = "View Plans";
+"aiTrial.exhausted.later" = "Maybe Later";
+
+// Quota Warning Banner
+"quota.almostFull" = "1 package slot left. Upgrade to Pro for unlimited tracking";
+"quota.full" = "Package limit reached. Upgrade to Pro for unlimited tracking";
+"proNudge.upgrade" = "Upgrade";
+
+// Empty State Pro Features
+"empty.proFeatures.title" = "Unlock More Features";
+"empty.proFeatures.viewPlans" = "View Pro Plans";
+
+// Stats Pro Nudge
+"stats.proNudge.message" = "Unlock spending analytics, delivery speed stats & more Pro features";
+
+// Soft Paywall
+"softPaywall.title" = "You're already using Pickup!";
+"softPaywall.subtitle" = "Upgrade to Pro for the full tracking experience";
+"softPaywall.viewPlans" = "View Plans";
+"softPaywall.later" = "Maybe Later";

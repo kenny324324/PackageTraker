@@ -22,6 +22,18 @@ final class AICarrierSelectViewModel {
 
     /// 檢查用量 → 呈現 PHPicker
     func checkUsageAndPresentPicker() {
+        // 免費用戶走試用額度判斷
+        if !SubscriptionManager.shared.hasAIAccess {
+            let used = UserDefaults.standard.integer(forKey: "aiTrialUsedCount")
+            if used >= 3 {
+                showPaywall = true
+            } else {
+                presentPicker()
+            }
+            return
+        }
+
+        // 訂閱制用戶走每日額度判斷
         if !SubscriptionManager.shared.isLifetime {
             if AIVisionService.shared.remainingScans <= 0 {
                 Task { @MainActor [weak self] in

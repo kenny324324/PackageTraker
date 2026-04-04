@@ -183,6 +183,8 @@ struct PersonalStatsView: View {
 
     // MARK: - Body
 
+    @State private var showPaywall = false
+
     var body: some View {
         ScrollView {
             if allPackages.isEmpty {
@@ -190,6 +192,18 @@ struct PersonalStatsView: View {
             } else {
                 VStack(spacing: 24) {
                     PackageJarView(carriers: Array(allPackages.prefix(30).map(\.carrier)))
+
+                    // Pro upsell banner（免費用戶）
+                    if !SubscriptionManager.shared.isPro {
+                        ProNudgeBanner(
+                            message: String(localized: "stats.proNudge.message"),
+                            icon: "crown.fill",
+                            style: .info,
+                            dismissible: false,
+                            onUpgrade: { showPaywall = true }
+                        )
+                    }
+
                     highlightsSection
                     carrierRankingSection
                     monthlyTrendSection
@@ -201,6 +215,9 @@ struct PersonalStatsView: View {
                 .padding(.top, 8)
                 .padding(.bottom, 32)
             }
+        }
+        .fullScreenCover(isPresented: $showPaywall) {
+            PaywallView()
         }
         .navigationTitle(String(localized: "stats.personal.title"))
         .toolbarTitleDisplayMode(.inlineLarge)

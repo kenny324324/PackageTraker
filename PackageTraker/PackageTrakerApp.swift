@@ -52,6 +52,10 @@ struct PackageTrakerApp: App {
     // 強制更新狀態
     @State private var forceUpdateURL: String?
 
+    // 軟 Paywall
+    @State private var showSoftPaywall = false
+    @State private var showSoftPaywallFullPaywall = false
+
     // Firebase 認證服務
     @StateObject private var authService = FirebaseAuthService.shared
 
@@ -66,6 +70,11 @@ struct PackageTrakerApp: App {
             "shippedNotificationEnabled": true,
             "pickupReminderEnabled": true
         ])
+
+        // 記錄首次安裝日期（用於軟 Paywall 觸發條件）
+        if UserDefaults.standard.object(forKey: "appFirstLaunchDate") == nil {
+            UserDefaults.standard.set(Date(), forKey: "appFirstLaunchDate")
+        }
 
         // 初始化 Firebase
         FirebaseApp.configure()
@@ -164,6 +173,14 @@ struct PackageTrakerApp: App {
                     .animation(.easeInOut(duration: 0.3), value: NetworkMonitor.shared.isConnected)
                 }
             }
+            .sheet(isPresented: $showSoftPaywall) {
+                SoftPaywallSheet {
+                    showSoftPaywallFullPaywall = true
+                }
+            }
+            .fullScreenCover(isPresented: $showSoftPaywallFullPaywall) {
+                PaywallView()
+            }
             .animation(.easeOut(duration: 0.4), value: appFlow)
             .preferredColorScheme(.dark)
             .task {
@@ -181,6 +198,10 @@ struct PackageTrakerApp: App {
                 // 同步訂閱層級到 Widget
                 WidgetDataService.shared.updateSubscriptionTier(newTier)
                 WidgetCenter.shared.reloadAllTimelines()
+            }
+            .onChange(of: appFlow) { _, newFlow in
+                guard newFlow == .main else { return }
+                checkSoftPaywall()
             }
             .onChange(of: authService.isAuthenticated) { oldValue, newValue in
                 // 登出處理（登入由 SignInView 內部處理）
@@ -209,6 +230,32 @@ struct PackageTrakerApp: App {
             TrackingEvent.self,
             LinkedEmailAccount.self
         ])
+    }
+
+    // MARK: - Soft Paywall
+
+    /// 檢查是否該顯示軟 Paywall（免費用戶 + 滿足條件 + 只彈一次）
+    private func checkSoftPaywall() {
+        guard !subscriptionManager.isPro else { return }
+        guard !UserDefaults.standard.bool(forKey: "hasSeenSoftPaywall") else { return }
+
+        // 條件：使用天數 ≥ 3 或累計新增包裹 ≥ 3
+        let daysSinceInstall: Int = {
+            guard let firstLaunch = UserDefaults.standard.object(forKey: "appFirstLaunchDate") as? Date else { return 0 }
+            return Calendar.current.dateComponents([.day], from: firstLaunch, to: Date()).day ?? 0
+        }()
+        let totalAdded = UserDefaults.standard.integer(forKey: "totalPackagesAdded")
+
+        guard daysSinceInstall >= 3 || totalAdded >= 3 else { return }
+
+        // 延遲 2 秒彈出
+        Task {
+            try? await Task.sleep(for: .seconds(2))
+            await MainActor.run {
+                showSoftPaywall = true
+                UserDefaults.standard.set(true, forKey: "hasSeenSoftPaywall")
+            }
+        }
     }
 
     // MARK: - URL Handling

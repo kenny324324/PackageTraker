@@ -82,6 +82,12 @@ class AIVisionService {
             // 成功後從伺服器同步最新用量（確保跨裝置一致）
             _ = await fetchUsageFromServer()
 
+            // 免費用戶：遞增試用次數
+            if !SubscriptionManager.shared.hasAIAccess {
+                let current = UserDefaults.standard.integer(forKey: "aiTrialUsedCount")
+                UserDefaults.standard.set(current + 1, forKey: "aiTrialUsedCount")
+            }
+
             return aiResult
 
         } catch {

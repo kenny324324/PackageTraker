@@ -563,3 +563,28 @@
 "settings.widget.title" = "小工具";
 "settings.widget.hint" = "长按主屏幕 → 点「+」→ 搜索「取货吧」即可添加";
 "settings.widget.freeDesc" = "免费版显示待取货提醒，升级 Pro 可查看所有包裹追踪状态";
+
+// AI Trial Upsell
+"aiTrial.remaining.%lld.%lld" = "AI 扫描（剩余 %lld/%lld 次）";
+"aiTrial.exhausted.title" = "免费试用次数已用完";
+"aiTrial.exhausted.subtitle" = "升级 Pro 解锁无限 AI 扫描、更多包裹追踪名额";
+"aiTrial.exhausted.viewPlans" = "查看方案";
+"aiTrial.exhausted.later" = "以后再说";
+
+// Quota Warning Banner
+"quota.almostFull" = "还剩 1 个包裹名额，升级 Pro 解锁无限追踪";
+"quota.full" = "包裹名额已满，升级 Pro 解锁无限追踪";
+"proNudge.upgrade" = "升级";
+
+// Empty State Pro Features
+"empty.proFeatures.title" = "解锁更多功能";
+"empty.proFeatures.viewPlans" = "了解 Pro 方案";
+
+// Stats Pro Nudge
+"stats.proNudge.message" = "解锁消费分析、配送速度统计等 Pro 功能";
+
+// Soft Paywall
+"softPaywall.title" = "你已经在使用取货吧了！";
+"softPaywall.subtitle" = "升级 Pro 让追踪体验更完整";
+"softPaywall.viewPlans" = "查看方案";
+"softPaywall.later" = "以后再说";

@@ -29,6 +29,12 @@ struct PackageListView: View {
     @State private var showPendingSheet = false
     @State private var showDeliveredSheet = false
 
+    // AI 試用 upsell
+    @State private var showAITrialUpsell = false
+
+    // 包裹額度預警 banner
+    @State private var quotaBannerDismissed = false
+
     // 編輯、完成、刪除
     @State private var packageToEdit: Package?
     @State private var packageToMarkComplete: Package?
@@ -90,6 +96,8 @@ struct PackageListView: View {
                 case .paywall(let lifetimeOnly):
                     paywallLifetimeOnly = lifetimeOnly
                     showPaywall = true
+                case .aiTrialUpsell:
+                    showAITrialUpsell = true
                 case .none:
                     break
                 }
@@ -108,6 +116,10 @@ struct PackageListView: View {
                     onShowPaywall: { lifetimeOnly in
                         pendingAddAction = .paywall(lifetimeOnly: lifetimeOnly)
                         showAddMethodSheet = false
+                    },
+                    onShowAITrialUpsell: {
+                        pendingAddAction = .aiTrialUpsell
+                        showAddMethodSheet = false
                     }
                 )
             }
@@ -125,6 +137,11 @@ struct PackageListView: View {
                 showAddMethodSheet = true
             }) {
                 PaywallView(lifetimeOnly: paywallLifetimeOnly)
+            }
+            .sheet(isPresented: $showAITrialUpsell, onDismiss: {
+                showAddMethodSheet = true
+            }) {
+                AITrialUpsellView()
             }
             .sheet(item: $packageToEdit) { package in
                 EditPackageSheet(package: package)
@@ -241,6 +258,30 @@ struct PackageListView: View {
     private var packageListContent: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
+                // 包裹額度預警 Banner
+                if !SubscriptionManager.shared.isPro && !quotaBannerDismissed {
+                    let activeCount = filteredPackages.count
+                    let maxCount = SubscriptionManager.shared.maxPackageCount
+                    if activeCount >= maxCount {
+                        ProNudgeBanner(
+                            message: String(localized: "quota.full"),
+                            icon: "exclamationmark.triangle.fill",
+                            style: .critical,
+                            onUpgrade: { showPaywall = true },
+                            onDismiss: { quotaBannerDismissed = true }
+                        )
+                        .padding(.horizontal)
+                    } else if activeCount >= maxCount - 1 {
+                        ProNudgeBanner(
+                            message: String(localized: "quota.almostFull"),
+                            style: .warning,
+                            onUpgrade: { showPaywall = true },
+                            onDismiss: { quotaBannerDismissed = true }
+                        )
+                        .padding(.horizontal)
+                    }
+                }
+
                 // 郵件同步狀態提示（功能暫時停用）
                 if FeatureFlags.emailAutoImportEnabled, let status = emailSyncStatus {
                     emailSyncStatusBanner(status)
@@ -544,16 +585,129 @@ private enum PendingAddAction {
     case manualAdd
     case aiScan
     case paywall(lifetimeOnly: Bool)
+    case aiTrialUpsell
 }
 
 // MARK: - Empty State
 
 struct EmptyPackageListView: View {
+    @ObservedObject private var subscriptionManager = SubscriptionManager.shared
+    @State private var showPaywall = false
+
     var body: some View {
-        ContentUnavailableView {
-            Label(String(localized: "empty.title"), systemImage: "shippingbox")
-        } description: {
-            Text(String(localized: "empty.description"))
+        VStack(spacing: 20) {
+            Spacer()
+
+            ContentUnavailableView {
+                Label(String(localized: "empty.title"), systemImage: "shippingbox")
+            } description: {
+                Text(String(localized: "empty.description"))
+            }
+
+            // Pro 功能亮點（免費用戶才顯示）
+            if !subscriptionManager.isPro {
+                proFeatureCard
+            }
+
+            Spacer()
+        }
+    }
+
+    private var proFeatureCard: some View {
+        VStack(spacing: 14) {
+            Text(String(localized: "empty.proFeatures.title"))
+                .font(.subheadline)
+                .fontWeight(.semibold)
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            // 3 列 x 2 行 grid
+            let rows = proFeatures.chunked(into: 3)
+            VStack(spacing: 12) {
+                ForEach(0..<rows.count, id: \.self) { rowIndex in
+                    HStack(spacing: 8) {
+                        ForEach(rows[rowIndex], id: \.icon) { feature in
+                            HStack(spacing: 6) {
+                                Image(systemName: feature.icon)
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(.yellow)
+                                Text(String(localized: feature.text))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+                }
+            }
+
+            Button {
+                showPaywall = true
+            } label: {
+                Text(String(localized: "empty.proFeatures.viewPlans"))
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.black)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(
+                        LinearGradient(
+                            colors: [.yellow, .orange],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        ),
+                        in: RoundedRectangle(cornerRadius: 10)
+                    )
+            }
+            .padding(.top, 2)
+        }
+        .padding(16)
+        .modifier(ProFeatureCardBackgroundModifier())
+        .padding(.horizontal, 16)
+        .fullScreenCover(isPresented: $showPaywall) {
+            PaywallView()
+        }
+    }
+
+    /// 與付費牆功能對比表一致的 6 項 Pro 功能
+    private var proFeatures: [(icon: String, text: LocalizedStringResource)] {
+        [
+            ("shippingbox.fill", "paywall.comparison.packages"),
+            ("sparkles", "paywall.comparison.ai"),
+            ("chart.pie.fill", "paywall.comparison.spending"),
+            ("bell.badge.fill", "paywall.comparison.notification"),
+            ("apps.iphone", "paywall.comparison.widget"),
+            ("paintpalette.fill", "paywall.comparison.themes"),
+        ]
+    }
+}
+
+// MARK: - Array Chunked Helper
+
+private extension Array {
+    func chunked(into size: Int) -> [[Element]] {
+        stride(from: 0, to: count, by: size).map {
+            Array(self[$0..<Swift.min($0 + size, count)])
+        }
+    }
+}
+
+// MARK: - Pro Feature Card Background
+
+private struct ProFeatureCardBackgroundModifier: ViewModifier {
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(iOS 26, *) {
+            content
+                .background(
+                    Rectangle()
+                        .fill(.clear)
+                        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                )
+        } else {
+            content
+                .background(Color.secondaryCardBackground, in: RoundedRectangle(cornerRadius: 14))
         }
     }
 }

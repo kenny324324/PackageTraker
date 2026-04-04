@@ -15,9 +15,15 @@ struct AddMethodSheet: View {
     var onManualAdd: () -> Void
     var onAIScan: () -> Void
     var onShowPaywall: (Bool) -> Void  // lifetimeOnly
+    var onShowAITrialUpsell: () -> Void  // AI 試用用完
 
     @State private var contentHeight: CGFloat = 0
     @State private var remainingScans: Int = AIVisionService.shared.remainingScans
+
+    /// AI 免費試用：最多 3 次（終身額度）
+    private static let aiTrialLimit = 3
+    private var aiTrialUsedCount: Int { UserDefaults.standard.integer(forKey: "aiTrialUsedCount") }
+    private var aiTrialRemaining: Int { max(0, Self.aiTrialLimit - aiTrialUsedCount) }
 
     private var adaptiveSheetHeight: CGFloat {
         max(184, min(248, contentHeight + 80))
@@ -29,11 +35,19 @@ struct AddMethodSheet: View {
                 // AI 掃描按鈕
                 aiScanButton
 
-                // AI 剩餘次數（僅訂閱制用戶顯示，終身方案不顯示）
-                if FeatureFlags.subscriptionEnabled && SubscriptionManager.shared.hasAIAccess && !SubscriptionManager.shared.isLifetime {
-                    Text(String(localized: "ai.remainingScans.\(remainingScans)"))
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                // AI 剩餘次數顯示
+                if FeatureFlags.subscriptionEnabled {
+                    if SubscriptionManager.shared.hasAIAccess && !SubscriptionManager.shared.isLifetime {
+                        // 訂閱制用戶：顯示每日剩餘
+                        Text(String(localized: "ai.remainingScans.\(remainingScans)"))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    } else if !SubscriptionManager.shared.hasAIAccess && aiTrialRemaining > 0 {
+                        // 免費用戶試用中：顯示試用剩餘
+                        Text(String(localized: "aiTrial.remaining.\(aiTrialRemaining).\(Self.aiTrialLimit)"))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
                 }
 
                 // 手動輸入按鈕
@@ -85,15 +99,22 @@ struct AddMethodSheet: View {
         }
     }
 
-    /// 未訂閱 → 彈 Paywall；訂閱制次數用完 → 彈 Paywall；其餘 → 進入物流商選擇頁
+    /// 未訂閱（試用剩餘 > 0）→ 正常掃描；試用用完 → AITrialUpsellView；
+    /// 訂閱制次數用完 → 彈 Paywall（升級終身）；其餘 → 正常掃描
     @ViewBuilder
     private var aiScanButton: some View {
         if FeatureFlags.subscriptionEnabled && !SubscriptionManager.shared.hasAIAccess {
-            // 未訂閱
-            Button {
-                onShowPaywall(false)
-            } label: { aiScanLabel }
-                .buttonStyle(.plain)
+            if aiTrialRemaining > 0 {
+                // 免費用戶但還有試用額度 → 正常進入 AI 流程
+                Button { onAIScan() } label: { aiScanLabel }
+                    .buttonStyle(.plain)
+            } else {
+                // 免費用戶且試用用完 → 彈 AITrialUpsellView
+                Button {
+                    onShowAITrialUpsell()
+                } label: { aiScanLabel }
+                    .buttonStyle(.plain)
+            }
         } else if FeatureFlags.subscriptionEnabled && !SubscriptionManager.shared.isLifetime && remainingScans <= 0 {
             // 訂閱制但今日次數已用完 → 直接彈升級終身方案
             Button {
@@ -190,6 +211,6 @@ private struct AIScanButtonShadowModifier: ViewModifier {
 // MARK: - Preview
 
 #Preview {
-    AddMethodSheet(onManualAdd: {}, onAIScan: {}, onShowPaywall: { _ in })
+    AddMethodSheet(onManualAdd: {}, onAIScan: {}, onShowPaywall: { _ in }, onShowAITrialUpsell: {})
         .modelContainer(for: [Package.self, TrackingEvent.self], inMemory: true)
 }

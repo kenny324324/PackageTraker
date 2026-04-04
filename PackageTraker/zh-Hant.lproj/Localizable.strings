@@ -563,3 +563,28 @@
 "settings.widget.title" = "小工具";
 "settings.widget.hint" = "長按主畫面 → 點「+」→ 搜尋「取貨吧」即可新增";
 "settings.widget.freeDesc" = "免費版顯示待取貨提醒，升級 Pro 可查看所有包裹追蹤狀態";
+
+// AI Trial Upsell
+"aiTrial.remaining.%lld.%lld" = "AI 掃描（剩餘 %lld/%lld 次）";
+"aiTrial.exhausted.title" = "免費試用次數已用完";
+"aiTrial.exhausted.subtitle" = "升級 Pro 解鎖無限 AI 掃描、更多包裹追蹤名額";
+"aiTrial.exhausted.viewPlans" = "查看方案";
+"aiTrial.exhausted.later" = "之後再說";
+
+// Quota Warning Banner
+"quota.almostFull" = "還剩 1 個包裹名額，升級 Pro 解鎖無限追蹤";
+"quota.full" = "包裹名額已滿，升級 Pro 解鎖無限追蹤";
+"proNudge.upgrade" = "升級";
+
+// Empty State Pro Features
+"empty.proFeatures.title" = "解鎖更多功能";
+"empty.proFeatures.viewPlans" = "了解 Pro 方案";
+
+// Stats Pro Nudge
+"stats.proNudge.message" = "解鎖消費分析、配送速度統計等 Pro 功能";
+
+// Soft Paywall
+"softPaywall.title" = "你已經在使用取貨吧了！";
+"softPaywall.subtitle" = "升級 Pro 讓追蹤體驗更完整";
+"softPaywall.viewPlans" = "查看方案";
+"softPaywall.later" = "之後再說";

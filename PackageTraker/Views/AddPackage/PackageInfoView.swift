@@ -305,6 +305,10 @@ struct PackageInfoView: View {
         modelContext.insert(package)
         try? modelContext.save()
 
+        // 累計新增包裹數（用於軟 Paywall 觸發條件）
+        let totalAdded = UserDefaults.standard.integer(forKey: "totalPackagesAdded")
+        UserDefaults.standard.set(totalAdded + 1, forKey: "totalPackagesAdded")
+
         // 同步到 Firestore（新增包裹需寫入初始 status）
         FirebaseSyncService.shared.syncPackage(package, includeStatus: true)
 
