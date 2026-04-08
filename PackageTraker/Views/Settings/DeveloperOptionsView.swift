@@ -8,6 +8,8 @@ struct DeveloperOptionsView: View {
     @ObservedObject private var subscriptionManager = SubscriptionManager.shared
     @State private var apiStatus: String = ""
     @State private var isTestingAPI = false
+    @State private var showSoftPaywall = false
+    @State private var showPromoSheet = false
 
     private let debugService = DebugNotificationService.shared
 
@@ -234,6 +236,13 @@ struct DeveloperOptionsView: View {
                 }
 
                 Button {
+                    showSoftPaywall = true
+                } label: {
+                    Label("顯示軟 Paywall", systemImage: "crown.fill")
+                        .foregroundStyle(.yellow)
+                }
+
+                Button {
                     UserDefaults.standard.set(0, forKey: "aiTrialUsedCount")
                     UserDefaults.standard.set(false, forKey: "hasSeenSoftPaywall")
                     UserDefaults.standard.set(0, forKey: "totalPackagesAdded")
@@ -247,6 +256,65 @@ struct DeveloperOptionsView: View {
                 Text("轉換率測試")
             } footer: {
                 Text("重置 AI 試用次數、軟 Paywall 顯示狀態、累計新增包裹數、首次安裝日期。")
+            }
+
+            // MARK: - 限時優惠測試
+            Section {
+                HStack {
+                    Text("優惠狀態")
+                    Spacer()
+                    Text(LaunchPromoManager.shared.isPromoActive ? "進行中" :
+                         LaunchPromoManager.shared.isPromoExpired ? "已過期" : "未啟動")
+                        .foregroundStyle(LaunchPromoManager.shared.isPromoActive ? .green : .red)
+                }
+
+                if let start = LaunchPromoManager.shared.promoStartDate {
+                    HStack {
+                        Text("起始時間")
+                        Spacer()
+                        Text(start, style: .date)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                HStack {
+                    Text("剩餘時間")
+                    Spacer()
+                    Text(LaunchPromoManager.shared.countdownText)
+                        .foregroundStyle(.yellow)
+                        .monospacedDigit()
+                }
+
+                Button {
+                    showPromoSheet = true
+                } label: {
+                    Label("顯示優惠 Sheet", systemImage: "tag.fill")
+                        .foregroundStyle(.yellow)
+                }
+
+                Button {
+                    LaunchPromoManager.shared.debugResetPromo()
+                } label: {
+                    Label("重置優惠計時器", systemImage: "arrow.counterclockwise")
+                }
+
+                Button {
+                    let almostExpired = Date().addingTimeInterval(-47 * 3600)
+                    LaunchPromoManager.shared.debugSetPromoStart(almostExpired)
+                } label: {
+                    Label("模擬剩餘 1 小時", systemImage: "clock.badge.exclamationmark")
+                }
+
+                Button {
+                    LaunchPromoManager.shared.debugExpirePromo()
+                } label: {
+                    Label("模擬已過期", systemImage: "clock.badge.xmark")
+                        .foregroundStyle(.red)
+                }
+            } header: {
+                Text("限時優惠測試")
+            } footer: {
+                Text("重置或模擬限時優惠的各種狀態。影響 PaywallView 和 PackageListView 的顯示。")
             }
 
             // MARK: - 動畫預覽
@@ -284,12 +352,46 @@ struct DeveloperOptionsView: View {
                     Text(UIDevice.current.systemVersion)
                         .foregroundStyle(.secondary)
                 }
+
+                HStack {
+                    Text("FCM Token")
+                    Spacer()
+                    if let token = FirebasePushService.shared.fcmToken {
+                        Text(token)
+                            .font(.system(size: 9, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    } else {
+                        Text("無")
+                            .foregroundStyle(.red)
+                    }
+                }
+
+                Button {
+                    if let token = FirebasePushService.shared.fcmToken {
+                        UIPasteboard.general.string = token
+                    }
+                } label: {
+                    Label("複製 FCM Token", systemImage: "doc.on.doc")
+                }
+                .disabled(FirebasePushService.shared.fcmToken == nil)
             } header: {
                 Text("系統資訊")
             }
         }
         .navigationTitle("開發者選項")
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showSoftPaywall) {
+            SoftPaywallSheet {
+                // Dev preview
+            }
+        }
+        .sheet(isPresented: $showPromoSheet) {
+            PromoSheet {
+                // Dev preview
+            }
+        }
     }
 
     // MARK: - Actions

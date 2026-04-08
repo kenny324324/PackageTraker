@@ -42,7 +42,7 @@ class SubscriptionManager: ObservableObject {
     // MARK: - Computed
 
     var isPro: Bool { currentTier == .pro }
-    var isLifetime: Bool { currentProductID == SubscriptionProductID.lifetime.rawValue }
+    var isLifetime: Bool { SubscriptionProductID.allLifetimeIDs.contains(currentProductID ?? "") }
     var maxPackageCount: Int { isPro ? .max : 5 }
     var hasAIAccess: Bool { isPro }
     var hasAllThemes: Bool { isPro }
@@ -58,7 +58,7 @@ class SubscriptionManager: ObservableObject {
                 return "Pro Monthly"
             } else if productID == SubscriptionProductID.yearly.rawValue {
                 return "Pro Yearly"
-            } else if productID == SubscriptionProductID.lifetime.rawValue {
+            } else if SubscriptionProductID.allLifetimeIDs.contains(productID) {
                 return "Pro Lifetime"
             }
         }
@@ -80,6 +80,19 @@ class SubscriptionManager: ObservableObject {
     /// 買斷產品
     var lifetimeProduct: Product? {
         products.first { $0.id == SubscriptionProductID.lifetime.rawValue }
+    }
+
+    /// 限時優惠買斷產品
+    var lifetimeLaunchProduct: Product? {
+        products.first { $0.id == SubscriptionProductID.lifetimeLaunch.rawValue }
+    }
+
+    /// 最佳買斷產品（優惠進行中回傳 launch，否則回傳原價）
+    var bestLifetimeProduct: Product? {
+        if LaunchPromoManager.shared.isPromoActive, let promo = lifetimeLaunchProduct {
+            return promo
+        }
+        return lifetimeProduct
     }
 
     // MARK: - Private

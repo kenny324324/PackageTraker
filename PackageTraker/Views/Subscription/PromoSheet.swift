@@ -1,24 +1,18 @@
 //
-//  SoftPaywallSheet.swift
+//  PromoSheet.swift
 //  PackageTraker
 //
-//  一次性輕量 Paywall Sheet（條件觸發，只彈一次）
+//  限時優惠 Sheet（優惠進行中每次啟動彈出）
 //
 
 import SwiftUI
-import SwiftData
+import StoreKit
 
-struct SoftPaywallSheet: View {
+struct PromoSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var promoManager = LaunchPromoManager.shared
     @ObservedObject private var subscriptionManager = SubscriptionManager.shared
-    @Query private var allPackages: [Package]
     var onViewPlans: () -> Void
-
-    private let maxFreePackages = 5
-
-    private var activePackageCount: Int {
-        allPackages.filter { !$0.isArchived }.count
-    }
 
     var body: some View {
         NavigationStack {
@@ -45,14 +39,45 @@ struct SoftPaywallSheet: View {
                         .shadow(color: .orange.opacity(0.3), radius: 5, x: 0, y: 2)
                 }
 
-                // Unlock description
-                Text(String(localized: "softPaywall.unlockDescription"))
+                // Description
+                Text(String(localized: "promo.sheet.description"))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
 
-                // Package Quota Progress
-                packageQuotaBar
+                // Price + Countdown
+                VStack(spacing: 12) {
+                    // Price comparison
+                    if let original = subscriptionManager.lifetimeProduct {
+                        HStack(spacing: 8) {
+                            Text(original.displayPrice)
+                                .font(.title3)
+                                .strikethrough()
+                                .foregroundStyle(.secondary)
+
+                            if let promo = subscriptionManager.lifetimeLaunchProduct {
+                                Text(promo.displayPrice)
+                                    .font(.title2)
+                                    .fontWeight(.bold)
+                                    .foregroundStyle(.yellow)
+                            }
+                        }
+                    }
+
+                    // Countdown
+                    HStack(spacing: 6) {
+                        Image(systemName: "clock.fill")
+                            .font(.system(size: 12))
+                        Text(String(format: NSLocalizedString("promo.banner.countdown", comment: ""), promoManager.countdownText))
+                            .font(.system(size: 13, design: .monospaced))
+                            .fontWeight(.medium)
+                    }
+                    .foregroundStyle(.orange)
+                }
+                .padding(16)
+                .frame(maxWidth: .infinity)
+                .background(Color.white.opacity(0.05))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
 
                 Spacer(minLength: 0)
 
@@ -64,7 +89,7 @@ struct SoftPaywallSheet: View {
                             onViewPlans()
                         }
                     } label: {
-                        Text(String(localized: "softPaywall.viewPlans"))
+                        Text(String(localized: "promo.sheet.cta"))
                             .font(.system(size: 17, weight: .semibold))
                             .foregroundStyle(.black)
                             .frame(maxWidth: .infinity)
@@ -80,7 +105,6 @@ struct SoftPaywallSheet: View {
                     }
 
                     Button {
-                        UserDefaults.standard.set(true, forKey: "hasSeenSoftPaywall")
                         dismiss()
                     } label: {
                         Text(String(localized: "softPaywall.later"))
@@ -91,65 +115,12 @@ struct SoftPaywallSheet: View {
                 .padding(.bottom, 20)
             }
             .padding(.horizontal, 20)
-            .navigationTitle(String(localized: "softPaywall.title"))
+            .navigationTitle(String(localized: "promo.sheet.title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
         }
         .presentationDetents([.medium])
         .presentationBackground(.clear)
         .preferredColorScheme(.dark)
-    }
-
-    // MARK: - Package Quota Progress Bar
-
-    private var packageQuotaBar: some View {
-        let progress = min(CGFloat(activePackageCount) / CGFloat(maxFreePackages), 1.0)
-        let isFull = activePackageCount >= maxFreePackages
-        let progressColor: Color = isFull ? .red : .orange
-
-        return VStack(spacing: 6) {
-            HStack {
-                Image(systemName: "shippingbox.fill")
-                    .font(.system(size: 14))
-                    .foregroundStyle(progressColor)
-
-                Text(String(localized: "softPaywall.quota.title"))
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundStyle(.white)
-
-                Spacer()
-
-                Text("\(activePackageCount)/\(maxFreePackages)")
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(progressColor)
-            }
-
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(Color(.systemGray5))
-                        .frame(height: 6)
-
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(progressColor)
-                        .frame(width: progress * geometry.size.width, height: 6)
-                }
-            }
-            .frame(height: 6)
-
-            HStack {
-                Text(isFull
-                     ? String(localized: "softPaywall.quota.full")
-                     : String(format: NSLocalizedString("softPaywall.quota.remaining", comment: ""), maxFreePackages - activePackageCount))
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                Spacer()
-            }
-        }
-        .padding(12)
-        .background(Color.white.opacity(0.05))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }

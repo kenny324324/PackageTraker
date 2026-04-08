@@ -27,4 +27,7 @@ struct FeatureFlags {
 
     /// 個人統計儀表板（未來上線）
     static let personalStatsEnabled = true
+
+    /// 限時優惠（新用戶 48hr 買斷半價）
+    static let launchPromoEnabled = true
 }

@@ -28,6 +28,21 @@
       "productID" : "com.kenny.PackageTraker.pro.lifetime",
       "referenceName" : "Pro Lifetime",
       "type" : "NonConsumable"
+    },
+    {
+      "displayPrice" : "9.99",
+      "familyShareable" : false,
+      "internalID" : "A1B2C3D4",
+      "localizations" : [
+        {
+          "description" : "Limited-time lifetime offer",
+          "displayName" : "Pro Lifetime (Launch Offer)",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.kenny.PackageTraker.pro.lifetime.launch",
+      "referenceName" : "Pro Lifetime Launch Offer",
+      "type" : "NonConsumable"
     }
   ],
   "settings" : {

@@ -23,6 +23,7 @@ struct PackageListView: View {
     @State private var showAICarrierSelect = false
     @State private var showPaywall = false
     @State private var paywallLifetimeOnly = false
+    @State private var paywallFromAddFlow = false
     @State private var pendingAddAction: PendingAddAction = .none
     @State private var selectedPackage: Package?
     @State private var emailSyncStatus: String?
@@ -34,6 +35,8 @@ struct PackageListView: View {
 
     // 包裹額度預警 banner
     @State private var quotaBannerDismissed = false
+    @State private var promoBannerDismissed = false
+    @ObservedObject private var promoManager = LaunchPromoManager.shared
 
     // 編輯、完成、刪除
     @State private var packageToEdit: Package?
@@ -95,6 +98,7 @@ struct PackageListView: View {
                     showAICarrierSelect = true
                 case .paywall(let lifetimeOnly):
                     paywallLifetimeOnly = lifetimeOnly
+                    paywallFromAddFlow = true
                     showPaywall = true
                 case .aiTrialUpsell:
                     showAITrialUpsell = true
@@ -134,7 +138,10 @@ struct PackageListView: View {
                 AICarrierSelectView()
             }
             .fullScreenCover(isPresented: $showPaywall, onDismiss: {
-                showAddMethodSheet = true
+                if paywallFromAddFlow {
+                    showAddMethodSheet = true
+                    paywallFromAddFlow = false
+                }
             }) {
                 PaywallView(lifetimeOnly: paywallLifetimeOnly)
             }
@@ -286,6 +293,15 @@ struct PackageListView: View {
                 if FeatureFlags.emailAutoImportEnabled, let status = emailSyncStatus {
                     emailSyncStatusBanner(status)
                         .padding(.horizontal)
+                }
+
+                // 限時優惠 Banner
+                if promoManager.isPromoActive && !promoBannerDismissed && !SubscriptionManager.shared.isPro {
+                    PromoBanner(
+                        onTap: { showPaywall = true },
+                        onDismiss: { promoBannerDismissed = true }
+                    )
+                    .padding(.horizontal)
                 }
 
                 // 統計摘要

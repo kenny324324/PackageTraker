@@ -584,7 +584,22 @@
 "stats.proNudge.message" = "解锁消费分析、配送速度统计等 Pro 功能";
 
 // Soft Paywall
-"softPaywall.title" = "你已经在使用取货吧了！";
-"softPaywall.subtitle" = "升级 Pro 让追踪体验更完整";
+"softPaywall.title" = "升级 Pickup Pro";
+"softPaywall.subtitle" = "解锁完整追踪体验";
 "softPaywall.viewPlans" = "查看方案";
 "softPaywall.later" = "以后再说";
+"softPaywall.quota.title" = "包裹额度";
+"softPaywall.quota.full" = "已达免费上限，升级解锁无限包裹";
+"softPaywall.quota.remaining" = "还可新增 %d 个包裹";
+"softPaywall.unlockDescription" = "解锁无限包裹、AI 截图辨识、消费分析等完整功能";
+
+// Launch Promo
+"promo.banner.title" = "限时优惠 — 买断方案 5 折";
+"promo.banner.countdown" = "剩余 %@";
+"promo.badge" = "限时优惠";
+"promo.originalPrice" = "原价 %@";
+"promo.countdown" = "优惠倒计时";
+"promo.countdown.format.days" = "%d 天 %02d:%02d:%02d";
+"promo.sheet.title" = "限时优惠";
+"promo.sheet.description" = "买断方案限时半价，一次付费永久解锁所有 Pro 功能";
+"promo.sheet.cta" = "立即查看优惠";

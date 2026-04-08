@@ -55,6 +55,7 @@ struct PackageTrakerApp: App {
     // 軟 Paywall
     @State private var showSoftPaywall = false
     @State private var showSoftPaywallFullPaywall = false
+    @State private var showPromoSheet = false
 
     // Firebase 認證服務
     @StateObject private var authService = FirebaseAuthService.shared
@@ -178,6 +179,11 @@ struct PackageTrakerApp: App {
                     showSoftPaywallFullPaywall = true
                 }
             }
+            .sheet(isPresented: $showPromoSheet) {
+                PromoSheet {
+                    showSoftPaywallFullPaywall = true
+                }
+            }
             .fullScreenCover(isPresented: $showSoftPaywallFullPaywall) {
                 PaywallView()
             }
@@ -234,12 +240,24 @@ struct PackageTrakerApp: App {
 
     // MARK: - Soft Paywall
 
-    /// 檢查是否該顯示軟 Paywall（免費用戶 + 滿足條件 + 只彈一次）
+    /// 檢查是否該顯示限時優惠或軟 Paywall
     private func checkSoftPaywall() {
         guard !subscriptionManager.isPro else { return }
+
+        // 優先顯示限時優惠（每次啟動都彈）
+        if LaunchPromoManager.shared.isPromoActive {
+            Task {
+                try? await Task.sleep(for: .seconds(2))
+                await MainActor.run {
+                    showPromoSheet = true
+                }
+            }
+            return
+        }
+
+        // 優惠不在進行中 → 走軟 Paywall 邏輯（只彈一次）
         guard !UserDefaults.standard.bool(forKey: "hasSeenSoftPaywall") else { return }
 
-        // 條件：使用天數 ≥ 3 或累計新增包裹 ≥ 3
         let daysSinceInstall: Int = {
             guard let firstLaunch = UserDefaults.standard.object(forKey: "appFirstLaunchDate") as? Date else { return 0 }
             return Calendar.current.dateComponents([.day], from: firstLaunch, to: Date()).day ?? 0
@@ -248,7 +266,6 @@ struct PackageTrakerApp: App {
 
         guard daysSinceInstall >= 3 || totalAdded >= 3 else { return }
 
-        // 延遲 2 秒彈出
         Task {
             try? await Task.sleep(for: .seconds(2))
             await MainActor.run {

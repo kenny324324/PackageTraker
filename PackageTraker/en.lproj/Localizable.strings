@@ -585,7 +585,22 @@
 "stats.proNudge.message" = "Unlock spending analytics, delivery speed stats & more Pro features";
 
 // Soft Paywall
-"softPaywall.title" = "You're already using Pickup!";
-"softPaywall.subtitle" = "Upgrade to Pro for the full tracking experience";
+"softPaywall.title" = "Upgrade to Pickup Pro";
+"softPaywall.subtitle" = "Unlock the full tracking experience";
 "softPaywall.viewPlans" = "View Plans";
 "softPaywall.later" = "Maybe Later";
+"softPaywall.quota.title" = "Package Quota";
+"softPaywall.quota.full" = "Free limit reached — upgrade for unlimited";
+"softPaywall.quota.remaining" = "%d packages remaining";
+"softPaywall.unlockDescription" = "Unlock unlimited packages, AI scanning, spending analytics & more";
+
+// Launch Promo
+"promo.banner.title" = "Limited Offer — Lifetime 50% Off";
+"promo.banner.countdown" = "%@ left";
+"promo.badge" = "Limited Offer";
+"promo.originalPrice" = "Was %@";
+"promo.countdown" = "Offer ends in";
+"promo.countdown.format.days" = "%dd %02d:%02d:%02d";
+"promo.sheet.title" = "Limited Offer";
+"promo.sheet.description" = "Lifetime plan 50% off — one-time purchase, unlock all Pro features forever";
+"promo.sheet.cta" = "View Offer";

@@ -31,6 +31,7 @@ struct PaywallView: View {
 
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var subscriptionManager = SubscriptionManager.shared
+    @ObservedObject private var promoManager = LaunchPromoManager.shared
 
     @State private var selectedProduct: Product?
     @State private var showError = false
@@ -183,7 +184,7 @@ struct PaywallView: View {
             .onAppear {
                 // 預設選 Lifetime
                 if selectedProduct == nil {
-                    selectedProduct = subscriptionManager.lifetimeProduct
+                    selectedProduct = subscriptionManager.bestLifetimeProduct
                         ?? subscriptionManager.yearlyProduct
                         ?? subscriptionManager.monthlyProduct
                 }
@@ -246,7 +247,13 @@ struct PaywallView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 16) {
                 // Lifetime (Special Design)
-                if let lifetime = subscriptionManager.lifetimeProduct {
+                if promoManager.isPromoActive,
+                   let promoProduct = subscriptionManager.lifetimeLaunchProduct {
+                    promoLifetimePlanCard(
+                        promoProduct: promoProduct,
+                        originalProduct: subscriptionManager.lifetimeProduct
+                    )
+                } else if let lifetime = subscriptionManager.lifetimeProduct {
                     lifetimePlanCard(product: lifetime)
                 }
 
@@ -356,6 +363,114 @@ struct PaywallView: View {
                     .stroke(Color.white.opacity(0.3), lineWidth: 1)
             )
             .shadow(color: .clear, radius: 0)
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - Promo Lifetime Card
+
+    private func promoLifetimePlanCard(promoProduct: Product, originalProduct: Product?) -> some View {
+        let isSelected = selectedProduct?.id == promoProduct.id
+
+        return Button {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                selectedProduct = promoProduct
+            }
+        } label: {
+            VStack(alignment: .leading, spacing: 6) {
+                // Header with badge + radio
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        // 限時優惠 badge
+                        Text(String(localized: "promo.badge"))
+                            .font(.system(size: 10, weight: .bold))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.red)
+                            .foregroundStyle(.white)
+                            .clipShape(Capsule())
+
+                        Text(String(localized: "paywall.plan.lifetime"))
+                            .font(.subheadline)
+                            .fontWeight(.bold)
+                            .foregroundStyle(.black)
+                    }
+
+                    Spacer()
+
+                    ZStack {
+                        Circle()
+                            .stroke(isSelected ? Color.black : Color.black.opacity(0.3), lineWidth: 2)
+                            .frame(width: 20, height: 20)
+
+                        if isSelected {
+                            Circle()
+                                .fill(Color.black)
+                                .frame(width: 12, height: 12)
+                        }
+                    }
+                }
+
+                // One-time badge
+                Text(String(localized: "paywall.plan.oneTime"))
+                    .font(.system(size: 10))
+                    .fontWeight(.semibold)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 1)
+                    .background(Color.black.opacity(0.2))
+                    .clipShape(Capsule())
+                    .foregroundStyle(.black)
+
+                // Price: original strikethrough + promo price
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    if let original = originalProduct {
+                        Text(original.displayPrice)
+                            .font(.subheadline)
+                            .strikethrough()
+                            .foregroundStyle(.black.opacity(0.5))
+                    }
+                    Text(promoProduct.displayPrice)
+                        .font(.title3)
+                        .fontWeight(.bold)
+                        .foregroundStyle(.black)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                }
+
+                // Countdown
+                HStack(spacing: 4) {
+                    Image(systemName: "clock.fill")
+                        .font(.system(size: 10))
+                    Text(promoManager.countdownText)
+                        .font(.system(size: 11, design: .monospaced))
+                        .fontWeight(.semibold)
+                }
+                .foregroundStyle(.black.opacity(0.7))
+            }
+            .padding(14)
+            .background(GeometryReader { geo in
+                Color.clear
+                    .preference(key: CardWidthKey.self, value: geo.size.width)
+                    .preference(key: CardHeightKey.self, value: geo.size.height)
+            })
+            .frame(minWidth: 180,
+                   idealWidth: cardWidth > 0 ? cardWidth : nil,
+                   maxWidth: cardWidth > 0 ? cardWidth : nil,
+                   minHeight: cardHeight > 0 ? cardHeight : nil,
+                   alignment: .top)
+            .background(
+                LinearGradient(
+                    colors: [Color(hex: "FFD700"), Color(hex: "FFA500")],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 20))
+            .overlay(
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(Color.white.opacity(0.3), lineWidth: 1)
+            )
+            .shadow(color: .orange.opacity(0.3), radius: 8, x: 0, y: 4)
         }
         .buttonStyle(.plain)
     }
@@ -649,7 +764,7 @@ struct PaywallView: View {
     
     private var actionButtonTitle: String {
         guard let product = selectedProduct else { return String(localized: "paywall.button.subscribe") }
-        if product.id == SubscriptionProductID.lifetime.rawValue {
+        if SubscriptionProductID.allLifetimeIDs.contains(product.id) {
             return String(localized: "paywall.button.lifetime")
         } else if product.id == SubscriptionProductID.yearly.rawValue {
             return isTrialEligible

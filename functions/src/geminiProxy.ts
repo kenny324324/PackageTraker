@@ -184,7 +184,7 @@ export const analyzePackageImage = onCall(
 
     // 3. 檢查每日用量（終身方案不限次數）
     const productID = userData?.subscriptionProductID as string | undefined;
-    const isLifetime = productID === "com.kenny.PackageTraker.pro.lifetime";
+    const isLifetime = productID?.includes("lifetime") === true;
     const today = getTaiwanDateString();
     const usageRef = db.doc(`users/${uid}/aiUsage/${today}`);
     const usageDoc = await usageRef.get();
