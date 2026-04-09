@@ -43,7 +43,7 @@ struct ThemeSettingsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .preferredColorScheme(.dark)
         .fullScreenCover(isPresented: $showPaywall) {
-            PaywallView()
+            PaywallView(trigger: .themes)
         }
     }
 

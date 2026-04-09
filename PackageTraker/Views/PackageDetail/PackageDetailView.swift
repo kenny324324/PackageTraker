@@ -90,7 +90,7 @@ struct PackageDetailView: View {
             EditPackageSheet(package: package)
         }
         .fullScreenCover(isPresented: $showPaywall) {
-            PaywallView()
+            PaywallView(trigger: .notification)
         }
         .safeAreaInset(edge: .bottom) {
             bottomToolbar
@@ -357,8 +357,10 @@ struct PackageDetailView: View {
             // 編輯按鈕
             editButton
 
-            // 通知設定按鈕（Pro）
-            notificationMenuButton
+            // 通知設定按鈕（Pro，已完成的包裹不顯示）
+            if !package.status.isCompleted {
+                notificationMenuButton
+            }
 
             // 複製單號按鈕
             Button(action: copyTrackingNumber) {

@@ -164,7 +164,7 @@ struct SettingsView: View {
                 Text(String(localized: "email.cannotOpenMessage") + " \(AppConfiguration.feedbackEmail)")
             }
             .fullScreenCover(isPresented: $showPaywall) {
-                PaywallView()
+                PaywallView(trigger: .packages)
             }
             .sheet(isPresented: $showAccountDetail) {
                 AccountDetailView()
@@ -809,6 +809,25 @@ struct SettingsView: View {
                         Circle()
                             .fill(themeManager.currentColor)
                             .frame(width: 24, height: 24)
+                    }
+                    .padding(16)
+                }
+
+                Divider()
+                    .background(Color.cardBackground)
+
+                // 首頁統計
+                NavigationLink(destination: StatSettingsView()) {
+                    HStack(spacing: 12) {
+                        settingsIcon("chart.bar.fill", bgColor: .cyan)
+
+                        Text(String(localized: "settings.homeStats"))
+                            .foregroundStyle(.white)
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .foregroundStyle(Color.gray)
                     }
                     .padding(16)
                 }

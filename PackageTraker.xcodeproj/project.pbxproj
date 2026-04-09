@@ -116,16 +116,22 @@
 		};
 		31F66DE92F309B9E0068C3FB /* PackageTrakerTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = PackageTrakerTests;
 			sourceTree = "<group>";
 		};
 		31F66DF32F309B9E0068C3FB /* PackageTrakerUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = PackageTrakerUITests;
 			sourceTree = "<group>";
 		};
 		31F66E032F309BA90068C3FB /* File */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = File;
 			sourceTree = "<group>";
 		};
@@ -235,8 +241,6 @@
 				31D4CE642F5A921B00476EED /* PackageTrakerWidget */,
 			);
 			name = PackageTrakerWidgetExtension;
-			packageProductDependencies = (
-			);
 			productName = PackageTrakerWidgetExtension;
 			productReference = 31D4CE5F2F5A921B00476EED /* PackageTrakerWidgetExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
@@ -292,8 +296,6 @@
 				31F66DE92F309B9E0068C3FB /* PackageTrakerTests */,
 			);
 			name = PackageTrakerTests;
-			packageProductDependencies = (
-			);
 			productName = PackageTrakerTests;
 			productReference = 31F66DE62F309B9E0068C3FB /* PackageTrakerTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -315,8 +317,6 @@
 				31F66DF32F309B9E0068C3FB /* PackageTrakerUITests */,
 			);
 			name = PackageTrakerUITests;
-			packageProductDependencies = (
-			);
 			productName = PackageTrakerUITests;
 			productReference = 31F66DF02F309B9E0068C3FB /* PackageTrakerUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
@@ -494,7 +494,7 @@
 				CODE_SIGN_ENTITLEMENTS = PackageTrakerWidget/PackageTrakerWidget.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 260409;
+				CURRENT_PROJECT_VERSION = 260410;
 				DEVELOPMENT_TEAM = 5353WH6FVX;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = PackageTrakerWidget/Info.plist;
@@ -528,7 +528,7 @@
 				CODE_SIGN_ENTITLEMENTS = PackageTrakerWidget/PackageTrakerWidget.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 260409;
+				CURRENT_PROJECT_VERSION = 260410;
 				DEVELOPMENT_TEAM = 5353WH6FVX;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = PackageTrakerWidget/Info.plist;
@@ -683,7 +683,7 @@
 				CODE_SIGN_ENTITLEMENTS = PackageTraker/PackageTraker.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 260409;
+				CURRENT_PROJECT_VERSION = 260410;
 				DEVELOPMENT_TEAM = 5353WH6FVX;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -718,7 +718,7 @@
 				CODE_SIGN_ENTITLEMENTS = PackageTraker/PackageTraker.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 260409;
+				CURRENT_PROJECT_VERSION = 260410;
 				DEVELOPMENT_TEAM = 5353WH6FVX;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -750,7 +750,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 260409;
+				CURRENT_PROJECT_VERSION = 260410;
 				DEVELOPMENT_TEAM = 5353WH6FVX;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
@@ -772,7 +772,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 260409;
+				CURRENT_PROJECT_VERSION = 260410;
 				DEVELOPMENT_TEAM = 5353WH6FVX;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
@@ -793,7 +793,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 260409;
+				CURRENT_PROJECT_VERSION = 260410;
 				DEVELOPMENT_TEAM = 5353WH6FVX;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.4.3;
@@ -813,7 +813,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 260409;
+				CURRENT_PROJECT_VERSION = 260410;
 				DEVELOPMENT_TEAM = 5353WH6FVX;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.4.3;

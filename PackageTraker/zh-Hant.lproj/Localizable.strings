@@ -14,6 +14,27 @@
 "home.pending" = "待取";
 "home.delivered30" = "近 30 天已取";
 
+// Stat Types
+"stat.pendingPickup" = "待取件";
+"stat.deliveredLast30Days" = "近30天已取";
+"stat.thisMonthSpending" = "本月總花費";
+"stat.pendingAmount" = "待取金額";
+"stat.last30DaysSpending" = "近30天花費";
+"stat.thisMonthDelivered" = "本月已取";
+"stat.inTransit" = "運送中";
+"stat.avgDeliveryDays" = "平均配送天數";
+"stat.spendingDelta" = "相較上月";
+"stat.codPendingAmount" = "貨到付款待付";
+"stat.unit.days" = "天";
+
+// Stat Settings
+"settings.homeStats" = "首頁統計";
+"stats.settings.title" = "首頁統計設定";
+"stats.settings.choose" = "選擇兩項統計顯示在首頁";
+"stats.settings.slot1" = "統計 1";
+"stats.settings.slot2" = "統計 2";
+"stats.settings.inUse" = "（已使用）";
+
 // Sheet
 "sheet.pendingTitle" = "待取件";
 "sheet.deliveredTitle" = "已取貨（30 天內）";
@@ -440,6 +461,9 @@
 "paywall.comparison.spending" = "消費分析";
 "paywall.comparison.spending.free" = "—";
 "paywall.comparison.spending.pro" = "✓";
+"paywall.comparison.homeStats" = "首頁統計自訂";
+"paywall.comparison.homeStats.free" = "—";
+"paywall.comparison.homeStats.pro" = "✓";
 "paywall.comparison.notification" = "個別通知設定";
 "paywall.comparison.notification.free" = "—";
 "paywall.comparison.notification.pro" = "✓";

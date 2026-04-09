@@ -24,10 +24,24 @@ private struct CardHeightKey: PreferenceKey {
     }
 }
 
+/// Paywall 觸發來源（用於將對應功能排到比較表最上方）
+enum PaywallTrigger: String {
+    case packages       // 包裹數量
+    case ai             // AI 截圖辨識
+    case widget         // 桌面小工具
+    case spending       // 消費分析
+    case homeStats      // 首頁統計
+    case themes         // 主題顏色
+    case notification   // 個別通知設定
+    case general        // 預設（無特定來源）
+}
+
 /// 付費牆
 struct PaywallView: View {
     /// 僅顯示終身方案（用於訂閱制用戶次數用完時升級）
     var lifetimeOnly: Bool = false
+    /// 觸發來源（該功能會排到比較表最上面）
+    var trigger: PaywallTrigger = .general
 
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var subscriptionManager = SubscriptionManager.shared
@@ -41,6 +55,7 @@ struct PaywallView: View {
     @State private var safariURL: IdentifiableURL?
     @State private var cardWidth: CGFloat = 0
     @State private var cardHeight: CGFloat = 0
+    @State private var highlightTriggerFeature = false
 
     var body: some View {
         NavigationStack {
@@ -188,7 +203,15 @@ struct PaywallView: View {
                         ?? subscriptionManager.yearlyProduct
                         ?? subscriptionManager.monthlyProduct
                 }
-                AnalyticsService.logPaywallShown(trigger: "general")
+                AnalyticsService.logPaywallShown(trigger: trigger.rawValue)
+
+                // 觸發來源強調：震動 + 動畫
+                if trigger != .general {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                        highlightTriggerFeature = true
+                    }
+                }
             }
             .task {
                 // 檢查年費方案的試用資格
@@ -578,6 +601,68 @@ struct PaywallView: View {
 
     // MARK: - Feature Comparison Section
 
+    /// 功能比較項目定義
+    private struct FeatureRow: Identifiable {
+        let id: PaywallTrigger
+        let icon: String
+        let feature: String
+        let freeValue: String
+        let proValue: String
+        let isCheckmark: Bool
+    }
+
+    /// 預設排序的功能比較項目
+    private var defaultFeatures: [FeatureRow] {
+        [
+            FeatureRow(id: .packages, icon: "shippingbox.fill",
+                       feature: String(localized: "paywall.comparison.packages"),
+                       freeValue: String(localized: "paywall.comparison.packages.free"),
+                       proValue: String(localized: "paywall.comparison.packages.pro"),
+                       isCheckmark: false),
+            FeatureRow(id: .ai, icon: "sparkles",
+                       feature: String(localized: "paywall.comparison.ai"),
+                       freeValue: String(localized: "paywall.comparison.ai.free"),
+                       proValue: String(localized: "paywall.comparison.ai.pro"),
+                       isCheckmark: true),
+            FeatureRow(id: .widget, icon: "apps.iphone",
+                       feature: String(localized: "paywall.comparison.widget"),
+                       freeValue: String(localized: "paywall.comparison.widget.free"),
+                       proValue: String(localized: "paywall.comparison.widget.pro"),
+                       isCheckmark: false),
+            FeatureRow(id: .spending, icon: "chart.pie.fill",
+                       feature: String(localized: "paywall.comparison.spending"),
+                       freeValue: String(localized: "paywall.comparison.spending.free"),
+                       proValue: String(localized: "paywall.comparison.spending.pro"),
+                       isCheckmark: true),
+            FeatureRow(id: .homeStats, icon: "chart.bar.fill",
+                       feature: String(localized: "paywall.comparison.homeStats"),
+                       freeValue: String(localized: "paywall.comparison.homeStats.free"),
+                       proValue: String(localized: "paywall.comparison.homeStats.pro"),
+                       isCheckmark: true),
+            FeatureRow(id: .themes, icon: "paintpalette.fill",
+                       feature: String(localized: "paywall.comparison.themes"),
+                       freeValue: String(localized: "paywall.comparison.themes.free"),
+                       proValue: String(localized: "paywall.comparison.themes.pro"),
+                       isCheckmark: false),
+            FeatureRow(id: .notification, icon: "bell.badge.fill",
+                       feature: String(localized: "paywall.comparison.notification"),
+                       freeValue: String(localized: "paywall.comparison.notification.free"),
+                       proValue: String(localized: "paywall.comparison.notification.pro"),
+                       isCheckmark: true),
+        ]
+    }
+
+    /// 依觸發來源排序的功能列表（觸發的排第一，其餘維持原順序）
+    private var orderedFeatures: [FeatureRow] {
+        guard trigger != .general else { return defaultFeatures }
+        var features = defaultFeatures
+        if let index = features.firstIndex(where: { $0.id == trigger }) {
+            let item = features.remove(at: index)
+            features.insert(item, at: 0)
+        }
+        return features
+    }
+
     private var featureComparisonSection: some View {
         VStack(spacing: 0) {
             // Title
@@ -612,63 +697,20 @@ struct PaywallView: View {
                 .padding(.vertical, 12)
                 .background(Color.white.opacity(0.03))
 
-                Divider().background(Color.white.opacity(0.1))
-
                 // Feature Rows
-                comparisonRow(
-                    icon: "shippingbox.fill",
-                    feature: String(localized: "paywall.comparison.packages"),
-                    freeValue: String(localized: "paywall.comparison.packages.free"),
-                    proValue: String(localized: "paywall.comparison.packages.pro")
-                )
+                ForEach(orderedFeatures) { feature in
+                    Divider().background(Color.white.opacity(0.1))
 
-                Divider().background(Color.white.opacity(0.1))
-
-                comparisonRow(
-                    icon: "paintpalette.fill",
-                    feature: String(localized: "paywall.comparison.themes"),
-                    freeValue: String(localized: "paywall.comparison.themes.free"),
-                    proValue: String(localized: "paywall.comparison.themes.pro")
-                )
-
-                Divider().background(Color.white.opacity(0.1))
-
-                comparisonRow(
-                    icon: "sparkles",
-                    feature: String(localized: "paywall.comparison.ai"),
-                    freeValue: String(localized: "paywall.comparison.ai.free"),
-                    proValue: String(localized: "paywall.comparison.ai.pro"),
-                    isCheckmark: true
-                )
-
-                Divider().background(Color.white.opacity(0.1))
-
-                comparisonRow(
-                    icon: "apps.iphone",
-                    feature: String(localized: "paywall.comparison.widget"),
-                    freeValue: String(localized: "paywall.comparison.widget.free"),
-                    proValue: String(localized: "paywall.comparison.widget.pro")
-                )
-
-                Divider().background(Color.white.opacity(0.1))
-
-                comparisonRow(
-                    icon: "chart.pie.fill",
-                    feature: String(localized: "paywall.comparison.spending"),
-                    freeValue: String(localized: "paywall.comparison.spending.free"),
-                    proValue: String(localized: "paywall.comparison.spending.pro"),
-                    isCheckmark: true
-                )
-
-                Divider().background(Color.white.opacity(0.1))
-
-                comparisonRow(
-                    icon: "bell.badge.fill",
-                    feature: String(localized: "paywall.comparison.notification"),
-                    freeValue: String(localized: "paywall.comparison.notification.free"),
-                    proValue: String(localized: "paywall.comparison.notification.pro"),
-                    isCheckmark: true
-                )
+                    let isTriggered = trigger != .general && feature.id == trigger
+                    comparisonRow(
+                        icon: feature.icon,
+                        feature: feature.feature,
+                        freeValue: feature.freeValue,
+                        proValue: feature.proValue,
+                        isCheckmark: feature.isCheckmark,
+                        isHighlighted: isTriggered
+                    )
+                }
             }
             .background(Color.white.opacity(0.05))
             .clipShape(RoundedRectangle(cornerRadius: 16))
@@ -679,7 +721,7 @@ struct PaywallView: View {
         }
     }
 
-    private func comparisonRow(icon: String, feature: String, freeValue: String, proValue: String, isCheckmark: Bool = false) -> some View {
+    private func comparisonRow(icon: String, feature: String, freeValue: String, proValue: String, isCheckmark: Bool = false, isHighlighted: Bool = false) -> some View {
         HStack(spacing: 0) {
             // Feature name with icon
             HStack(spacing: 8) {
@@ -690,8 +732,8 @@ struct PaywallView: View {
 
                 Text(feature)
                     .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundStyle(.white)
+                    .fontWeight(isHighlighted ? .bold : .medium)
+                    .foregroundStyle(isHighlighted ? .yellow : .white)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.leading, 16)
@@ -717,6 +759,8 @@ struct PaywallView: View {
             }
         }
         .padding(.vertical, 16)
+        .background(isHighlighted && highlightTriggerFeature ? Color.yellow.opacity(0.08) : Color.clear)
+        .animation(.easeInOut(duration: 0.3).repeatCount(3, autoreverses: true), value: highlightTriggerFeature)
     }
 
     // MARK: - Subscribe Button

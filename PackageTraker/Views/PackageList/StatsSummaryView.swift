@@ -2,29 +2,27 @@ import SwiftUI
 
 /// 頂部統計摘要視圖
 struct StatsSummaryView: View {
-    let pendingCount: Int
-    let deliveredThisMonth: Int
-    var onPendingTap: (() -> Void)? = nil
-    var onDeliveredTap: (() -> Void)? = nil
+    let stat1: (type: StatType, value: StatValue)
+    let stat2: (type: StatType, value: StatValue)
+    var onStat1Tap: (() -> Void)? = nil
+    var onStat2Tap: (() -> Void)? = nil
 
     var body: some View {
         HStack(spacing: 12) {
-            // 待取件
             StatCard(
-                icon: "shippingbox.fill",
-                iconColor: .orange,
-                value: pendingCount,
-                label: String(localized: "home.pending"),
-                onTap: onPendingTap
+                icon: stat1.type.icon,
+                iconColor: stat1.type.iconColor,
+                displayValue: stat1.value,
+                label: stat1.type.localizedLabel,
+                onTap: onStat1Tap
             )
 
-            // 近 30 天已取
             StatCard(
-                icon: "checkmark.rectangle.stack.fill",
-                iconColor: .green,
-                value: deliveredThisMonth,
-                label: String(localized: "home.delivered30"),
-                onTap: onDeliveredTap
+                icon: stat2.type.icon,
+                iconColor: stat2.type.iconColor,
+                displayValue: stat2.value,
+                label: stat2.type.localizedLabel,
+                onTap: onStat2Tap
             )
         }
         .fixedSize(horizontal: false, vertical: true)
@@ -35,7 +33,7 @@ struct StatsSummaryView: View {
 struct StatCard: View {
     let icon: String
     let iconColor: Color
-    let value: Int
+    let displayValue: StatValue
     let label: String
     var onTap: (() -> Void)? = nil
 
@@ -57,11 +55,21 @@ struct StatCard: View {
                         .truncationMode(.tail)
                 }
 
-                // 第二行：數值（滾動動畫）
-                RollingNumberView.statsStyle(value: value)
+                // 第二行：數值
+                if displayValue.isInteger {
+                    RollingNumberView.statsStyle(value: displayValue.integerValue)
+                } else {
+                    Text(displayValue.displayString)
+                        .font(.system(size: 28, design: .rounded))
+                        .fontWeight(.bold)
+                        .foregroundStyle(displayValue.deltaColor)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
+                }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
             .adaptiveStatsCardStyle()
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
@@ -71,7 +79,20 @@ struct StatCard: View {
 
 #Preview {
     VStack {
-        StatsSummaryView(pendingCount: 10, deliveredThisMonth: 20)
+        StatsSummaryView(
+            stat1: (.pendingPickup, .integer(10)),
+            stat2: (.deliveredLast30Days, .integer(20))
+        )
+
+        StatsSummaryView(
+            stat1: (.thisMonthSpending, .currency(12345)),
+            stat2: (.avgDeliveryDays, .days(3.2))
+        )
+
+        StatsSummaryView(
+            stat1: (.codPendingAmount, .currency(500)),
+            stat2: (.spendingDelta, .delta(current: 5000, previous: 3000))
+        )
     }
     .padding()
     .background(Color.appBackground)

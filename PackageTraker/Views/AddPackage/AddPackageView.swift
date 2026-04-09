@@ -197,7 +197,7 @@ struct AddPackageView: View {
                 Text(vm.ocrErrorMessage)
             }
             .fullScreenCover(isPresented: $showPaywall) {
-                PaywallView()
+                PaywallView(trigger: .packages)
             }
             .sheet(isPresented: $vm.showOCRResultSheet) {
                 if let result = vm.ocrResult {

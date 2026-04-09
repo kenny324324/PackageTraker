@@ -191,7 +191,7 @@ struct AICarrierSelectView: View {
             }
         }
         .fullScreenCover(isPresented: $vm.showPaywall) {
-            PaywallView(lifetimeOnly: true)
+            PaywallView(lifetimeOnly: true, trigger: .ai)
         }
         .interactiveDismissDisabled()
         .preferredColorScheme(.dark)

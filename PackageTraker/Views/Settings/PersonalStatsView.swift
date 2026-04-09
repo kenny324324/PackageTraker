@@ -217,7 +217,7 @@ struct PersonalStatsView: View {
             }
         }
         .fullScreenCover(isPresented: $showPaywall) {
-            PaywallView()
+            PaywallView(trigger: .spending)
         }
         .navigationTitle(String(localized: "stats.personal.title"))
         .toolbarTitleDisplayMode(.inlineLarge)

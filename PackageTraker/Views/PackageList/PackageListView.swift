@@ -11,6 +11,8 @@ struct PackageListView: View {
     @Environment(PackageRefreshService.self) private var refreshService
     @ObservedObject private var themeManager = ThemeManager.shared
     @AppStorage("hideDeliveredPackages") private var hideDeliveredPackages = false
+    @AppStorage("selectedStat1") private var selectedStat1RawValue: String = StatType.defaultStat1.rawValue
+    @AppStorage("selectedStat2") private var selectedStat2RawValue: String = StatType.defaultStat2.rawValue
 
     @Query(filter: #Predicate<Package> { !$0.isArchived },
            sort: \Package.lastUpdated, order: .reverse)
@@ -24,11 +26,11 @@ struct PackageListView: View {
     @State private var showPaywall = false
     @State private var paywallLifetimeOnly = false
     @State private var paywallFromAddFlow = false
+    @State private var paywallTrigger: PaywallTrigger = .general
     @State private var pendingAddAction: PendingAddAction = .none
     @State private var selectedPackage: Package?
     @State private var emailSyncStatus: String?
-    @State private var showPendingSheet = false
-    @State private var showDeliveredSheet = false
+    @State private var sheetStatType: StatType?
 
     // AI 試用 upsell
     @State private var showAITrialUpsell = false
@@ -99,6 +101,7 @@ struct PackageListView: View {
                 case .paywall(let lifetimeOnly):
                     paywallLifetimeOnly = lifetimeOnly
                     paywallFromAddFlow = true
+                    paywallTrigger = lifetimeOnly ? .ai : .packages
                     showPaywall = true
                 case .aiTrialUpsell:
                     showAITrialUpsell = true
@@ -143,7 +146,7 @@ struct PackageListView: View {
                     paywallFromAddFlow = false
                 }
             }) {
-                PaywallView(lifetimeOnly: paywallLifetimeOnly)
+                PaywallView(lifetimeOnly: paywallLifetimeOnly, trigger: paywallTrigger)
             }
             .sheet(isPresented: $showAITrialUpsell, onDismiss: {
                 showAddMethodSheet = true
@@ -183,16 +186,10 @@ struct PackageListView: View {
                     }
                     .tint(.white)
             }
-            .sheet(isPresented: $showPendingSheet) {
+            .sheet(item: $sheetStatType) { statType in
                 PackageListSheetView(
-                    title: String(localized: "sheet.pendingTitle"),
-                    packages: pendingPackages
-                )
-            }
-            .sheet(isPresented: $showDeliveredSheet) {
-                PackageListSheetView(
-                    title: String(localized: "sheet.deliveredTitle"),
-                    packages: deliveredRecentPackages
+                    title: statType.localizedLabel,
+                    packages: packagesForStat(statType)
                 )
             }
             .navigationDestination(item: $selectedPackage) { package in
@@ -274,7 +271,7 @@ struct PackageListView: View {
                             message: String(localized: "quota.full"),
                             icon: "exclamationmark.triangle.fill",
                             style: .critical,
-                            onUpgrade: { showPaywall = true },
+                            onUpgrade: { paywallTrigger = .packages; showPaywall = true },
                             onDismiss: { quotaBannerDismissed = true }
                         )
                         .padding(.horizontal)
@@ -282,7 +279,7 @@ struct PackageListView: View {
                         ProNudgeBanner(
                             message: String(localized: "quota.almostFull"),
                             style: .warning,
-                            onUpgrade: { showPaywall = true },
+                            onUpgrade: { paywallTrigger = .packages; showPaywall = true },
                             onDismiss: { quotaBannerDismissed = true }
                         )
                         .padding(.horizontal)
@@ -298,7 +295,7 @@ struct PackageListView: View {
                 // 限時優惠 Banner
                 if promoManager.isPromoActive && !promoBannerDismissed && !SubscriptionManager.shared.isPro {
                     PromoBanner(
-                        onTap: { showPaywall = true },
+                        onTap: { paywallTrigger = .general; showPaywall = true },
                         onDismiss: { promoBannerDismissed = true }
                     )
                     .padding(.horizontal)
@@ -306,10 +303,10 @@ struct PackageListView: View {
 
                 // 統計摘要
                 StatsSummaryView(
-                    pendingCount: pendingPackages.count,
-                    deliveredThisMonth: deliveredRecentPackages.count,
-                    onPendingTap: { showPendingSheet = true },
-                    onDeliveredTap: { showDeliveredSheet = true }
+                    stat1: (selectedStat1, computeStatValue(selectedStat1)),
+                    stat2: (selectedStat2, computeStatValue(selectedStat2)),
+                    onStat1Tap: statTapAction(for: selectedStat1),
+                    onStat2Tap: statTapAction(for: selectedStat2)
                 )
                 .padding(.horizontal)
 
@@ -386,6 +383,147 @@ struct PackageListView: View {
                 return latestEventTime > thirtyDaysAgo
             }
             return package.lastUpdated > thirtyDaysAgo
+        }
+    }
+
+    // MARK: - Stat Helpers
+
+    private var selectedStat1: StatType {
+        guard !FeatureFlags.subscriptionEnabled || SubscriptionManager.shared.isPro else { return .defaultStat1 }
+        return StatType(rawValue: selectedStat1RawValue) ?? .pendingPickup
+    }
+
+    private var selectedStat2: StatType {
+        guard !FeatureFlags.subscriptionEnabled || SubscriptionManager.shared.isPro else { return .defaultStat2 }
+        return StatType(rawValue: selectedStat2RawValue) ?? .deliveredLast30Days
+    }
+
+    private func computeStatValue(_ type: StatType) -> StatValue {
+        let calendar = Calendar.current
+        let now = Date()
+
+        switch type {
+        case .pendingPickup:
+            return .integer(pendingPackages.count)
+
+        case .deliveredLast30Days:
+            return .integer(deliveredRecentPackages.count)
+
+        case .thisMonthSpending:
+            let total = packages
+                .filter { calendar.isDate($0.createdAt, equalTo: now, toGranularity: .month) }
+                .compactMap(\.amount)
+                .reduce(0, +)
+            return .currency(total)
+
+        case .pendingAmount:
+            let total = packages
+                .filter { $0.status.isPendingPickup }
+                .compactMap(\.amount)
+                .reduce(0, +)
+            return .currency(total)
+
+        case .last30DaysSpending:
+            let total = allRecentPackages
+                .compactMap(\.amount)
+                .reduce(0, +)
+            return .currency(total)
+
+        case .thisMonthDelivered:
+            let count = packages.filter {
+                $0.status == .delivered &&
+                calendar.isDate($0.lastUpdated, equalTo: now, toGranularity: .month)
+            }.count
+            return .integer(count)
+
+        case .inTransit:
+            let count = packages.filter {
+                $0.status == .shipped || $0.status == .inTransit
+            }.count
+            return .integer(count)
+
+        case .avgDeliveryDays:
+            let deliveredWithDates = deliveredRecentPackages.compactMap { pkg -> Int? in
+                guard let start = pkg.orderCreatedTimestamp,
+                      let end = pkg.pickupEventTimestamp ?? pkg.latestEventTimestamp,
+                      let days = calendar.dateComponents([.day], from: start, to: end).day,
+                      days >= 0 else { return nil }
+                return days
+            }
+            guard !deliveredWithDates.isEmpty else { return .days(-1) }
+            let avg = Double(deliveredWithDates.reduce(0, +)) / Double(deliveredWithDates.count)
+            return .days(avg)
+
+        case .spendingDelta:
+            let thisMonth = packages
+                .filter { calendar.isDate($0.createdAt, equalTo: now, toGranularity: .month) }
+                .compactMap(\.amount)
+                .reduce(0, +)
+            let lastMonth: Double = {
+                guard let lastMonthDate = calendar.date(byAdding: .month, value: -1, to: now) else { return 0 }
+                return packages
+                    .filter { calendar.isDate($0.createdAt, equalTo: lastMonthDate, toGranularity: .month) }
+                    .compactMap(\.amount)
+                    .reduce(0, +)
+            }()
+            return .delta(current: thisMonth, previous: lastMonth)
+
+        case .codPendingAmount:
+            let total = packages
+                .filter { $0.status.isPendingPickup && $0.paymentMethod == .cod }
+                .compactMap(\.amount)
+                .reduce(0, +)
+            return .currency(total)
+        }
+    }
+
+    private func statTapAction(for type: StatType) -> (() -> Void)? {
+        return { sheetStatType = type }
+    }
+
+    private func packagesForStat(_ type: StatType) -> [Package] {
+        let calendar = Calendar.current
+        let now = Date()
+
+        switch type {
+        case .pendingPickup:
+            return pendingPackages
+
+        case .deliveredLast30Days:
+            return deliveredRecentPackages
+
+        case .thisMonthSpending:
+            return packages.filter {
+                calendar.isDate($0.createdAt, equalTo: now, toGranularity: .month) && $0.amount != nil
+            }
+
+        case .pendingAmount:
+            return packages.filter { $0.status.isPendingPickup && $0.amount != nil }
+
+        case .last30DaysSpending:
+            return allRecentPackages.filter { $0.amount != nil }
+
+        case .thisMonthDelivered:
+            return packages.filter {
+                $0.status == .delivered &&
+                calendar.isDate($0.lastUpdated, equalTo: now, toGranularity: .month)
+            }
+
+        case .inTransit:
+            return packages.filter { $0.status == .shipped || $0.status == .inTransit }
+
+        case .avgDeliveryDays:
+            return allRecentPackages.filter {
+                $0.status == .delivered && $0.orderCreatedTimestamp != nil
+            }
+
+        case .spendingDelta:
+            return packages.filter {
+                calendar.isDate($0.createdAt, equalTo: now, toGranularity: .month) && $0.amount != nil
+            }
+
+        case .codPendingAmount:
+            return packages.filter { $0.status.isPendingPickup && $0.paymentMethod == .cod }
         }
     }
 

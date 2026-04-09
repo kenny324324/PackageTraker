@@ -19,7 +19,7 @@ struct ProStatsOverlay: ViewModifier {
                 }
             }
             .fullScreenCover(isPresented: $showPaywall) {
-                PaywallView()
+                PaywallView(trigger: .spending)
             }
     }
 

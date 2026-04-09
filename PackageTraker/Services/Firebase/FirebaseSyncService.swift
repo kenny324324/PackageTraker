@@ -359,13 +359,15 @@ final class FirebaseSyncService: ObservableObject {
     }
 
     /// 上傳偏好設定到 Firestore（fire-and-forget）
-    func syncUserPreferences(theme: String? = nil, refreshInterval: String? = nil, hideDeliveredPackages: Bool? = nil) {
+    func syncUserPreferences(theme: String? = nil, refreshInterval: String? = nil, hideDeliveredPackages: Bool? = nil, selectedStat1: String? = nil, selectedStat2: String? = nil) {
         guard let userId else { return }
 
         var prefs: [String: Any] = [:]
         if let theme { prefs["selectedTheme"] = theme }
         if let interval = refreshInterval { prefs["refreshInterval"] = interval }
         if let hide = hideDeliveredPackages { prefs["hideDeliveredPackages"] = hide }
+        if let stat1 = selectedStat1 { prefs["selectedStat1"] = stat1 }
+        if let stat2 = selectedStat2 { prefs["selectedStat2"] = stat2 }
 
         guard !prefs.isEmpty else { return }
 

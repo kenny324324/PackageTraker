@@ -14,6 +14,27 @@
 "home.pending" = "Ready for Pickup";
 "home.delivered30" = "Last 30 Days";
 
+// Stat Types
+"stat.pendingPickup" = "Pending Pickup";
+"stat.deliveredLast30Days" = "Delivered (30d)";
+"stat.thisMonthSpending" = "Monthly Spending";
+"stat.pendingAmount" = "Pending Amount";
+"stat.last30DaysSpending" = "30-Day Spending";
+"stat.thisMonthDelivered" = "Monthly Delivered";
+"stat.inTransit" = "In Transit";
+"stat.avgDeliveryDays" = "Avg. Delivery Days";
+"stat.spendingDelta" = "vs Last Month";
+"stat.codPendingAmount" = "COD Pending";
+"stat.unit.days" = "days";
+
+// Stat Settings
+"settings.homeStats" = "Home Stats";
+"stats.settings.title" = "Home Stats Settings";
+"stats.settings.choose" = "Choose 2 stats to display on home";
+"stats.settings.slot1" = "Stat 1";
+"stats.settings.slot2" = "Stat 2";
+"stats.settings.inUse" = "(In Use)";
+
 // Sheet
 "sheet.pendingTitle" = "Ready for Pickup";
 "sheet.deliveredTitle" = "Picked Up (30 Days)";
@@ -444,6 +465,9 @@
 "paywall.comparison.spending" = "Spending Analytics";
 "paywall.comparison.spending.free" = "—";
 "paywall.comparison.spending.pro" = "✓";
+"paywall.comparison.homeStats" = "Custom Home Stats";
+"paywall.comparison.homeStats.free" = "—";
+"paywall.comparison.homeStats.pro" = "✓";
 "paywall.comparison.notification" = "Per-Package Alerts";
 "paywall.comparison.notification.free" = "—";
 "paywall.comparison.notification.pro" = "✓";

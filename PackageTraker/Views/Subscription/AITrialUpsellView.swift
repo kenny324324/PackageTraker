@@ -87,7 +87,7 @@ struct AITrialUpsellView: View {
         }
         .adaptiveGradientBackground()
         .fullScreenCover(isPresented: $showPaywall) {
-            PaywallView()
+            PaywallView(trigger: .ai)
         }
         .preferredColorScheme(.dark)
     }
