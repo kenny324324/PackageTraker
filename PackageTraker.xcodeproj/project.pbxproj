@@ -16,6 +16,7 @@
 		31D4CE612F5A921B00476EED /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 31D4CE602F5A921B00476EED /* WidgetKit.framework */; };
 		31D4CE632F5A921B00476EED /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 31D4CE622F5A921B00476EED /* SwiftUI.framework */; };
 		31D4CE702F5A921D00476EED /* PackageTrakerWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 31D4CE5F2F5A921B00476EED /* PackageTrakerWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		31F8BF612F8784E000D128AA /* FirebaseRemoteConfig in Frameworks */ = {isa = PBXBuildFile; productRef = 31F8BF602F8784E000D128AA /* FirebaseRemoteConfig */; };
 		31FB3D652F39959A00104C5C /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 31FB3D642F39959A00104C5C /* FirebaseAuth */; };
 		31FB3D672F39959A00104C5C /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 31FB3D662F39959A00104C5C /* FirebaseFirestore */; };
 		31FB3D692F39959A00104C5C /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = 31FB3D682F39959A00104C5C /* FirebaseMessaging */; };
@@ -144,6 +145,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				31F8BF612F8784E000D128AA /* FirebaseRemoteConfig in Frameworks */,
 				31870CFE2F4EC6AF003666F3 /* FirebaseAnalytics in Frameworks */,
 				32A4D1B92F5B8C4100F6AA01 /* FluidGradient in Frameworks */,
 				31FB3D692F39959A00104C5C /* FirebaseMessaging in Frameworks */,
@@ -267,6 +269,7 @@
 				31870CFB2F4EC6A6003666F3 /* FirebaseCrashlytics */,
 				31870CFD2F4EC6AF003666F3 /* FirebaseAnalytics */,
 				31870CFF2F4EC6B6003666F3 /* FirebaseFunctions */,
+				31F8BF602F8784E000D128AA /* FirebaseRemoteConfig */,
 			);
 			productName = PackageTraker;
 			productReference = 31F66DD92F309B9D0068C3FB /* PackageTraker.app */;
@@ -491,7 +494,7 @@
 				CODE_SIGN_ENTITLEMENTS = PackageTrakerWidget/PackageTrakerWidget.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 260408;
+				CURRENT_PROJECT_VERSION = 260409;
 				DEVELOPMENT_TEAM = 5353WH6FVX;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = PackageTrakerWidget/Info.plist;
@@ -503,7 +506,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.4.2;
+				MARKETING_VERSION = 1.4.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kenny.PackageTraker.PackageTrakerWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -525,7 +528,7 @@
 				CODE_SIGN_ENTITLEMENTS = PackageTrakerWidget/PackageTrakerWidget.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 260408;
+				CURRENT_PROJECT_VERSION = 260409;
 				DEVELOPMENT_TEAM = 5353WH6FVX;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = PackageTrakerWidget/Info.plist;
@@ -537,7 +540,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.4.2;
+				MARKETING_VERSION = 1.4.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kenny.PackageTraker.PackageTrakerWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -680,7 +683,7 @@
 				CODE_SIGN_ENTITLEMENTS = PackageTraker/PackageTraker.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 260408;
+				CURRENT_PROJECT_VERSION = 260409;
 				DEVELOPMENT_TEAM = 5353WH6FVX;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -693,7 +696,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.4.2;
+				MARKETING_VERSION = 1.4.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kenny.PackageTraker;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -715,7 +718,7 @@
 				CODE_SIGN_ENTITLEMENTS = PackageTraker/PackageTraker.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 260408;
+				CURRENT_PROJECT_VERSION = 260409;
 				DEVELOPMENT_TEAM = 5353WH6FVX;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -728,7 +731,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.4.2;
+				MARKETING_VERSION = 1.4.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kenny.PackageTraker;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -747,11 +750,11 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 260408;
+				CURRENT_PROJECT_VERSION = 260409;
 				DEVELOPMENT_TEAM = 5353WH6FVX;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
-				MARKETING_VERSION = 1.4.2;
+				MARKETING_VERSION = 1.4.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kenny.PackageTrakerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
@@ -769,11 +772,11 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 260408;
+				CURRENT_PROJECT_VERSION = 260409;
 				DEVELOPMENT_TEAM = 5353WH6FVX;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
-				MARKETING_VERSION = 1.4.2;
+				MARKETING_VERSION = 1.4.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kenny.PackageTrakerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
@@ -790,10 +793,10 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 260408;
+				CURRENT_PROJECT_VERSION = 260409;
 				DEVELOPMENT_TEAM = 5353WH6FVX;
 				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.4.2;
+				MARKETING_VERSION = 1.4.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kenny.PackageTrakerUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
@@ -810,10 +813,10 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 260408;
+				CURRENT_PROJECT_VERSION = 260409;
 				DEVELOPMENT_TEAM = 5353WH6FVX;
 				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.4.2;
+				MARKETING_VERSION = 1.4.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kenny.PackageTrakerUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
@@ -918,6 +921,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 31FB3D632F39959A00104C5C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseFunctions;
+		};
+		31F8BF602F8784E000D128AA /* FirebaseRemoteConfig */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 31FB3D632F39959A00104C5C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseRemoteConfig;
 		};
 		31FB3D642F39959A00104C5C /* FirebaseAuth */ = {
 			isa = XCSwiftPackageProductDependency;

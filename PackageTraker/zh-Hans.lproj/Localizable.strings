@@ -603,3 +603,7 @@
 "promo.sheet.title" = "限时优惠";
 "promo.sheet.description" = "买断方案限时半价，一次付费永久解锁所有 Pro 功能";
 "promo.sheet.cta" = "立即查看优惠";
+
+// MARK: - What's New
+"whatsNew.title" = "v%@ 版本更新内容";
+"whatsNew.dismiss" = "知道了";

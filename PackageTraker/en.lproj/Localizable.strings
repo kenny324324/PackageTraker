@@ -604,3 +604,7 @@
 "promo.sheet.title" = "Limited Offer";
 "promo.sheet.description" = "Lifetime plan 50% off — one-time purchase, unlock all Pro features forever";
 "promo.sheet.cta" = "View Offer";
+
+// MARK: - What's New
+"whatsNew.title" = "v%@ Update";
+"whatsNew.dismiss" = "Got it";

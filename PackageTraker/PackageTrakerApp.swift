@@ -52,6 +52,9 @@ struct PackageTrakerApp: App {
     // 強制更新狀態
     @State private var forceUpdateURL: String?
 
+    // What's New
+    @State private var whatsNewData: WhatsNewData?
+
     // 軟 Paywall
     @State private var showSoftPaywall = false
     @State private var showSoftPaywallFullPaywall = false
@@ -174,6 +177,11 @@ struct PackageTrakerApp: App {
                     .animation(.easeInOut(duration: 0.3), value: NetworkMonitor.shared.isConnected)
                 }
             }
+            .sheet(item: $whatsNewData) { data in
+                WhatsNewSheet(data: data) {
+                    checkSoftPaywall()
+                }
+            }
             .sheet(isPresented: $showSoftPaywall) {
                 SoftPaywallSheet {
                     showSoftPaywallFullPaywall = true
@@ -207,7 +215,7 @@ struct PackageTrakerApp: App {
             }
             .onChange(of: appFlow) { _, newFlow in
                 guard newFlow == .main else { return }
-                checkSoftPaywall()
+                checkWhatsNewThenPaywall()
             }
             .onChange(of: authService.isAuthenticated) { oldValue, newValue in
                 // 登出處理（登入由 SignInView 內部處理）
@@ -236,6 +244,23 @@ struct PackageTrakerApp: App {
             TrackingEvent.self,
             LinkedEmailAccount.self
         ])
+    }
+
+    // MARK: - What's New
+
+    /// 先檢查 What's New，再走軟 Paywall 流程
+    private func checkWhatsNewThenPaywall() {
+        Task {
+            if let data = await WhatsNewService.shared.checkWhatsNew() {
+                try? await Task.sleep(for: .seconds(0.5))
+                await MainActor.run {
+                    whatsNewData = data
+                }
+                // checkSoftPaywall() 在 WhatsNewSheet onDismiss 中呼叫
+            } else {
+                checkSoftPaywall()
+            }
+        }
     }
 
     // MARK: - Soft Paywall

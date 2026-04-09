@@ -10,6 +10,9 @@ struct DeveloperOptionsView: View {
     @State private var isTestingAPI = false
     @State private var showSoftPaywall = false
     @State private var showPromoSheet = false
+    @State private var showWhatsNew = false
+    @State private var whatsNewData: WhatsNewData?
+    @State private var isFetchingWhatsNew = false
 
     private let debugService = DebugNotificationService.shared
 
@@ -258,6 +261,57 @@ struct DeveloperOptionsView: View {
                 Text("重置 AI 試用次數、軟 Paywall 顯示狀態、累計新增包裹數、首次安裝日期。")
             }
 
+            // MARK: - What's New 測試
+            Section {
+                HStack {
+                    Text("已讀版本")
+                    Spacer()
+                    Text(WhatsNewService.shared.lastSeenVersion ?? "無")
+                        .foregroundStyle(.secondary)
+                }
+
+                Button {
+                    Task {
+                        isFetchingWhatsNew = true
+                        // 先從 Remote Config 讀取，忽略版本與已讀檢查
+                        if let data = await WhatsNewService.shared.fetchWhatsNewData() {
+                            whatsNewData = data
+                        } else {
+                            // fallback 假資料
+                            whatsNewData = WhatsNewData(
+                                targetVersion: AppConfiguration.appVersion,
+                                emoji: "✨",
+                                features: ["新功能 A 示範", "新功能 B 示範", "Bug 修復與效能優化"]
+                            )
+                        }
+                        isFetchingWhatsNew = false
+                        showWhatsNew = true
+                    }
+                } label: {
+                    HStack {
+                        Label("顯示 What's New", systemImage: "sparkles")
+                            .foregroundStyle(.blue)
+                        if isFetchingWhatsNew {
+                            Spacer()
+                            ProgressView()
+                        }
+                    }
+                }
+                .disabled(isFetchingWhatsNew)
+
+                Button {
+                    WhatsNewService.shared.resetSeen()
+                    print("[Debug] What's New 已讀狀態已重置")
+                } label: {
+                    Label("重置已讀狀態", systemImage: "arrow.counterclockwise")
+                        .foregroundStyle(.red)
+                }
+            } header: {
+                Text("What's New 測試")
+            } footer: {
+                Text("從 Remote Config 讀取 whats_new 參數並預覽。重置已讀後下次冷啟動會重新顯示。")
+            }
+
             // MARK: - 限時優惠測試
             Section {
                 HStack {
@@ -390,6 +444,11 @@ struct DeveloperOptionsView: View {
         .sheet(isPresented: $showPromoSheet) {
             PromoSheet {
                 // Dev preview
+            }
+        }
+        .sheet(isPresented: $showWhatsNew) {
+            if let data = whatsNewData {
+                WhatsNewSheet(data: data, markAsRead: false)
             }
         }
     }

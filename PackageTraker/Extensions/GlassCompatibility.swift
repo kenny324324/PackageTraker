@@ -202,6 +202,44 @@ extension View {
                 .clipShape(Capsule())
         }
     }
+    /// Sheet CTA 按鈕樣式 — iOS 26+ 膠囊 glass effect，舊版維持原樣
+    @ViewBuilder
+    func adaptiveSheetCTAStyle(tint: Color) -> some View {
+        if #available(iOS 26, *) {
+            self.glassEffect(
+                .regular.tint(tint).interactive(),
+                in: Capsule()
+            )
+        } else {
+            self.background(tint, in: Capsule())
+        }
+    }
+
+    /// Sheet CTA 按鈕樣式（漸層版）— iOS 26+ 漸層 + glass effect 膠囊，舊版漸層膠囊
+    @ViewBuilder
+    func adaptiveSheetCTAStyle(gradientColors: [Color]) -> some View {
+        if #available(iOS 26, *) {
+            self
+                .background(
+                    LinearGradient(
+                        colors: gradientColors,
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    ),
+                    in: Capsule()
+                )
+                .glassEffect(.regular.interactive(), in: Capsule())
+        } else {
+            self.background(
+                LinearGradient(
+                    colors: gradientColors,
+                    startPoint: .leading,
+                    endPoint: .trailing
+                ),
+                in: Capsule()
+            )
+        }
+    }
 }
 
 // MARK: - Adaptive Background

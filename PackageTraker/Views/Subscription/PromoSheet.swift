@@ -94,14 +94,7 @@ struct PromoSheet: View {
                             .foregroundStyle(.black)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
-                            .background(
-                                LinearGradient(
-                                    colors: [.yellow, .orange],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                ),
-                                in: RoundedRectangle(cornerRadius: 14)
-                            )
+                            .adaptiveSheetCTAStyle(gradientColors: [.yellow, .orange])
                     }
 
                     Button {
