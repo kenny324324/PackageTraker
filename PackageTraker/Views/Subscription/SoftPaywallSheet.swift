@@ -93,7 +93,7 @@ struct SoftPaywallSheet: View {
             if #available(iOS 26, *) {
                 Color.clear
             } else {
-                Color.appBackground
+                Color.cardBackground
             }
         }
         .preferredColorScheme(.dark)
