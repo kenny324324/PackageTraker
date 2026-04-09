@@ -89,7 +89,13 @@ struct SoftPaywallSheet: View {
             .toolbarBackground(.hidden, for: .navigationBar)
         }
         .presentationDetents([.medium])
-        .presentationBackground(.clear)
+        .presentationBackground {
+            if #available(iOS 26, *) {
+                Color.clear
+            } else {
+                Color.appBackground
+            }
+        }
         .preferredColorScheme(.dark)
     }
 
