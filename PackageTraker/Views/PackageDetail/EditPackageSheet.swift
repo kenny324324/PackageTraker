@@ -148,14 +148,7 @@ struct EditPackageSheet: View {
     }
     
     private var pickupLocationSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(String(localized: "add.pickupLocation"))
-                .font(.headline)
-
-            TextField(String(localized: "add.pickupLocationPlaceholder"), text: $userPickupLocation)
-                .textFieldStyle(.plain)
-                .adaptiveInputStyle()
-        }
+        PickupLocationPicker(text: $userPickupLocation)
     }
     
     private var paymentMethodSection: some View {

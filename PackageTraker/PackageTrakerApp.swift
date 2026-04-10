@@ -242,7 +242,8 @@ struct PackageTrakerApp: App {
         .modelContainer(for: [
             Package.self,
             TrackingEvent.self,
-            LinkedEmailAccount.self
+            LinkedEmailAccount.self,
+            SavedPickupLocation.self
         ])
     }
 

@@ -471,6 +471,9 @@
 "paywall.comparison.notification" = "Per-Package Alerts";
 "paywall.comparison.notification.free" = "—";
 "paywall.comparison.notification.pro" = "✓";
+"paywall.comparison.savedLocations" = "Saved Locations";
+"paywall.comparison.savedLocations.free" = "Up to 3";
+"paywall.comparison.savedLocations.pro" = "Unlimited";
 "paywall.feature.packages" = "Packages";
 "paywall.feature.themes" = "Premium Themes";
 "paywall.feature.ocr" = "Screenshot OCR";
@@ -628,6 +631,23 @@
 "promo.sheet.title" = "Limited Offer";
 "promo.sheet.description" = "Lifetime plan 50% off — one-time purchase, unlock all Pro features forever";
 "promo.sheet.cta" = "View Offer";
+
+// MARK: - Saved Locations
+"settings.savedLocations" = "Pickup Locations";
+"savedLocations.title" = "Pickup Locations";
+"savedLocations.add" = "Add Location";
+"savedLocations.edit" = "Edit Location";
+"savedLocations.empty" = "No saved pickup locations yet";
+"savedLocations.addHint" = "Tap + to add your frequently used pickup locations";
+"savedLocations.namePlaceholder" = "e.g. 7-11 XX Store";
+"savedLocations.locationName" = "Location Name";
+"savedLocations.carrier" = "Carrier";
+"savedLocations.store" = "Store";
+"savedLocations.unlockMore" = "Upgrade to Pro for more locations";
+"savedLocations.duplicateTitle" = "Duplicate Location";
+"savedLocations.duplicateMessage" = "A location with the same name already exists for this store";
+"add.selectLocation" = "Select Location";
+"add.selectLocation.short" = "Saved";
 
 // MARK: - What's New
 "whatsNew.title" = "v%@ Update";

@@ -14,6 +14,17 @@ struct CarrierLogoView: View {
                     .aspectRatio(contentMode: .fit)
                     .frame(width: size, height: size)
                     .clipShape(RoundedRectangle(cornerRadius: size * 0.25))
+            } else if carrier == .other {
+                // 其他：購物車 icon
+                ZStack {
+                    RoundedRectangle(cornerRadius: size * 0.25)
+                        .fill(carrier.brandColor)
+
+                    Image(systemName: "cart.fill")
+                        .font(.system(size: size * 0.4, weight: .medium))
+                        .foregroundStyle(.white)
+                }
+                .frame(width: size, height: size)
             } else {
                 // 沒有圖片時使用文字縮寫
                 ZStack {

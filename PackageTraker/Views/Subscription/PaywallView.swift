@@ -33,6 +33,7 @@ enum PaywallTrigger: String {
     case homeStats      // 首頁統計
     case themes         // 主題顏色
     case notification   // 個別通知設定
+    case savedLocations // 常用取貨地點
     case general        // 預設（無特定來源）
 }
 
@@ -649,6 +650,11 @@ struct PaywallView: View {
                        freeValue: String(localized: "paywall.comparison.notification.free"),
                        proValue: String(localized: "paywall.comparison.notification.pro"),
                        isCheckmark: true),
+            FeatureRow(id: .savedLocations, icon: "mappin.and.ellipse",
+                       feature: String(localized: "paywall.comparison.savedLocations"),
+                       freeValue: String(localized: "paywall.comparison.savedLocations.free"),
+                       proValue: String(localized: "paywall.comparison.savedLocations.pro"),
+                       isCheckmark: false),
         ]
     }
 

@@ -685,4 +685,96 @@ final class FirebaseSyncService: ObservableObject {
         if let v = event.location { data["location"] = v }
         return data
     }
+
+    // MARK: - 常用取貨地點同步
+
+    /// 上傳單一常用地點到 Firestore
+    func syncSavedLocation(_ location: SavedPickupLocation) {
+        guard let userId else { return }
+
+        let docId = location.id.uuidString
+        let data: [String: Any] = [
+            "name": location.name,
+            "carrier": location.carrierRawValue,
+            "createdAt": Timestamp(date: location.createdAt)
+        ]
+
+        Task {
+            do {
+                try await db.collection("users").document(userId)
+                    .collection("savedLocations").document(docId)
+                    .setData(data)
+                print("[Sync] ✅ Saved location synced: \(location.name)")
+            } catch {
+                print("[Sync] ❌ Failed to sync saved location: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    /// 刪除 Firestore 上的常用地點
+    func deleteSavedLocation(_ locationId: UUID) {
+        guard let userId else { return }
+
+        let docId = locationId.uuidString
+
+        Task {
+            do {
+                try await db.collection("users").document(userId)
+                    .collection("savedLocations").document(docId)
+                    .delete()
+                print("[Sync] ✅ Saved location deleted: \(docId)")
+            } catch {
+                print("[Sync] ❌ Failed to delete saved location: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    /// 從 Firestore 下載所有常用地點到本地
+    func downloadSavedLocations(into modelContext: ModelContext) async {
+        guard let userId else { return }
+
+        do {
+            let snapshot = try await db.collection("users").document(userId)
+                .collection("savedLocations").getDocuments()
+
+            // 取得本地所有地點
+            let descriptor = FetchDescriptor<SavedPickupLocation>()
+            let localLocations = (try? modelContext.fetch(descriptor)) ?? []
+            let localIds = Set(localLocations.map { $0.id.uuidString })
+
+            for doc in snapshot.documents {
+                let docId = doc.documentID
+                let data = doc.data()
+
+                guard let name = data["name"] as? String else { continue }
+
+                let carrier = Carrier(rawValue: data["carrier"] as? String ?? "") ?? .other
+
+                if localIds.contains(docId) {
+                    // 已存在：更新
+                    if let existing = localLocations.first(where: { $0.id.uuidString == docId }) {
+                        existing.name = name
+                        existing.carrier = carrier
+                    }
+                } else {
+                    // 新增
+                    guard let uuid = UUID(uuidString: docId) else { continue }
+                    let createdAt = (data["createdAt"] as? Timestamp)?.dateValue() ?? Date()
+                    let location = SavedPickupLocation(id: uuid, name: name, carrier: carrier, createdAt: createdAt)
+                    modelContext.insert(location)
+                }
+            }
+
+            // 刪除雲端不存在的本地地點
+            let remoteIds = Set(snapshot.documents.map { $0.documentID })
+            for local in localLocations where !remoteIds.contains(local.id.uuidString) {
+                modelContext.delete(local)
+            }
+
+            try? modelContext.save()
+            print("[Sync] ✅ Downloaded \(snapshot.documents.count) saved locations")
+        } catch {
+            print("[Sync] ❌ Failed to download saved locations: \(error.localizedDescription)")
+        }
+    }
 }

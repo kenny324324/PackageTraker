@@ -470,6 +470,9 @@
 "paywall.comparison.notification" = "个别通知设置";
 "paywall.comparison.notification.free" = "—";
 "paywall.comparison.notification.pro" = "✓";
+"paywall.comparison.savedLocations" = "常用取货地点";
+"paywall.comparison.savedLocations.free" = "最多 3 个";
+"paywall.comparison.savedLocations.pro" = "无限";
 "paywall.feature.packages" = "包裹数量";
 "paywall.feature.themes" = "主题颜色";
 "paywall.feature.ocr" = "截图识别";
@@ -627,6 +630,23 @@
 "promo.sheet.title" = "限时优惠";
 "promo.sheet.description" = "买断方案限时半价，一次付费永久解锁所有 Pro 功能";
 "promo.sheet.cta" = "立即查看优惠";
+
+// MARK: - 常用取货地点
+"settings.savedLocations" = "常用取货地点";
+"savedLocations.title" = "常用取货地点";
+"savedLocations.add" = "新增地点";
+"savedLocations.edit" = "编辑地点";
+"savedLocations.empty" = "尚未保存任何取货地点";
+"savedLocations.addHint" = "点击右上角 + 新增常用的取货地点";
+"savedLocations.namePlaceholder" = "例如：7-11 景安店";
+"savedLocations.locationName" = "地点名称";
+"savedLocations.carrier" = "物流商";
+"savedLocations.store" = "门市";
+"savedLocations.unlockMore" = "升级 Pro 解锁更多常用地点";
+"savedLocations.duplicateTitle" = "地点重复";
+"savedLocations.duplicateMessage" = "此门市已有相同名称的地点";
+"add.selectLocation" = "选择地点";
+"add.selectLocation.short" = "常用";
 
 // MARK: - What's New
 "whatsNew.title" = "v%@ 版本更新内容";

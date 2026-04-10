@@ -159,6 +159,9 @@ struct SplashView: View {
         // 階段 0.5: 下載用戶偏好設定（訂閱層級、通知設定、主題等）
         await FirebaseSyncService.shared.downloadUserPreferences()
 
+        // 階段 0.6: 下載常用取貨地點
+        await FirebaseSyncService.shared.downloadSavedLocations(into: modelContext)
+
         // 階段 1: 從 Firestore 下載雲端包裹（新裝置或其他裝置的變更）
         let downloadCount = await FirebaseSyncService.shared.downloadAllPackages(into: modelContext)
         if downloadCount > 0 {

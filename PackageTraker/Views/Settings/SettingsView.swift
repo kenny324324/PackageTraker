@@ -816,6 +816,25 @@ struct SettingsView: View {
                 Divider()
                     .background(Color.cardBackground)
 
+                // 常用取貨地點
+                NavigationLink(destination: SavedLocationsView()) {
+                    HStack(spacing: 12) {
+                        settingsIcon("mappin.and.ellipse", bgColor: .orange)
+
+                        Text(String(localized: "settings.savedLocations"))
+                            .foregroundStyle(.white)
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .foregroundStyle(Color.gray)
+                    }
+                    .padding(16)
+                }
+
+                Divider()
+                    .background(Color.cardBackground)
+
                 // 首頁統計
                 NavigationLink(destination: StatSettingsView()) {
                     HStack(spacing: 12) {
@@ -831,6 +850,17 @@ struct SettingsView: View {
                     }
                     .padding(16)
                 }
+
+                Divider()
+                    .background(Color.cardBackground)
+
+                // 隱藏已取貨包裹
+                settingsToggleRow(
+                    icon: "eye.slash.fill",
+                    iconBg: .gray,
+                    title: String(localized: "settings.hideDelivered"),
+                    isOn: $hideDeliveredPackages
+                )
 
                 Divider()
                     .background(Color.cardBackground)
@@ -857,17 +887,6 @@ struct SettingsView: View {
                     }
                     .padding(16)
                 }
-
-                Divider()
-                    .background(Color.cardBackground)
-
-                // 隱藏已取貨包裹
-                settingsToggleRow(
-                    icon: "eye.slash.fill",
-                    iconBg: .gray,
-                    title: String(localized: "settings.hideDelivered"),
-                    isOn: $hideDeliveredPackages
-                )
 
                 Divider()
                     .background(Color.cardBackground)

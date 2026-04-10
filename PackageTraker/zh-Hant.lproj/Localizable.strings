@@ -467,6 +467,9 @@
 "paywall.comparison.notification" = "個別通知設定";
 "paywall.comparison.notification.free" = "—";
 "paywall.comparison.notification.pro" = "✓";
+"paywall.comparison.savedLocations" = "常用取貨地點";
+"paywall.comparison.savedLocations.free" = "最多 3 個";
+"paywall.comparison.savedLocations.pro" = "無限";
 "paywall.features" = "功能";
 "paywall.free" = "免費";
 "paywall.pro" = "Pro";
@@ -627,6 +630,23 @@
 "promo.sheet.title" = "限時優惠";
 "promo.sheet.description" = "買斷方案限時半價，一次付費永久解鎖所有 Pro 功能";
 "promo.sheet.cta" = "立即查看優惠";
+
+// MARK: - 常用取貨地點
+"settings.savedLocations" = "常用取貨地點";
+"savedLocations.title" = "常用取貨地點";
+"savedLocations.add" = "新增地點";
+"savedLocations.edit" = "編輯地點";
+"savedLocations.empty" = "尚未儲存任何取貨地點";
+"savedLocations.addHint" = "點擊右上角 + 新增常用的取貨地點";
+"savedLocations.namePlaceholder" = "例如：7-11 景安店";
+"savedLocations.locationName" = "地點名稱";
+"savedLocations.carrier" = "物流商";
+"savedLocations.store" = "門市";
+"savedLocations.unlockMore" = "升級 Pro 解鎖更多常用地點";
+"savedLocations.duplicateTitle" = "地點重複";
+"savedLocations.duplicateMessage" = "此門市已有相同名稱的地點";
+"add.selectLocation" = "選擇地點";
+"add.selectLocation.short" = "常用";
 
 // MARK: - What's New
 "whatsNew.title" = "v%@ 版本更新內容";

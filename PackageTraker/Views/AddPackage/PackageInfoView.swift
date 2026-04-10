@@ -7,8 +7,6 @@ struct PackageInfoView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
 
-    @Query private var existingPackages: [Package]
-
     let trackingNumber: String
     let carrier: Carrier
     let trackingResult: TrackingResult
@@ -157,14 +155,7 @@ struct PackageInfoView: View {
     }
 
     private var pickupLocationSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(String(localized: "add.pickupLocation"))
-                .font(.headline)
-
-            TextField(String(localized: "add.pickupLocationPlaceholder"), text: $userPickupLocation)
-                .textFieldStyle(.plain)
-                .adaptiveInputStyle()
-        }
+        PickupLocationPicker(text: $userPickupLocation)
     }
 
     private var paymentMethodSection: some View {
@@ -241,7 +232,8 @@ struct PackageInfoView: View {
     // MARK: - Duplicate Check
 
     private func findDuplicatePackage() -> Package? {
-        existingPackages.first { pkg in
+        let allPackages = (try? modelContext.fetch(FetchDescriptor<Package>())) ?? []
+        return allPackages.first { pkg in
             pkg.trackingNumber == trackingNumber && pkg.carrier == carrier
         }
     }
@@ -313,7 +305,8 @@ struct PackageInfoView: View {
         FirebaseSyncService.shared.syncPackage(package, includeStatus: true)
 
         // 更新 Widget
-        WidgetDataService.shared.updateWidgetData(packages: existingPackages + [package])
+        let allPackages = (try? modelContext.fetch(FetchDescriptor<Package>(predicate: #Predicate<Package> { !$0.isArchived }))) ?? []
+        WidgetDataService.shared.updateWidgetData(packages: allPackages)
         WidgetCenter.shared.reloadAllTimelines()
 
         // 評分提示（爽點：成功新增包裹）
