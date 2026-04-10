@@ -367,6 +367,7 @@
 "app.name" = "Pickup";
 "app.developer" = "Kenny";
 "app.versionPrefix" = "Version";
+"about.trackingDataSource" = "Tracking data by";
 
 // Settings Enhancements
 "settings.languageHint" = "Language settings require system preferences";

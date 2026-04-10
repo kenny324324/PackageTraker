@@ -366,6 +366,7 @@
 "app.name" = "取货吧";
 "app.developer" = "Kenny";
 "app.versionPrefix" = "版本";
+"about.trackingDataSource" = "追踪数据来源";
 
 // Settings Enhancements
 "settings.languageHint" = "语言设置需至系统设置修改";

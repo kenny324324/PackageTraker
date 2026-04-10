@@ -593,6 +593,29 @@ struct SettingsView: View {
                     Spacer()
                 }
                 .padding(16)
+
+                Divider()
+                    .overlay(Color.white.opacity(0.1))
+
+                // Track.TW 資料來源標註
+                HStack(spacing: 8) {
+                    Image(systemName: "shippingbox")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    Text(String(localized: "about.trackingDataSource"))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Button {
+                        safariURL = IdentifiableURL(url: URL(string: "https://track.tw")!)
+                    } label: {
+                        Text("Track.TW")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.blue)
+                    }
+                }
+                .padding(16)
             }
             .background(Color.secondaryCardBackground)
             .clipShape(RoundedRectangle(cornerRadius: 20))
