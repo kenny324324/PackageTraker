@@ -309,6 +309,11 @@ struct PackageInfoView: View {
         WidgetDataService.shared.updateWidgetData(packages: allPackages)
         WidgetCenter.shared.reloadAllTimelines()
 
+        // 邀請碼：成功新增包裹 → 完成推薦（發放雙方 Pro 試用）
+        if FeatureFlags.referralEnabled {
+            Task { await ReferralService.shared.completeReferralIfNeeded() }
+        }
+
         // 評分提示（爽點：成功新增包裹）
         ReviewPromptService.recordPackageAdded()
         ReviewPromptService.requestReviewIfAppropriate()

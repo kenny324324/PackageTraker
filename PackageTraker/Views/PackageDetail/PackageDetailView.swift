@@ -371,6 +371,15 @@ struct PackageDetailView: View {
             }
             .adaptiveToolbarButtonStyle()
 
+            // 分享追蹤連結按鈕
+            Button(action: shareTrackingLink) {
+                Image(systemName: "square.and.arrow.up")
+                    .font(.title3)
+                    .foregroundStyle(.white)
+                    .frame(width: 50, height: 50)
+            }
+            .adaptiveToolbarButtonStyle()
+
             Spacer()
 
             // 刪除按鈕（靠右）
@@ -532,6 +541,28 @@ struct PackageDetailView: View {
 
     private func copyTrackingNumber() {
         UIPasteboard.general.string = package.trackingNumber
+    }
+
+    private func shareTrackingLink() {
+        let carrierName = package.carrier.displayName
+        let trackingNumber = package.trackingNumber
+        let carrierRaw = package.carrier.rawValue
+        let deepLink = "packagetraker://track/\(carrierRaw)/\(trackingNumber)"
+
+        let message = String(localized: "share.trackingMessage.\(carrierName).\(trackingNumber)")
+        let items: [Any] = ["\(message)\n\n\(deepLink)"]
+
+        guard let windowScene = UIApplication.shared.connectedScenes
+                .compactMap({ $0 as? UIWindowScene }).first,
+              let rootVC = windowScene.windows.first(where: { $0.isKeyWindow })?.rootViewController else {
+            return
+        }
+        var topVC = rootVC
+        while let presented = topVC.presentedViewController {
+            topVC = presented
+        }
+        let activityVC = UIActivityViewController(activityItems: items, applicationActivities: nil)
+        topVC.present(activityVC, animated: true)
     }
 
     private func openOfficialWebsite() {

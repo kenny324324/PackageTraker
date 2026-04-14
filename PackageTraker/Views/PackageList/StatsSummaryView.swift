@@ -6,6 +6,8 @@ struct StatsSummaryView: View {
     let stat2: (type: StatType, value: StatValue)
     var onStat1Tap: (() -> Void)? = nil
     var onStat2Tap: (() -> Void)? = nil
+    var onStat1Edit: (() -> Void)? = nil
+    var onStat2Edit: (() -> Void)? = nil
 
     var body: some View {
         HStack(spacing: 12) {
@@ -14,7 +16,8 @@ struct StatsSummaryView: View {
                 iconColor: stat1.type.iconColor,
                 displayValue: stat1.value,
                 label: stat1.type.localizedLabel,
-                onTap: onStat1Tap
+                onTap: onStat1Tap,
+                onEdit: onStat1Edit
             )
 
             StatCard(
@@ -22,7 +25,8 @@ struct StatsSummaryView: View {
                 iconColor: stat2.type.iconColor,
                 displayValue: stat2.value,
                 label: stat2.type.localizedLabel,
-                onTap: onStat2Tap
+                onTap: onStat2Tap,
+                onEdit: onStat2Edit
             )
         }
         .fixedSize(horizontal: false, vertical: true)
@@ -36,6 +40,7 @@ struct StatCard: View {
     let displayValue: StatValue
     let label: String
     var onTap: (() -> Void)? = nil
+    var onEdit: (() -> Void)? = nil
 
     var body: some View {
         Button {
@@ -72,6 +77,15 @@ struct StatCard: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .contextMenu {
+            if let onEdit {
+                Button {
+                    onEdit()
+                } label: {
+                    Label(String(localized: "common.edit"), systemImage: "pencil")
+                }
+            }
+        }
     }
 }
 

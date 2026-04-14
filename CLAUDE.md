@@ -103,6 +103,7 @@ firebase deploy --only functions                 # Deploy to Firebase
 - `SplashView.swift` - Cold start animation for already-authenticated users
 - Subdirectories per feature: `Auth/`, `PackageList/`, `AddPackage/`, `AI/`, `PackageDetail/`, `History/`, `Settings/`, `Subscription/`, `Stats/`
 - AI scanning flow: `AddMethodSheet` → `AICarrierSelectView` (user picks carrier) → `AIScanningView` → `AIQuickAddSheet` → `PackageInfoView`
+- Home stats: `StatsSummaryView` shows 2 stat cards on PackageListView (visible even when no packages). Long-press context menu to edit; `StatPickerSheet` for selection (selecting other slot's item swaps both). Pro users can customize; free users get defaults.
 - Stats views (`Views/Stats/`): `PersonalStatsView` (free: jar + highlights + carrier ranking + monthly trend; Pro: spending analytics + delivery speed), `AllCarriersStatsView`, `AllCarrierSpendingView`, `AllDeliverySpeedView`, `PlatformSpendingChartView` (donut chart)
 - Pro stats overlay: `.proStatsOverlay()` modifier (blur + lock + PaywallView) — defined in `ProStatsOverlay.swift`
 
@@ -118,10 +119,11 @@ firebase deploy --only functions                 # Deploy to Firebase
 ### Cloud Functions Backend (`functions/`)
 
 Firebase Cloud Functions v2 (TypeScript, Node.js 20, asia-east1):
-- `scheduler.ts` - 15-minute tracking poll via Track.TW API
+- `scheduler.ts` - 30-minute tracking poll via Track.TW API (uses collectionGroup query for active packages)
 - `triggers.ts` - Firestore `onDocumentUpdated` → FCM push on status change
 - `dailyReminder.ts` - 10:00 AM Taiwan time pickup reminder
 - `alertEmail.ts` - `onSystemAlertCreated` for system alert notifications
+- `statsAggregator.ts` - `updateAppStats` (every 6hr, collectionGroup count) + `updatePercentiles` (daily midnight)
 - `geminiProxy.ts` - Gemini AI proxy with daily usage limit (20/day for subscribers)
 - `services/trackTwApi.ts` - Track.TW HTTP client
 - `services/pushNotification.ts` - FCM push via firebase-admin
@@ -155,6 +157,13 @@ MainTabView is **always present** at the bottom of the ZStack to avoid TabView/N
 2. Posts `Notification.Name.didTapPackageNotification`
 3. `PackageTrakerApp.onReceive` → sets `selectedTab = 0` + `pendingPackageId`
 4. Binding chain → `PackageListView.onChange(of: pendingPackageId)` → navigates to detail
+
+### App Badge Management
+
+Cloud Functions send FCM with `badge: 1` (`pushNotification.ts`). Badge is cleared (`setBadgeCount(0)`) in 3 places:
+- `PackageTrakerApp`: `.onChange(of: scenePhase)` — app returns to foreground
+- `NotificationDelegate.willPresent` — notification received while app in foreground
+- `NotificationDelegate.didReceive` — user taps notification to open app
 
 ## Firestore Data Structure
 

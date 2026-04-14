@@ -8,7 +8,7 @@
 import {getFirestore, FieldValue} from "firebase-admin/firestore";
 import {logger} from "firebase-functions/v2";
 
-export type NotificationLogType = "statusChange" | "dailyReminder";
+export type NotificationLogType = "statusChange" | "dailyReminder" | "inactiveReminder" | "referralTrialReminder";
 
 export interface NotificationLogEntry {
   userId: string;

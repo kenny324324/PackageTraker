@@ -18,3 +18,5 @@ export {updateAppStats, updatePercentiles} from "./statsAggregator";
 export {getAdminStats} from "./adminStats";
 export {getNotificationLogs} from "./adminNotificationLogs";
 export {getUserDetail} from "./adminUserDetail";
+export {inactiveUserReminder} from "./inactiveUserReminder";
+export {referralTrialReminder} from "./referralTrialReminder";

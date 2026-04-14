@@ -95,6 +95,11 @@ struct SettingsView: View {
                         appStatsSection
                     }
 
+                    // 邀請好友
+                    if FeatureFlags.referralEnabled {
+                        InviteFriendsSection()
+                    }
+
                     // 評分卡片
                     rateAppSection
 
@@ -396,9 +401,9 @@ struct SettingsView: View {
         .buttonStyle(.plain)
     }
 
-    /// 計算活躍包裹數量
+    /// 計算活躍包裹數量（只計算未取貨的包裹）
     private var activePackageCount: Int {
-        existingPackages.filter { !$0.isArchived }.count
+        existingPackages.filter { !$0.isArchived && $0.status != .delivered }.count
     }
 
     // MARK: - Rate App Section

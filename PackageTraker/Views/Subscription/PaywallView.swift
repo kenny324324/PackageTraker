@@ -34,6 +34,7 @@ enum PaywallTrigger: String {
     case themes         // 主題顏色
     case notification   // 個別通知設定
     case savedLocations // 常用取貨地點
+    case referralTrialExpired // 邀請試用到期
     case general        // 預設（無特定來源）
 }
 

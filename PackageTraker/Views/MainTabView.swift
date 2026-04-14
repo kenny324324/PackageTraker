@@ -6,12 +6,14 @@ struct MainTabView: View {
     @Binding var selectedTab: Int
     @Binding var pendingPackageId: UUID?
     @Binding var showAddPackage: Bool
+    @Binding var prefillCarrier: String?
+    @Binding var prefillTrackingNumber: String?
     @ObservedObject private var themeManager = ThemeManager.shared
 
     var body: some View {
         TabView(selection: $selectedTab) {
             // 包裹清單（主頁）
-            PackageListView(pendingPackageId: $pendingPackageId, showAddPackage: $showAddPackage)
+            PackageListView(pendingPackageId: $pendingPackageId, showAddPackage: $showAddPackage, prefillCarrier: $prefillCarrier, prefillTrackingNumber: $prefillTrackingNumber)
                 .tabItem {
                     Label(String(localized: "tab.packages"), systemImage: "shippingbox.fill")
                 }
@@ -51,6 +53,6 @@ struct MainTabView: View {
 // MARK: - Previews
 
 #Preview {
-    MainTabView(selectedTab: .constant(0), pendingPackageId: .constant(nil), showAddPackage: .constant(false))
+    MainTabView(selectedTab: .constant(0), pendingPackageId: .constant(nil), showAddPackage: .constant(false), prefillCarrier: .constant(nil), prefillTrackingNumber: .constant(nil))
         .modelContainer(for: [Package.self, TrackingEvent.self], inMemory: true)
 }

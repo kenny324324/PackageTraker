@@ -34,6 +34,12 @@ struct PackageTrakerApp: App {
     // 背景任務識別碼
     static let emailSyncTaskIdentifier = "com.packagetraker.emailsync"
 
+    // SwiftData Container（登出時需要存取 mainContext 清除本地資料）
+    private let sharedModelContainer: ModelContainer = {
+        let schema = Schema([Package.self, TrackingEvent.self, LinkedEmailAccount.self, SavedPickupLocation.self])
+        return try! ModelContainer(for: schema)
+    }()
+
     // App 流程狀態（根據初始認證狀態決定）
     @State private var appFlow: AppFlow
 
@@ -49,11 +55,26 @@ struct PackageTrakerApp: App {
     // Widget Quick Add：從桌面快速新增包裹
     @State private var showAddPackage = false
 
+    // 邀請碼 Deep Link：待套用的推薦碼
+    @State private var pendingReferralCode: String?
+    // 分享追蹤 Deep Link：待帶入的物流商 + 單號
+    @State private var pendingTrackCarrier: String?
+    @State private var pendingTrackNumber: String?
+    // 邀請碼套用結果
+    @State private var showReferralResult = false
+    @State private var referralResultMessage = ""
+    @State private var referralResultIsError = false
+    // 試用到期 Paywall
+    @State private var showReferralTrialExpiredPaywall = false
+
     // 強制更新狀態
     @State private var forceUpdateURL: String?
 
     // What's New
     @State private var whatsNewData: WhatsNewData?
+
+    // Scene phase（用於清除 badge）
+    @Environment(\.scenePhase) private var scenePhase
 
     // 軟 Paywall
     @State private var showSoftPaywall = false
@@ -110,7 +131,7 @@ struct PackageTrakerApp: App {
         WindowGroup {
             ZStack {
                 // 主畫面始終存在底層（已完成佈局，避免 TabView/NavigationStack 插入時的內部動畫）
-                MainTabView(selectedTab: $selectedTab, pendingPackageId: $pendingPackageId, showAddPackage: $showAddPackage)
+                MainTabView(selectedTab: $selectedTab, pendingPackageId: $pendingPackageId, showAddPackage: $showAddPackage, prefillCarrier: $pendingTrackCarrier, prefillTrackingNumber: $pendingTrackNumber)
                     .environment(refreshService)
                     .onOpenURL { url in
                         handleIncomingURL(url)
@@ -195,6 +216,14 @@ struct PackageTrakerApp: App {
             .fullScreenCover(isPresented: $showSoftPaywallFullPaywall) {
                 PaywallView()
             }
+            .fullScreenCover(isPresented: $showReferralTrialExpiredPaywall) {
+                PaywallView(trigger: .referralTrialExpired)
+            }
+            .alert(String(localized: "referral.notice"), isPresented: $showReferralResult) {
+                Button(String(localized: "common.ok")) { }
+            } message: {
+                Text(referralResultMessage)
+            }
             .animation(.easeOut(duration: 0.4), value: appFlow)
             .preferredColorScheme(.dark)
             .task {
@@ -204,6 +233,11 @@ struct PackageTrakerApp: App {
                 }
                 // 啟動時同步訂閱層級到 Widget（確保 Widget 能讀取到正確狀態）
                 WidgetDataService.shared.updateSubscriptionTier(subscriptionManager.currentTier)
+
+                // 載入邀請碼資料
+                if FeatureFlags.referralEnabled {
+                    await ReferralService.shared.loadReferralData()
+                }
             }
             .onChange(of: subscriptionManager.currentTier) { _, newTier in
                 if newTier == .free {
@@ -216,12 +250,27 @@ struct PackageTrakerApp: App {
             .onChange(of: appFlow) { _, newFlow in
                 guard newFlow == .main else { return }
                 checkWhatsNewThenPaywall()
+                checkReferralTrialExpiry()
+            }
+            .onChange(of: scenePhase) { _, newPhase in
+                if newPhase == .active {
+                    // App 回到前景時清除 badge 紅點
+                    UNUserNotificationCenter.current().setBadgeCount(0)
+                }
             }
             .onChange(of: authService.isAuthenticated) { oldValue, newValue in
                 // 登出處理（登入由 SignInView 內部處理）
                 if oldValue && !newValue {
+                    print("[App] 🔴 Sign-out detected, clearing local data...")
                     // 停止 Firestore 即時監聽器
                     FirebaseSyncService.shared.stopListening()
+                    // 清除本地 SwiftData 資料（防止帳號切換時殘留舊資料）
+                    FirebaseSyncService.shared.clearLocalData(modelContext: sharedModelContainer.mainContext)
+                    // 清除邀請碼快取
+                    ReferralService.shared.clearCache()
+                    // 清除 Widget 資料
+                    WidgetDataService.shared.updateWidgetData(packages: [])
+                    WidgetCenter.shared.reloadAllTimelines()
                     withAnimation(.easeOut(duration: 0.4)) {
                         selectedTab = 0 // 重置 tab
                         appFlow = .signIn
@@ -235,16 +284,20 @@ struct PackageTrakerApp: App {
                     }
                     Task {
                         await FirebasePushService.shared.registerForPushNotifications()
+
+                        // 登入後載入邀請碼資料 + 套用待處理的邀請碼
+                        if FeatureFlags.referralEnabled {
+                            await ReferralService.shared.loadReferralData()
+                            if let code = pendingReferralCode {
+                                pendingReferralCode = nil
+                                applyReferralCode(code)
+                            }
+                        }
                     }
                 }
             }
         }
-        .modelContainer(for: [
-            Package.self,
-            TrackingEvent.self,
-            LinkedEmailAccount.self,
-            SavedPickupLocation.self
-        ])
+        .modelContainer(sharedModelContainer)
     }
 
     // MARK: - What's New
@@ -301,6 +354,47 @@ struct PackageTrakerApp: App {
         }
     }
 
+    // MARK: - Referral
+
+    /// 套用邀請碼並顯示結果
+    private func applyReferralCode(_ code: String) {
+        Task {
+            do {
+                try await ReferralService.shared.applyReferralCode(code)
+                referralResultMessage = String(localized: "referral.codeBound")
+                referralResultIsError = false
+            } catch {
+                referralResultMessage = error.localizedDescription
+                referralResultIsError = true
+            }
+            showReferralResult = true
+        }
+    }
+
+    /// 檢查邀請試用是否剛到期（過去 24 小時內）
+    private func checkReferralTrialExpiry() {
+        guard FeatureFlags.referralEnabled,
+              !subscriptionManager.isPro,
+              let endDate = ReferralService.shared.referralTrialEndDate else { return }
+
+        let hoursSinceExpiry = Date().timeIntervalSince(endDate) / 3600
+        guard hoursSinceExpiry > 0 && hoursSinceExpiry < 24 else { return }
+
+        // 避免重複彈出
+        let lastShownKey = "referralTrialExpiredPaywallLastShown"
+        if let lastShown = UserDefaults.standard.object(forKey: lastShownKey) as? Date,
+           Date().timeIntervalSince(lastShown) < 86400 { return }
+
+        UserDefaults.standard.set(Date(), forKey: lastShownKey)
+
+        Task {
+            try? await Task.sleep(for: .seconds(2))
+            await MainActor.run {
+                showReferralTrialExpiredPaywall = true
+            }
+        }
+    }
+
     // MARK: - URL Handling
 
     private func handleIncomingURL(_ url: URL) {
@@ -319,6 +413,34 @@ struct PackageTrakerApp: App {
            let packageId = UUID(uuidString: uuidString) {
             selectedTab = 0
             pendingPackageId = packageId
+            return
+        }
+
+        // 處理邀請碼 Deep Link: packagetraker://invite/{code}
+        if url.scheme == "packagetraker",
+           url.host == "invite",
+           let code = url.pathComponents.dropFirst().first, // dropFirst 跳過 "/"
+           !code.isEmpty {
+            if authService.isAuthenticated {
+                applyReferralCode(code)
+            } else {
+                pendingReferralCode = code
+            }
+            return
+        }
+
+        // 處理分享追蹤 Deep Link: packagetraker://track/{carrier}/{trackingNumber}
+        if url.scheme == "packagetraker",
+           url.host == "track" {
+            let components = url.pathComponents.dropFirst() // 跳過 "/"
+            if components.count >= 2 {
+                let carrier = String(components[components.startIndex])
+                let trackingNumber = String(components[components.index(after: components.startIndex)])
+                pendingTrackCarrier = carrier
+                pendingTrackNumber = trackingNumber
+                selectedTab = 0
+                showAddPackage = true
+            }
             return
         }
 
@@ -439,8 +561,11 @@ class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
-        // 在前景也顯示通知
+        // 在前景也顯示通知（badge 不顯示，因為使用者正在使用 App）
         completionHandler([.banner, .sound])
+
+        // 前景收到通知時立即清除 badge
+        clearBadge()
     }
 
     /// 點擊通知後跳轉到對應包裹
@@ -460,7 +585,15 @@ class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
             )
         }
 
+        // 點擊通知進入 App 時清除 badge
+        clearBadge()
+
         completionHandler()
+    }
+
+    /// 清除 App 圖示上的 badge 紅點
+    func clearBadge() {
+        UNUserNotificationCenter.current().setBadgeCount(0)
     }
 }
 

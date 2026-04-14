@@ -30,4 +30,7 @@ struct FeatureFlags {
 
     /// 限時優惠（新用戶 48hr 買斷半價）
     static let launchPromoEnabled = true
+
+    /// 邀請碼系統
+    static let referralEnabled = true
 }

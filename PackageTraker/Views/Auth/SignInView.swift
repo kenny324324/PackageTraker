@@ -195,6 +195,17 @@ struct SignInView: View {
     }
 
     private func loadData() async {
+        // 帳號切換偵測：若 UID 不同，先清除前一個帳號的本地資料
+        if let currentUid = FirebaseAuthService.shared.currentUser?.uid {
+            let lastUid = UserDefaults.standard.string(forKey: "lastSignedInUid")
+            if let lastUid, lastUid != currentUid {
+                print("[SignIn] ⚠️ Account switched (\(lastUid) → \(currentUid)), clearing local data...")
+                FirebaseSyncService.shared.clearLocalData(modelContext: modelContext)
+                ReferralService.shared.clearCache()
+            }
+            UserDefaults.standard.set(currentUid, forKey: "lastSignedInUid")
+        }
+
         // 階段 0.5: 下載用戶偏好設定（訂閱層級、通知設定、主題等）
         await FirebaseSyncService.shared.downloadUserPreferences()
 

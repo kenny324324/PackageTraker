@@ -153,6 +153,17 @@ struct SplashView: View {
     }
 
     private func loadData() async {
+        // 帳號切換偵測：若 UID 不同，先清除前一個帳號的本地資料
+        if let currentUid = FirebaseAuthService.shared.currentUser?.uid {
+            let lastUid = UserDefaults.standard.string(forKey: "lastSignedInUid")
+            if let lastUid, lastUid != currentUid {
+                print("[Splash] ⚠️ Account switched (\(lastUid) → \(currentUid)), clearing local data...")
+                FirebaseSyncService.shared.clearLocalData(modelContext: modelContext)
+                ReferralService.shared.clearCache()
+            }
+            UserDefaults.standard.set(currentUid, forKey: "lastSignedInUid")
+        }
+
         // 冷啟動時重新註冊 FCM 推播（背景執行）
         Task { await FirebasePushService.shared.registerForPushNotifications() }
 

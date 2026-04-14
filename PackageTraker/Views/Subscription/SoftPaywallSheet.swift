@@ -17,7 +17,7 @@ struct SoftPaywallSheet: View {
     private let maxFreePackages = 5
 
     private var activePackageCount: Int {
-        allPackages.filter { !$0.isArchived }.count
+        allPackages.filter { !$0.isArchived && $0.status != .delivered }.count
     }
 
     var body: some View {

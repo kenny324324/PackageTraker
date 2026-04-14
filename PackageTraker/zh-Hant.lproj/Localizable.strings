@@ -652,3 +652,48 @@
 // MARK: - What's New
 "whatsNew.title" = "v%@ 版本更新內容";
 "whatsNew.dismiss" = "知道了";
+
+// MARK: - 共用（追加）
+"common.error" = "錯誤";
+"common.loading" = "載入中...";
+
+// MARK: - 邀請碼
+"referral.inviteFriends" = "邀請好友";
+"referral.description" = "分享你的邀請碼，你和好友各得 7 天免費 Pro 體驗！";
+"referral.shareInvite" = "分享邀請";
+"referral.copyCode" = "複製邀請碼";
+"referral.codeCopied" = "已複製！";
+"referral.share" = "分享";
+"referral.count" = "已邀請 %lld 位好友";
+"referral.successCount" = "已成功邀請 %lld 位好友";
+"referral.status.invited" = "已邀請";
+"referral.status.completed" = "成功";
+"referral.list.title" = "邀請好友列表";
+"referral.list.empty" = "還沒有邀請任何好友";
+"referral.list.anonymous" = "匿名用戶";
+"referral.list.hint" = "好友新增包裹後邀請才算完成\n完成後雙方各得 7 天 Pro";
+"referral.trialBadge" = "試用中，剩 %lld 天";
+"referral.applied" = "邀請碼套用成功！享受 7 天 Pro 體驗";
+"referral.codeBound" = "邀請碼已綁定！新增第一筆包裹後，你和推薦人各得 7 天 Pro 體驗";
+"referral.enterCode" = "有好友的邀請碼？";
+"referral.enterCode.placeholder" = "輸入邀請碼";
+"referral.enterCode.message" = "輸入好友的邀請碼";
+"referral.apply" = "套用";
+"referral.success" = "成功";
+"referral.notice" = "提示";
+"referral.alert.bound" = "綁定成功！";
+"referral.alert.notFound" = "找不到驗證碼";
+"referral.error.codeNotFound" = "無效的邀請碼";
+"referral.error.selfReferral" = "不能使用自己的邀請碼";
+"referral.error.alreadyReferred" = "你已經使用過邀請碼了";
+"referral.error.mutualReferral" = "不能互相推薦";
+"referral.error.notAuthenticated" = "請先登入";
+"referral.shareMessage.%@" = "我在用「取貨吧」追蹤包裹，超方便！用我的邀請碼加入，你我各得 7 天 Pro 體驗 🎁\n\n我的邀請碼：%@";
+"settings.subscription.referralTrial" = "Pro 試用";
+
+// MARK: - 分享追蹤
+"share.trackingMessage.%@.%@" = "我正在追蹤一個包裹 📦\n物流：%1$@\n單號：%2$@\n\n用「取貨吧」查看最新狀態：";
+
+// MARK: - 試用到期 Paywall
+"paywall.trialExpired.title" = "Pro 體驗已結束";
+"paywall.trialExpired.subtitle" = "立即升級，繼續享受無限包裹和完整功能";

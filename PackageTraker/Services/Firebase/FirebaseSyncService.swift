@@ -413,6 +413,38 @@ final class FirebaseSyncService: ObservableObject {
         print("[Sync] 🎧 Listener stopped")
     }
 
+    /// 登出時清除所有本地 SwiftData 資料（防止帳號切換時殘留舊資料）
+    func clearLocalData(modelContext: ModelContext) {
+        do {
+            let packages = try modelContext.fetch(FetchDescriptor<Package>())
+            print("[Sync] 🧹 Deleting \(packages.count) packages...")
+            for package in packages {
+                modelContext.delete(package)
+            }
+
+            let events = try modelContext.fetch(FetchDescriptor<TrackingEvent>())
+            print("[Sync] 🧹 Deleting \(events.count) events...")
+            for event in events {
+                modelContext.delete(event)
+            }
+
+            let accounts = try modelContext.fetch(FetchDescriptor<LinkedEmailAccount>())
+            for account in accounts {
+                modelContext.delete(account)
+            }
+
+            let locations = try modelContext.fetch(FetchDescriptor<SavedPickupLocation>())
+            for location in locations {
+                modelContext.delete(location)
+            }
+
+            try modelContext.save()
+            print("[Sync] 🧹 Cleared all local SwiftData on sign-out")
+        } catch {
+            print("[Sync] ❌ Failed to clear local data: \(error.localizedDescription)")
+        }
+    }
+
     // MARK: - Snapshot 處理
 
     private func handleSnapshot(_ snapshot: QuerySnapshot) {

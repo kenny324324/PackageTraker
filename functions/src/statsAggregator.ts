@@ -2,10 +2,12 @@
  * statsAggregator.ts
  *
  * 兩個排程 function：
- * 1. updateAppStats — 每小時聚合全局統計（使用者數、包裹數、送達數）
+ * 1. updateAppStats — 每 6 小時聚合全局統計（使用者數、包裹數、送達數）
  * 2. updatePercentiles — 每天凌晨 00:00 計算百分位門檻
  *
  * 都寫入 /stats/app 供客戶端讀取。
+ *
+ * 使用 collectionGroup count 取代逐用戶迴圈，大幅降低 Firestore 讀取量。
  */
 
 import {onSchedule} from "firebase-functions/v2/scheduler";
@@ -39,15 +41,16 @@ function getPercentile(sorted: number[], p: number): number {
 }
 
 /**
- * 每小時：聚合全局統計數據
+ * 每 6 小時：聚合全局統計數據
+ * 使用 collectionGroup count 取代逐用戶 loop，從 ~2,400 reads 降至 ~3 reads
  */
 export const updateAppStats = onSchedule(
   {
-    schedule: "0 * * * *",
+    schedule: "0 */6 * * *",
     timeZone: "Asia/Taipei",
     region: "asia-east1",
     timeoutSeconds: 540,
-    memory: "512MiB",
+    memory: "256MiB",
   },
   async () => {
     logger.info("[Stats] Starting app stats aggregation...");
@@ -57,22 +60,19 @@ export const updateAppStats = onSchedule(
     try {
       const totalUsers = await countAuthUsers();
 
-      const usersSnapshot = await db.collection("users").get();
-      let totalPackages = 0;
-      let totalDelivered = 0;
+      // 用 collectionGroup count 一次算完，不需逐用戶迴圈
+      const totalPackagesResult = await db
+        .collectionGroup("packages")
+        .count()
+        .get();
+      const totalPackages = totalPackagesResult.data().count;
 
-      for (const userDoc of usersSnapshot.docs) {
-        const packagesRef = userDoc.ref.collection("packages");
-
-        const allCount = await packagesRef.count().get();
-        totalPackages += allCount.data().count;
-
-        const deliveredCount = await packagesRef
-          .where("status", "==", "delivered")
-          .count()
-          .get();
-        totalDelivered += deliveredCount.data().count;
-      }
+      const totalDeliveredResult = await db
+        .collectionGroup("packages")
+        .where("status", "==", "delivered")
+        .count()
+        .get();
+      const totalDelivered = totalDeliveredResult.data().count;
 
       // merge 寫入，不覆蓋 percentiles
       await db.doc("stats/app").set({
@@ -95,6 +95,8 @@ export const updateAppStats = onSchedule(
 
 /**
  * 每天凌晨 00:00：計算百分位門檻
+ * 注意：此函數仍需逐用戶查詢（百分位需要每個用戶的包裹數分佈），
+ * 但只執行一天一次，影響較小。
  */
 export const updatePercentiles = onSchedule(
   {
@@ -102,7 +104,7 @@ export const updatePercentiles = onSchedule(
     timeZone: "Asia/Taipei",
     region: "asia-east1",
     timeoutSeconds: 540,
-    memory: "512MiB",
+    memory: "256MiB",
   },
   async () => {
     logger.info("[Stats] Starting percentile calculation...");

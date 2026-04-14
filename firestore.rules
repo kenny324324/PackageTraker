@@ -1,0 +1,41 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 用戶文件：任何登入用戶可讀，只能寫自己的
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+      // 允許其他用戶更新推薦相關欄位（套用邀請碼時）
+      allow update: if request.auth != null
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+          ['referralCount', 'referralBonusDays', 'referralTrialEndDate', 'referralSuccessCount']
+        );
+    }
+    // 用戶子集合（packages, events 等）：只能讀寫自己的
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    // 邀請碼 lookup collection
+    match /referralCodes/{code} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.ownerUid == request.auth.uid;
+      allow update, delete: if false;
+    }
+    // 邀請碼的被推薦人子集合
+    match /referralCodes/{code}/referees/{refereeId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == refereeId;
+      allow update: if request.auth != null;
+      allow delete: if request.auth != null;
+    }
+    match /stats/{document} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+    match /config/{document} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+  }
+}

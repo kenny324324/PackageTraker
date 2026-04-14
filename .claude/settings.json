@@ -14,10 +14,21 @@
       "Bash(plutil -lint \"/Users/jonathanyu/Desktop/Side Project/Swift/PackageTraker/PackageTraker.xcodeproj/project.pbxproj\")",
       "Bash(gcloud functions:*)",
       "Bash(GOOGLE_APPLICATION_CREDENTIALS=\"\" node -e \":*)",
-      "Bash(GOOGLE_APPLICATION_CREDENTIALS=\"$HOME/.config/firebase/jonathan3240601_gmail_com_application_default_credentials.json\" node -e \":*)"
+      "Bash(GOOGLE_APPLICATION_CREDENTIALS=\"$HOME/.config/firebase/jonathan3240601_gmail_com_application_default_credentials.json\" node -e \":*)",
+      "Skill(release)",
+      "Skill(release:*)",
+      "Bash(sqlite3 \"/Users/jonathanyu/Library/Developer/CoreSimulator/Devices/689963E3-F899-437E-8524-B933939E9BE1/data/Containers/Data/Application/8CA3AE8F-1693-4A70-A05C-0A40DBAEB220/Library/Application Support/default.store\" \"SELECT name FROM sqlite_master WHERE type='table';\")",
+      "Bash(sqlite3 \"/Users/jonathanyu/Library/Developer/CoreSimulator/Devices/689963E3-F899-437E-8524-B933939E9BE1/data/Containers/Data/Application/8CA3AE8F-1693-4A70-A05C-0A40DBAEB220/Library/Application Support/default.store\" \"SELECT COUNT\\(*\\) FROM ZPACKAGE;\")",
+      "Bash(sqlite3 '/Users/jonathanyu/Library/Developer/CoreSimulator/Devices/689963E3-F899-437E-8524-B933939E9BE1/data/Containers/Data/Application/8CA3AE8F-1693-4A70-A05C-0A40DBAEB220/Library/Application Support/default.store' 'SELECT name FROM sqlite_master WHERE type='\\\\''table'\\\\'';')",
+      "Bash(sqlite3 '/Users/jonathanyu/Library/Developer/CoreSimulator/Devices/689963E3-F899-437E-8524-B933939E9BE1/data/Containers/Data/Application/8CA3AE8F-1693-4A70-A05C-0A40DBAEB220/Library/Application Support/default.store' 'SELECT COUNT\\(*\\) FROM ZPACKAGE;')",
+      "Bash(sqlite3 '/Users/jonathanyu/Library/Developer/CoreSimulator/Devices/689963E3-F899-437E-8524-B933939E9BE1/data/Containers/Data/Application/8CA3AE8F-1693-4A70-A05C-0A40DBAEB220/Library/Application Support/default.store' 'SELECT COUNT\\(*\\) FROM ZSAVEDPICKUPLOCATION;')",
+      "Bash(sed -i '' 's/MARKETING_VERSION = [^;]*/MARKETING_VERSION = 1.5.0/g' PackageTraker.xcodeproj/project.pbxproj)",
+      "Bash(sed -i '' 's/CURRENT_PROJECT_VERSION = [^;]*/CURRENT_PROJECT_VERSION = 260411/g' PackageTraker.xcodeproj/project.pbxproj)"
     ],
     "additionalDirectories": [
-      "/Users/jonathanyu/Library/Developer/Xcode/DerivedData/PackageTraker-fkrwlhiqmnwpitbxaytwxrenrxxt"
+      "/Users/jonathanyu/Library/Developer/Xcode/DerivedData/PackageTraker-fkrwlhiqmnwpitbxaytwxrenrxxt",
+      "/Users/jonathanyu/.claude/commands",
+      "/Users/jonathanyu/Library/Developer/CoreSimulator/Devices/689963E3-F899-437E-8524-B933939E9BE1/data/Containers/Data/Application/8CA3AE8F-1693-4A70-A05C-0A40DBAEB220/Library/Application Support"
     ]
   }
 }

@@ -86,10 +86,23 @@ struct StatSettingsView: View {
                 selectedStat2: selectedStat2,
                 isPro: isPro,
                 onSelect: { statType in
-                    if slot == 1 {
-                        selectedStat1RawValue = statType.rawValue
+                    let otherStat = slot == 1 ? selectedStat2 : selectedStat1
+                    if statType == otherStat {
+                        // 交換：把目前的放到另一個 slot
+                        let currentStat = slot == 1 ? selectedStat1 : selectedStat2
+                        if slot == 1 {
+                            selectedStat1RawValue = statType.rawValue
+                            selectedStat2RawValue = currentStat.rawValue
+                        } else {
+                            selectedStat2RawValue = statType.rawValue
+                            selectedStat1RawValue = currentStat.rawValue
+                        }
                     } else {
-                        selectedStat2RawValue = statType.rawValue
+                        if slot == 1 {
+                            selectedStat1RawValue = statType.rawValue
+                        } else {
+                            selectedStat2RawValue = statType.rawValue
+                        }
                     }
                     syncToFirebase()
                     editingSlot = nil
@@ -367,10 +380,9 @@ struct StatPickerSheet: View {
     private func optionRow(statType: StatType) -> some View {
         let isSelected = statType == currentSelection
         let isOtherSlot = statType == otherSelection
-        let isLocked = !isPro && !isSelected
+        let isLocked = !isPro && !isSelected && !isOtherSlot
 
         return Button {
-            if isOtherSlot { return }
             if isLocked {
                 onShowPaywall()
             } else {
@@ -397,12 +409,12 @@ struct StatPickerSheet: View {
                 // 名稱
                 Text(statType.localizedLabel)
                     .font(.body)
-                    .foregroundStyle(isLocked || isOtherSlot ? Color.secondary : Color.white)
+                    .foregroundStyle(isLocked ? Color.secondary : Color.white)
 
                 Spacer()
 
                 if isOtherSlot {
-                    Text(String(localized: "stats.settings.inUse"))
+                    Image(systemName: "arrow.triangle.2.circlepath")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 } else if isLocked {
@@ -424,7 +436,6 @@ struct StatPickerSheet: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .disabled(isOtherSlot)
     }
 }
 

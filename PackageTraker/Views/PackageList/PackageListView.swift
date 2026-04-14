@@ -6,6 +6,8 @@ import WidgetKit
 struct PackageListView: View {
     @Binding var pendingPackageId: UUID?
     @Binding var showAddPackage: Bool
+    @Binding var prefillCarrier: String?
+    @Binding var prefillTrackingNumber: String?
 
     @Environment(\.modelContext) private var modelContext
     @Environment(PackageRefreshService.self) private var refreshService
@@ -47,6 +49,9 @@ struct PackageListView: View {
     @State private var packageToDelete: Package?
     @State private var showDeleteConfirmation = false
 
+    // 統計編輯
+    @State private var editingStatSlot: Int?
+
     // Hero 動畫用的 Namespace
     @Namespace private var heroNamespace
 
@@ -78,7 +83,7 @@ struct PackageListView: View {
         NavigationStack {
             Group {
                 if filteredPackages.isEmpty {
-                    EmptyPackageListView()
+                    emptyStateContent
                 } else {
                     packageListContent
                 }
@@ -91,67 +96,6 @@ struct PackageListView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     addButton
                 }
-            }
-            .sheet(isPresented: $showAddMethodSheet, onDismiss: {
-                switch pendingAddAction {
-                case .manualAdd:
-                    showManualAdd = true
-                case .aiScan:
-                    showAICarrierSelect = true
-                case .paywall(let lifetimeOnly):
-                    paywallLifetimeOnly = lifetimeOnly
-                    paywallFromAddFlow = true
-                    paywallTrigger = lifetimeOnly ? .ai : .packages
-                    showPaywall = true
-                case .aiTrialUpsell:
-                    showAITrialUpsell = true
-                case .none:
-                    break
-                }
-                pendingAddAction = .none
-                Task { await refreshPendingPackages() }
-            }) {
-                AddMethodSheet(
-                    onManualAdd: {
-                        pendingAddAction = .manualAdd
-                        showAddMethodSheet = false
-                    },
-                    onAIScan: {
-                        pendingAddAction = .aiScan
-                        showAddMethodSheet = false
-                    },
-                    onShowPaywall: { lifetimeOnly in
-                        pendingAddAction = .paywall(lifetimeOnly: lifetimeOnly)
-                        showAddMethodSheet = false
-                    },
-                    onShowAITrialUpsell: {
-                        pendingAddAction = .aiTrialUpsell
-                        showAddMethodSheet = false
-                    }
-                )
-            }
-            .sheet(isPresented: $showManualAdd, onDismiss: {
-                Task { await refreshPendingPackages() }
-            }) {
-                AddPackageView()
-            }
-            .sheet(isPresented: $showAICarrierSelect, onDismiss: {
-                Task { await refreshPendingPackages() }
-            }) {
-                AICarrierSelectView()
-            }
-            .fullScreenCover(isPresented: $showPaywall, onDismiss: {
-                if paywallFromAddFlow {
-                    showAddMethodSheet = true
-                    paywallFromAddFlow = false
-                }
-            }) {
-                PaywallView(lifetimeOnly: paywallLifetimeOnly, trigger: paywallTrigger)
-            }
-            .sheet(isPresented: $showAITrialUpsell, onDismiss: {
-                showAddMethodSheet = true
-            }) {
-                AITrialUpsellView()
             }
             .sheet(item: $packageToEdit) { package in
                 EditPackageSheet(package: package)
@@ -198,7 +142,12 @@ struct PackageListView: View {
             }
             .onChange(of: showAddPackage) { _, newValue in
                 if newValue {
-                    showAddMethodSheet = true
+                    // 有預填資料 → 直接進入手動新增（跳過方法選擇）
+                    if prefillCarrier != nil || prefillTrackingNumber != nil {
+                        showManualAdd = true
+                    } else {
+                        showAddMethodSheet = true
+                    }
                     showAddPackage = false
                 }
             }
@@ -217,6 +166,115 @@ struct PackageListView: View {
         }
         .toolbar(selectedPackage == nil ? .visible : .hidden, for: .tabBar)
         .preferredColorScheme(.dark)
+        // 新增流程的 sheet 放在 NavigationStack 外層，避免 @Query 變更導致 sheet 內容重建
+        .sheet(isPresented: $showAddMethodSheet, onDismiss: {
+            switch pendingAddAction {
+            case .manualAdd:
+                showManualAdd = true
+            case .aiScan:
+                showAICarrierSelect = true
+            case .paywall(let lifetimeOnly):
+                paywallLifetimeOnly = lifetimeOnly
+                paywallFromAddFlow = true
+                paywallTrigger = lifetimeOnly ? .ai : .packages
+                showPaywall = true
+            case .aiTrialUpsell:
+                showAITrialUpsell = true
+            case .none:
+                break
+            }
+            pendingAddAction = .none
+            Task { await refreshPendingPackages() }
+        }) {
+            AddMethodSheet(
+                onManualAdd: {
+                    pendingAddAction = .manualAdd
+                    showAddMethodSheet = false
+                },
+                onAIScan: {
+                    pendingAddAction = .aiScan
+                    showAddMethodSheet = false
+                },
+                onShowPaywall: { lifetimeOnly in
+                    pendingAddAction = .paywall(lifetimeOnly: lifetimeOnly)
+                    showAddMethodSheet = false
+                },
+                onShowAITrialUpsell: {
+                    pendingAddAction = .aiTrialUpsell
+                    showAddMethodSheet = false
+                }
+            )
+        }
+        .sheet(isPresented: $showManualAdd, onDismiss: {
+            // 清除預填資料
+            prefillCarrier = nil
+            prefillTrackingNumber = nil
+            Task { await refreshPendingPackages() }
+        }) {
+            AddPackageView(
+                prefillCarrier: Carrier.allCases.first(where: { $0.rawValue == prefillCarrier }),
+                prefillTrackingNumber: prefillTrackingNumber
+            )
+        }
+        .sheet(isPresented: $showAICarrierSelect, onDismiss: {
+            Task { await refreshPendingPackages() }
+        }) {
+            AICarrierSelectView()
+        }
+        .fullScreenCover(isPresented: $showPaywall, onDismiss: {
+            if paywallFromAddFlow {
+                showAddMethodSheet = true
+                paywallFromAddFlow = false
+            }
+        }) {
+            PaywallView(lifetimeOnly: paywallLifetimeOnly, trigger: paywallTrigger)
+        }
+        .sheet(isPresented: $showAITrialUpsell, onDismiss: {
+            showAddMethodSheet = true
+        }) {
+            AITrialUpsellView()
+        }
+        .sheet(item: $editingStatSlot) { slot in
+            StatPickerSheet(
+                slot: slot,
+                selectedStat1: selectedStat1,
+                selectedStat2: selectedStat2,
+                isPro: !FeatureFlags.subscriptionEnabled || SubscriptionManager.shared.isPro,
+                onSelect: { statType in
+                    let otherStat = slot == 1 ? selectedStat2 : selectedStat1
+                    if statType == otherStat {
+                        let currentStat = slot == 1 ? selectedStat1 : selectedStat2
+                        if slot == 1 {
+                            selectedStat1RawValue = statType.rawValue
+                            selectedStat2RawValue = currentStat.rawValue
+                        } else {
+                            selectedStat2RawValue = statType.rawValue
+                            selectedStat1RawValue = currentStat.rawValue
+                        }
+                    } else {
+                        if slot == 1 {
+                            selectedStat1RawValue = statType.rawValue
+                        } else {
+                            selectedStat2RawValue = statType.rawValue
+                        }
+                    }
+                    FirebaseSyncService.shared.syncUserPreferences(
+                        selectedStat1: selectedStat1RawValue,
+                        selectedStat2: selectedStat2RawValue
+                    )
+                    editingStatSlot = nil
+                },
+                onShowPaywall: {
+                    editingStatSlot = nil
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        paywallTrigger = .homeStats
+                        showPaywall = true
+                    }
+                }
+            )
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
+        }
     }
 
     private func deletePackage(_ package: Package) {
@@ -259,12 +317,32 @@ struct PackageListView: View {
 
     // MARK: - Views
 
+    private var emptyStateContent: some View {
+        VStack(spacing: 0) {
+            // 統計摘要（固定在頂部）
+            StatsSummaryView(
+                stat1: (selectedStat1, computeStatValue(selectedStat1)),
+                stat2: (selectedStat2, computeStatValue(selectedStat2)),
+                onStat1Tap: statTapAction(for: selectedStat1),
+                onStat2Tap: statTapAction(for: selectedStat2),
+                onStat1Edit: { editingStatSlot = 1 },
+                onStat2Edit: { editingStatSlot = 2 }
+            )
+            .padding(.horizontal)
+            .padding(.top, 8)
+
+            // 空狀態居中在剩餘空間
+            EmptyPackageListView()
+                .frame(maxHeight: .infinity)
+        }
+    }
+
     private var packageListContent: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 // 包裹額度預警 Banner
                 if !SubscriptionManager.shared.isPro && !quotaBannerDismissed {
-                    let activeCount = filteredPackages.count
+                    let activeCount = packages.filter { !$0.isArchived && $0.status != .delivered }.count
                     let maxCount = SubscriptionManager.shared.maxPackageCount
                     if activeCount >= maxCount {
                         ProNudgeBanner(
@@ -306,7 +384,9 @@ struct PackageListView: View {
                     stat1: (selectedStat1, computeStatValue(selectedStat1)),
                     stat2: (selectedStat2, computeStatValue(selectedStat2)),
                     onStat1Tap: statTapAction(for: selectedStat1),
-                    onStat2Tap: statTapAction(for: selectedStat2)
+                    onStat2Tap: statTapAction(for: selectedStat2),
+                    onStat1Edit: { editingStatSlot = 1 },
+                    onStat2Edit: { editingStatSlot = 2 }
                 )
                 .padding(.horizontal)
 
@@ -869,7 +949,7 @@ private struct ProFeatureCardBackgroundModifier: ViewModifier {
 // MARK: - Previews
 
 #Preview {
-    PackageListView(pendingPackageId: .constant(nil), showAddPackage: .constant(false))
+    PackageListView(pendingPackageId: .constant(nil), showAddPackage: .constant(false), prefillCarrier: .constant(nil), prefillTrackingNumber: .constant(nil))
         .modelContainer(for: [Package.self, TrackingEvent.self, LinkedEmailAccount.self], inMemory: true)
         .environment(PackageRefreshService())
 }

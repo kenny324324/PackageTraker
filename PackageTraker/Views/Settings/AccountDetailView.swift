@@ -368,9 +368,6 @@ struct AccountDetailView: View {
     }
 
     private func signOut() {
-        // 先關閉 sheet
-        dismiss()
-
         // 清除快取的顯示名稱
         cachedDisplayName = ""
 
@@ -384,6 +381,9 @@ struct AccountDetailView: View {
         } catch {
             print("Sign out failed: \(error)")
         }
+
+        // 最後再關閉 sheet（確保 onChange 先觸發）
+        dismiss()
     }
 }
 

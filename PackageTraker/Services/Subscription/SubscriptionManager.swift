@@ -10,6 +10,7 @@ import Combine
 import StoreKit
 import FirebaseAuth
 import FirebaseFirestore
+import FirebaseMessaging
 
 /// Type alias to disambiguate StoreKit.Transaction from Firestore.Transaction
 private typealias StoreTransaction = StoreKit.Transaction
@@ -41,14 +42,19 @@ class SubscriptionManager: ObservableObject {
 
     // MARK: - Computed
 
-    var isPro: Bool { currentTier == .pro }
+    var isPro: Bool { currentTier == .pro || ReferralService.shared.isOnReferralTrial }
     var isLifetime: Bool { SubscriptionProductID.allLifetimeIDs.contains(currentProductID ?? "") }
+    var isReferralTrial: Bool { currentTier == .free && ReferralService.shared.isOnReferralTrial }
     var maxPackageCount: Int { isPro ? .max : 5 }
     var hasAIAccess: Bool { isPro }
     var hasAllThemes: Bool { isPro }
 
     /// 訂閱名稱（顯示用）
     var subscriptionName: String {
+        if isReferralTrial {
+            return String(localized: "settings.subscription.referralTrial")
+        }
+
         if !isPro {
             return String(localized: "settings.subscription.free")
         }
@@ -113,6 +119,9 @@ class SubscriptionManager: ObservableObject {
 
         // 確保 App Group 也有正確的訂閱狀態（Widget 需要讀取）
         WidgetDataService.shared.updateSubscriptionTier(currentTier)
+
+        // 同步 FCM Topic（確保推播分群正確）
+        updateFCMTopics(tier: currentTier, productID: currentProductID)
 
         // 啟動交易監聽
         transactionListener = listenForTransactions()
@@ -295,6 +304,33 @@ class SubscriptionManager: ObservableObject {
         persistTier(tier)
         persistProductID(productID)
         syncToFirestore(tier)
+        updateFCMTopics(tier: tier, productID: productID)
+    }
+
+    // MARK: - FCM Topic 訂閱管理
+
+    /// 根據訂閱狀態切換 FCM Topic，用於 Firebase Console 手動推播分群
+    private func updateFCMTopics(tier: SubscriptionTier, productID: String?) {
+        let messaging = Messaging.messaging()
+
+        if tier == .free {
+            // 免費用戶
+            messaging.subscribe(toTopic: "free_users")
+            messaging.unsubscribe(fromTopic: "subscription_users")
+            messaging.unsubscribe(fromTopic: "lifetime_users")
+        } else if productID == "com.kenny.PackageTraker.pro.lifetime" {
+            // 終身方案
+            messaging.subscribe(toTopic: "lifetime_users")
+            messaging.unsubscribe(fromTopic: "free_users")
+            messaging.unsubscribe(fromTopic: "subscription_users")
+        } else {
+            // 月/年訂閱
+            messaging.subscribe(toTopic: "subscription_users")
+            messaging.unsubscribe(fromTopic: "free_users")
+            messaging.unsubscribe(fromTopic: "lifetime_users")
+        }
+
+        print("[Subscription] Updated FCM topics for tier: \(tier.rawValue), productID: \(productID ?? "nil")")
     }
 
     /// 本地快取

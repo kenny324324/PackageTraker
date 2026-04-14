@@ -1,8 +1,10 @@
 /**
  * scheduler.ts
  *
- * 每 15 分鐘定時輪詢所有用戶的活躍包裹，
+ * 每 30 分鐘定時輪詢所有活躍包裹，
  * 透過 Track.TW API 檢查狀態變化並更新 Firestore。
+ *
+ * 使用 collectionGroup 直接查詢活躍包裹，避免逐用戶掃描。
  *
  * 當 Firestore 中的 status 欄位被更新時，
  * triggers.ts 的 onPackageStatusChange 會自動偵測並發送推播。
@@ -26,11 +28,11 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const packageTrackingScheduler = onSchedule(
   {
-    schedule: "*/15 * * * *",
+    schedule: "*/30 * * * *",
     timeZone: "Asia/Taipei",
     region: "asia-east1",
     timeoutSeconds: 540,
-    memory: "512MiB",
+    memory: "256MiB",
     secrets: [trackwToken],
   },
   async () => {
@@ -45,139 +47,131 @@ export const packageTrackingScheduler = onSchedule(
     const db = getFirestore();
     const api = new TrackTwAPI(token);
 
-    // 1. 取得所有用戶
-    const usersSnapshot = await db.collection("users").get();
-    logger.info(`[Scheduler] Found ${usersSnapshot.size} users`);
+    // 使用 collectionGroup 直接查詢所有未封存、未刪除的包裹
+    const packagesSnapshot = await db.collectionGroup("packages")
+      .where("isArchived", "==", false)
+      .get();
+
+    // code-side 過濾：排除已刪除、已完成、無 relationId 的包裹
+    const activePackages = packagesSnapshot.docs.filter((doc) => {
+      const data = doc.data();
+      if (data.isDeleted === true) return false;
+      if (isCompletedStatus(data.status)) return false;
+      if (!data.trackTwRelationId) return false;
+      return true;
+    });
+
+    logger.info(
+      `[Scheduler] Found ${activePackages.length} active packages ` +
+      `(from ${packagesSnapshot.size} total non-archived)`
+    );
 
     let totalProcessed = 0;
     let totalUpdated = 0;
     let totalSkipped = 0;
     let totalErrors = 0;
 
-    // 2. 逐用戶處理
-    for (const userDoc of usersSnapshot.docs) {
-      const userId = userDoc.id;
+    // 逐包裹追蹤
+    for (const packageDoc of activePackages) {
+      const pkg = packageDoc.data();
+      const relationId = pkg.trackTwRelationId as string;
+      // 從 doc path 取得 userId: users/{userId}/packages/{packageId}
+      const userId = packageDoc.ref.parent.parent?.id ?? "unknown";
 
-      // 取得該用戶未封存的包裹
-      const packagesSnapshot = await db
-        .collection(`users/${userId}/packages`)
-        .where("isArchived", "==", false)
-        .get();
+      try {
+        const tracking = await api.getTracking(relationId);
 
-      // 程式碼過濾：排除已刪除、已完成、無 relationId 的包裹
-      const activePackages = packagesSnapshot.docs.filter((doc) => {
-        const data = doc.data();
-        if (data.isDeleted === true) return false;
-        if (isCompletedStatus(data.status)) return false;
-        if (!data.trackTwRelationId) return false;
-        return true;
-      });
-
-      if (activePackages.length === 0) continue;
-
-      logger.info(
-        `[Scheduler] User ${userId}: ${activePackages.length} active packages`
-      );
-
-      // 3. 逐包裹追蹤
-      for (const packageDoc of activePackages) {
-        const pkg = packageDoc.data();
-        const relationId = pkg.trackTwRelationId as string;
-
-        try {
-          const tracking = await api.getTracking(relationId);
-
-          if (
-            !tracking.package_history ||
-            tracking.package_history.length === 0
-          ) {
-            totalSkipped++;
-            continue;
-          }
-
-          // 取得最新狀態
-          const latestCheckpoint = tracking.package_history[0];
-          const newStatus = fromTrackTw(
-            latestCheckpoint.checkpoint_status,
-            latestCheckpoint.status
-          );
-          const oldStatus = pkg.status as string;
-
-          totalProcessed++;
-
-          // 4. 狀態有變化時更新 Firestore（含 events subcollection）
-          if (newStatus !== oldStatus) {
-            logger.info(
-              `[Scheduler] ${pkg.trackingNumber}: ${oldStatus} -> ${newStatus}`
-            );
-
-            const updateData: Record<string, unknown> = {
-              status: newStatus,
-              latestDescription: latestCheckpoint.status,
-              lastUpdated: FieldValue.serverTimestamp(),
-            };
-
-            // 從最新 checkpoint 提取門市名稱
-            const storeName = extractStoreName(latestCheckpoint.status);
-            if (storeName) {
-              updateData.storeName = storeName;
-            }
-
-            // 用 batch 同時更新 package + events（單次原子寫入）
-            const batch = db.batch();
-            batch.update(packageDoc.ref, updateData);
-
-            // 寫入 events subcollection（確定性 ID 避免重複）
-            for (const entry of tracking.package_history) {
-              const eventStatus = fromTrackTw(
-                entry.checkpoint_status,
-                entry.status
-              );
-              const timestamp = new Date(entry.time * 1000);
-              const eventId = deterministicEventId(
-                pkg.trackingNumber as string,
-                timestamp,
-                entry.status
-              );
-              const eventRef = packageDoc.ref
-                .collection("events")
-                .doc(eventId);
-              batch.set(eventRef, {
-                timestamp: timestamp,
-                status: eventStatus,
-                description: entry.status,
-              });
-            }
-
-            await batch.commit();
-            totalUpdated++;
-          }
-        } catch (error: unknown) {
-          const axiosError = error as {response?: {status?: number}};
-          const statusCode = axiosError.response?.status;
-
-          if (statusCode === 404) {
-            logger.warn(
-              `[Scheduler] Package not found: ${pkg.trackingNumber}`
-            );
-          } else if (statusCode === 429) {
-            logger.warn("[Scheduler] Rate limited, stopping this cycle");
-            return; // 遇到 rate limit 直接結束本次輪詢
-          } else if (statusCode === 401) {
-            logger.error("[Scheduler] Unauthorized - token may be expired");
-            return; // Token 無效，結束輪詢
-          } else {
-            logger.error(
-              `[Scheduler] Failed to track ${pkg.trackingNumber}:`,
-              error
-            );
-          }
-          totalErrors++;
+        if (
+          !tracking.package_history ||
+          tracking.package_history.length === 0
+        ) {
+          totalSkipped++;
+          continue;
         }
 
-        // 避免 API rate limit
-        await delay(API_DELAY_MS);
+        // 取得最新狀態
+        const latestCheckpoint = tracking.package_history[0];
+        const newStatus = fromTrackTw(
+          latestCheckpoint.checkpoint_status,
+          latestCheckpoint.status
+        );
+        const oldStatus = pkg.status as string;
+
+        totalProcessed++;
+
+        // 狀態有變化時更新 Firestore（含 events subcollection）
+        if (newStatus !== oldStatus) {
+          logger.info(
+            `[Scheduler] ${pkg.trackingNumber} (user: ${userId}): ` +
+            `${oldStatus} -> ${newStatus}`
+          );
+
+          const updateData: Record<string, unknown> = {
+            status: newStatus,
+            latestDescription: latestCheckpoint.status,
+            lastUpdated: FieldValue.serverTimestamp(),
+          };
+
+          // 從最新 checkpoint 提取門市名稱
+          const storeName = extractStoreName(latestCheckpoint.status);
+          if (storeName) {
+            updateData.storeName = storeName;
+          }
+
+          // 用 batch 同時更新 package + events（單次原子寫入）
+          const batch = db.batch();
+          batch.update(packageDoc.ref, updateData);
+
+          // 寫入 events subcollection（確定性 ID 避免重複）
+          for (const entry of tracking.package_history) {
+            const eventStatus = fromTrackTw(
+              entry.checkpoint_status,
+              entry.status
+            );
+            const timestamp = new Date(entry.time * 1000);
+            const eventId = deterministicEventId(
+              pkg.trackingNumber as string,
+              timestamp,
+              entry.status
+            );
+            const eventRef = packageDoc.ref
+              .collection("events")
+              .doc(eventId);
+            batch.set(eventRef, {
+              timestamp: timestamp,
+              status: eventStatus,
+              description: entry.status,
+            });
+          }
+
+          await batch.commit();
+          totalUpdated++;
+        }
+      } catch (error: unknown) {
+        const axiosError = error as {response?: {status?: number}};
+        const statusCode = axiosError.response?.status;
+
+        if (statusCode === 404) {
+          logger.warn(
+            `[Scheduler] Package not found: ${pkg.trackingNumber}`
+          );
+        } else if (statusCode === 429) {
+          logger.warn("[Scheduler] Rate limited, stopping this cycle");
+          return; // 遇到 rate limit 直接結束本次輪詢
+        } else if (statusCode === 401) {
+          logger.error("[Scheduler] Unauthorized - token may be expired");
+          return; // Token 無效，結束輪詢
+        } else {
+          logger.error(
+            `[Scheduler] Failed to track ${pkg.trackingNumber}:`,
+            error
+          );
+        }
+        totalErrors++;
       }
+
+      // 避免 API rate limit
+      await delay(API_DELAY_MS);
     }
 
     logger.info(

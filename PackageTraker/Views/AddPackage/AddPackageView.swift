@@ -123,8 +123,13 @@ private final class OCRPickerDelegate: NSObject, PHPickerViewControllerDelegate 
 
 /// 新增包裹 — 第一步：輸入單號 + 選擇物流商
 struct AddPackageView: View {
+    /// 從分享連結帶入的預填物流商
+    var prefillCarrier: Carrier? = nil
+    /// 從分享連結帶入的預填單號
+    var prefillTrackingNumber: String? = nil
+
     @Environment(\.dismiss) private var dismiss
-    @Query private var existingPackages: [Package]
+    @Environment(\.modelContext) private var modelContext
 
     @State private var vm = AddPackageViewModel()
 
@@ -157,15 +162,18 @@ struct AddPackageView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(String(localized: "add.continue")) {
-                        // 檢查包裹數量限制
-                        let activeCount = existingPackages.filter { !$0.isArchived }.count
+                        // 按需查詢（避免 @Query 導致 sheet 內容隨資料變更重建）
+                        let allPackages = (try? modelContext.fetch(FetchDescriptor<Package>())) ?? []
+
+                        // 檢查包裹數量限制（只計算未取貨的包裹）
+                        let activeCount = allPackages.filter { !$0.isArchived && $0.status != .delivered }.count
                         if FeatureFlags.subscriptionEnabled && activeCount >= SubscriptionManager.shared.maxPackageCount {
                             showPaywall = true
                             return
                         }
 
                         let normalized = vm.trackingNumber.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
-                        if existingPackages.contains(where: { $0.trackingNumber == normalized }) {
+                        if allPackages.contains(where: { $0.trackingNumber == normalized }) {
                             showDuplicateAlert = true
                         } else {
                             vm.showQueryPage = true
@@ -210,6 +218,15 @@ struct AddPackageView: View {
                 }
             }
         }
+        .onAppear {
+            if let carrier = prefillCarrier {
+                vm.selectedCarrier = carrier
+                vm.selectedCategory = carrier.category
+            }
+            if let number = prefillTrackingNumber, !number.isEmpty {
+                vm.trackingNumber = number
+            }
+        }
         .interactiveDismissDisabled()
         .preferredColorScheme(.dark)
     }
@@ -219,7 +236,7 @@ struct AddPackageView: View {
     private var trackingNumberSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text(String(localized: "add.trackingNumber"))
+                Text(Strilocationng(localized: "add.trackingNumber"))
                     .font(.headline)
 
                 Spacer()

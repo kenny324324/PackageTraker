@@ -1,6 +1,8 @@
 #if DEBUG
 import SwiftUI
 import SwiftData
+import FirebaseAuth
+import FirebaseFirestore
 
 /// 開發者選項（僅 DEBUG 模式）
 struct DeveloperOptionsView: View {
@@ -384,6 +386,51 @@ struct DeveloperOptionsView: View {
                 Text("預覽 AI 掃描光球動畫效果，可切換不同階段。不消耗 API 額度。")
             }
 
+            // MARK: - 邀請碼
+            Section {
+                HStack {
+                    Text("邀請碼")
+                    Spacer()
+                    Text(ReferralService.shared.referralCode ?? "無")
+                        .foregroundStyle(.secondary)
+                }
+                HStack {
+                    Text("已邀請（輸入）")
+                    Spacer()
+                    Text("\(ReferralService.shared.referralCount) 人")
+                        .foregroundStyle(.secondary)
+                }
+                HStack {
+                    Text("已邀請（成功）")
+                    Spacer()
+                    Text("\(ReferralService.shared.referralSuccessCount) 人")
+                        .foregroundStyle(.secondary)
+                }
+                HStack {
+                    Text("referredBy")
+                    Spacer()
+                    Text(ReferralService.shared.hasBeenReferred ? "有" : "無")
+                        .foregroundStyle(.secondary)
+                }
+                HStack {
+                    Text("pendingReferredBy")
+                    Spacer()
+                    Text(ReferralService.shared.pendingReferredBy ?? "無")
+                        .foregroundStyle(.secondary)
+                }
+                Button(role: .destructive) {
+                    Task {
+                        await resetReferralData()
+                    }
+                } label: {
+                    Label("重置邀請碼狀態", systemImage: "arrow.counterclockwise")
+                }
+            } header: {
+                Text("邀請碼")
+            } footer: {
+                Text("重置會清除本地快取 + Firestore 的 referredBy / referralTrialEndDate（不刪邀請碼本身）")
+            }
+
             // MARK: - 系統資訊
             Section {
                 HStack {
@@ -451,6 +498,68 @@ struct DeveloperOptionsView: View {
                 WhatsNewSheet(data: data, markAsRead: false)
             }
         }
+    }
+
+    // MARK: - Referral Reset
+
+    private func resetReferralData() async {
+        guard let uid = Auth.auth().currentUser?.uid else { return }
+        let db = Firestore.firestore()
+
+        do {
+            let userDoc = try await db.collection("users").document(uid).getDocument()
+            let userData = userDoc.data() ?? [:]
+
+            // 1. 如果自己被推薦過，從推薦人的 referees 子集合中刪除自己
+            if let referredByUid = userData["referredBy"] as? String {
+                let referrerDoc = try await db.collection("users").document(referredByUid).getDocument()
+                if let referrerCode = referrerDoc.data()?["referralCode"] as? String {
+                    // 刪除 referees 記錄
+                    try? await db.collection("referralCodes").document(referrerCode)
+                        .collection("referees").document(uid).delete()
+                    // 推薦人 count -1
+                    let currentCount = referrerDoc.data()?["referralCount"] as? Int ?? 0
+                    let currentSuccess = referrerDoc.data()?["referralSuccessCount"] as? Int ?? 0
+                    try? await db.collection("users").document(referredByUid).updateData([
+                        "referralCount": max(0, currentCount - 1),
+                        "referralSuccessCount": max(0, currentSuccess - 1)
+                    ])
+                    print("[Debug] ✅ Removed self from referrer's referees list")
+                }
+            }
+
+            // 2. 如果自己有邀請碼，清除所有 referees 子集合
+            if let myCode = userData["referralCode"] as? String {
+                let refereesSnapshot = try await db.collection("referralCodes").document(myCode)
+                    .collection("referees").getDocuments()
+                for doc in refereesSnapshot.documents {
+                    try? await doc.reference.delete()
+                }
+                print("[Debug] ✅ Cleared \(refereesSnapshot.documents.count) referees records")
+            }
+
+            // 3. 清除自己的 user 文件欄位
+            try await db.collection("users").document(uid).updateData([
+                "referredBy": FieldValue.delete(),
+                "referralTrialEndDate": FieldValue.delete(),
+                "referralBonusDays": FieldValue.delete(),
+                "referralCount": 0,
+                "referralSuccessCount": 0
+            ])
+            print("[Debug] ✅ Firestore referral data reset")
+        } catch {
+            print("[Debug] ❌ Firestore reset failed: \(error)")
+        }
+
+        // 清除本地快取 + 重新載入
+        ReferralService.shared.clearCache()
+        await ReferralService.shared.loadReferralData()
+        await ReferralService.shared.ensureReferralCode()
+        // 重新載入（清空後的）referees 列表
+        if let code = ReferralService.shared.referralCode {
+            await ReferralService.shared.loadReferralRecords(code: code)
+        }
+        print("[Debug] ✅ Referral state reset complete")
     }
 
     // MARK: - Actions

@@ -653,3 +653,48 @@
 // MARK: - What's New
 "whatsNew.title" = "v%@ Update";
 "whatsNew.dismiss" = "Got it";
+
+// MARK: - Common (additional)
+"common.error" = "Error";
+"common.loading" = "Loading...";
+
+// MARK: - Referral
+"referral.inviteFriends" = "Invite Friends";
+"referral.description" = "Share your referral code — you both get 7 days of Pro for free!";
+"referral.shareInvite" = "Share Invite";
+"referral.copyCode" = "Copy Code";
+"referral.codeCopied" = "Copied!";
+"referral.share" = "Share";
+"referral.count" = "%lld friends invited";
+"referral.successCount" = "Successfully invited %lld friends";
+"referral.status.invited" = "Invited";
+"referral.status.completed" = "Success";
+"referral.list.title" = "Invited Friends";
+"referral.list.empty" = "No friends invited yet";
+"referral.list.anonymous" = "Anonymous User";
+"referral.list.hint" = "Referral completes when your friend adds a package\nBoth of you will get 7 days of Pro";
+"referral.trialBadge" = "Trial: %lld days left";
+"referral.applied" = "Referral code applied! Enjoy 7 days of Pro";
+"referral.codeBound" = "Referral code accepted! Add your first package to activate 7 days of Pro for both of you";
+"referral.enterCode" = "Have a friend's code?";
+"referral.enterCode.placeholder" = "Enter referral code";
+"referral.enterCode.message" = "Enter your friend's referral code";
+"referral.apply" = "Apply";
+"referral.success" = "Success";
+"referral.notice" = "Notice";
+"referral.alert.bound" = "Successfully Bound!";
+"referral.alert.notFound" = "Code Not Found";
+"referral.error.codeNotFound" = "Invalid referral code";
+"referral.error.selfReferral" = "You can't use your own referral code";
+"referral.error.alreadyReferred" = "You've already used a referral code";
+"referral.error.mutualReferral" = "You can't refer each other";
+"referral.error.notAuthenticated" = "Please sign in first";
+"referral.shareMessage.%@" = "I'm using Pickup to track packages — super handy! Use my referral code to join and we both get 7 days of Pro for free 🎁\n\nMy code: %@";
+"settings.subscription.referralTrial" = "Pro Trial";
+
+// MARK: - Share Tracking
+"share.trackingMessage.%@.%@" = "I'm tracking a package 📦\nCarrier: %1$@\nTracking #: %2$@\n\nTrack it with Pickup:";
+
+// MARK: - Paywall Trial Expired
+"paywall.trialExpired.title" = "Your Pro Trial Has Ended";
+"paywall.trialExpired.subtitle" = "Upgrade now to keep unlimited packages and all features";
