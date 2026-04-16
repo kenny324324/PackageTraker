@@ -21,3 +21,54 @@
 "widget.config.package1" = "包裹 1";
 "widget.config.package2" = "包裹 2";
 "widget.config.package3" = "包裹 3";
+
+/* Free Widget Config */
+"widget.config.statType" = "统计类型";
+"widget.config.freeTitle" = "自定统计";
+"widget.config.freeDescription" = "选择要显示的统计项目";
+"widget.config.topStat" = "上方统计";
+"widget.config.bottomStat" = "下方统计";
+"widget.config.stat.pendingPickup" = "待取件";
+"widget.config.stat.deliveredLast30Days" = "近30天已取";
+"widget.config.stat.thisMonthSpending" = "🔒 本月总花费";
+"widget.config.stat.pendingAmount" = "🔒 待取包裹金额";
+"widget.config.stat.last30DaysSpending" = "🔒 近30天总花费";
+"widget.config.stat.thisMonthDelivered" = "🔒 本月已取";
+"widget.config.stat.inTransit" = "🔒 运送中";
+"widget.config.stat.avgDeliveryDays" = "🔒 平均配送天数";
+"widget.config.stat.spendingDelta" = "🔒 较上月花费";
+"widget.config.stat.codPendingAmount" = "🔒 货到付款待付";
+"widget.stat.pendingPickup" = "待取件";
+"widget.stat.deliveredLast30Days" = "30天已取";
+"widget.stat.thisMonthSpending" = "本月花费";
+"widget.stat.pendingAmount" = "待取金额";
+"widget.stat.last30DaysSpending" = "30天花费";
+"widget.stat.thisMonthDelivered" = "本月已取";
+"widget.stat.inTransit" = "运送中";
+"widget.stat.avgDeliveryDays" = "平均配送";
+"widget.stat.spendingDelta" = "较上月";
+"widget.stat.codPendingAmount" = "货到付款";
+"widget.stat.unit.days" = "天";
+
+/* Lock Screen Widget */
+"widget.lockscreen.quickAdd.displayName" = "快速新增";
+"widget.lockscreen.quickAdd.description" = "点一下快速新增包裹";
+"widget.lockscreen.circular.displayName" = "待取件数量";
+"widget.lockscreen.circular.description" = "在锁定画面查看待取件数量";
+"widget.lockscreen.package.displayName" = "包裹追踪";
+"widget.lockscreen.package.description" = "在锁定画面显示选择的包裹状态";
+"widget.lockscreen.stats.displayName" = "包裹统计";
+"widget.lockscreen.stats.description" = "在锁定画面显示一项统计数据";
+"widget.lockscreen.config.packageTitle" = "选择包裹";
+"widget.lockscreen.config.packageDescription" = "选择要在锁定画面显示的包裹";
+"widget.lockscreen.config.package" = "包裹";
+"widget.lockscreen.config.statsTitle" = "选择统计";
+"widget.lockscreen.config.statsDescription" = "选择要在锁定画面显示的统计项目";
+"widget.lockscreen.config.stat" = "统计项目";
+/* Control Center */
+"control.addPackage" = "新增包裹";
+"control.addPackage.displayName" = "新增包裹";
+"control.addPackage.description" = "快速新增包裹追踪";
+
+"widget.lockscreen.noPackages" = "没有包裹";
+"widget.lockscreen.addHint" = "新增包裹即可显示";

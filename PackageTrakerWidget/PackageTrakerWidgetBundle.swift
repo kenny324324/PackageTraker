@@ -12,5 +12,10 @@ struct PackageTrakerWidgetBundle: WidgetBundle {
         PackagePickupWidget()
         QuickAddWidget()
         PackageTrakerWidget()
+        LockScreenQuickAddWidget()
+        LockScreenCircularWidget()
+        LockScreenPackageWidget()
+        LockScreenStatsWidget()
+        AddPackageControl()
     }
 }

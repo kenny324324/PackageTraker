@@ -236,7 +236,7 @@ struct AddPackageView: View {
     private var trackingNumberSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text(Strilocationng(localized: "add.trackingNumber"))
+                Text(String(localized: "add.trackingNumber"))
                     .font(.headline)
 
                 Spacer()

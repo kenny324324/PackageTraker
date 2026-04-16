@@ -15,7 +15,7 @@ struct QuickAddWidgetView: View {
                 // Top-left: app icon
                 VStack {
                     HStack {
-                        Image("SplashIcon")
+                        Image("SplashIconColor")
                             .resizable()
                             .widgetAccentedRenderingMode(.fullColor)
                             .scaledToFit()

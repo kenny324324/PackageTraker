@@ -22,10 +22,12 @@ struct WidgetPackageData: Codable {
     let latestDescription: String?
     let pickupLocation: String?
     let storeName: String?
+    let pickupCode: String?
+    let pickupDeadline: String?
     let updatedAt: Date
     let latestEventTimestamp: Date?
 
-    /// 自定義解碼：讓舊版 JSON（沒有 latestEventTimestamp）也能正常解碼
+    /// 自定義解碼：讓舊版 JSON（沒有新欄位）也能正常解碼
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         id = try c.decode(String.self, forKey: .id)
@@ -38,9 +40,26 @@ struct WidgetPackageData: Codable {
         latestDescription = try c.decodeIfPresent(String.self, forKey: .latestDescription)
         pickupLocation = try c.decodeIfPresent(String.self, forKey: .pickupLocation)
         storeName = try c.decodeIfPresent(String.self, forKey: .storeName)
+        pickupCode = try c.decodeIfPresent(String.self, forKey: .pickupCode)
+        pickupDeadline = try c.decodeIfPresent(String.self, forKey: .pickupDeadline)
         updatedAt = try c.decode(Date.self, forKey: .updatedAt)
         latestEventTimestamp = try c.decodeIfPresent(Date.self, forKey: .latestEventTimestamp)
     }
+}
+
+/// 預計算的 Widget 統計值（對應首頁 StatType 的 10 種統計）
+struct WidgetStatValues: Codable {
+    let pendingPickup: Int
+    let deliveredLast30Days: Int
+    let thisMonthSpending: Double
+    let pendingAmount: Double
+    let last30DaysSpending: Double
+    let thisMonthDelivered: Int
+    let inTransit: Int
+    let avgDeliveryDays: Double       // 負數表示無資料
+    let spendingDeltaCurrent: Double
+    let spendingDeltaPrevious: Double
+    let codPendingAmount: Double
 }
 
 /// 訂閱層級
@@ -62,6 +81,16 @@ enum WidgetDataService {
             return []
         }
         return packages
+    }
+
+    /// 讀取統計值
+    static func readWidgetStats() -> WidgetStatValues? {
+        guard let defaults = UserDefaults(suiteName: appGroupIdentifier),
+              let data = defaults.data(forKey: "widgetStats"),
+              let stats = try? JSONDecoder().decode(WidgetStatValues.self, from: data) else {
+            return nil
+        }
+        return stats
     }
 
     /// 讀取訂閱層級

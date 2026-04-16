@@ -21,3 +21,54 @@
 "widget.config.package1" = "Package 1";
 "widget.config.package2" = "Package 2";
 "widget.config.package3" = "Package 3";
+
+/* Free Widget Config */
+"widget.config.statType" = "Stat Type";
+"widget.config.freeTitle" = "Custom Stats";
+"widget.config.freeDescription" = "Choose which stats to display";
+"widget.config.topStat" = "Top Stat";
+"widget.config.bottomStat" = "Bottom Stat";
+"widget.config.stat.pendingPickup" = "Pending Pickup";
+"widget.config.stat.deliveredLast30Days" = "30-Day Delivered";
+"widget.config.stat.thisMonthSpending" = "🔒 Monthly Spending";
+"widget.config.stat.pendingAmount" = "🔒 Pending Amount";
+"widget.config.stat.last30DaysSpending" = "🔒 30-Day Spending";
+"widget.config.stat.thisMonthDelivered" = "🔒 Monthly Delivered";
+"widget.config.stat.inTransit" = "🔒 In Transit";
+"widget.config.stat.avgDeliveryDays" = "🔒 Avg. Delivery";
+"widget.config.stat.spendingDelta" = "🔒 Spending Delta";
+"widget.config.stat.codPendingAmount" = "🔒 COD Pending";
+"widget.stat.pendingPickup" = "Pickup";
+"widget.stat.deliveredLast30Days" = "30 Days";
+"widget.stat.thisMonthSpending" = "Spending";
+"widget.stat.pendingAmount" = "Pending $";
+"widget.stat.last30DaysSpending" = "30D Spent";
+"widget.stat.thisMonthDelivered" = "Delivered";
+"widget.stat.inTransit" = "In Transit";
+"widget.stat.avgDeliveryDays" = "Avg. Days";
+"widget.stat.spendingDelta" = "vs Last Mo.";
+"widget.stat.codPendingAmount" = "COD Due";
+"widget.stat.unit.days" = " days";
+
+/* Lock Screen Widget */
+"widget.lockscreen.quickAdd.displayName" = "Quick Add";
+"widget.lockscreen.quickAdd.description" = "Tap to quickly add a new package";
+"widget.lockscreen.circular.displayName" = "Pending Count";
+"widget.lockscreen.circular.description" = "View pending pickup count on lock screen";
+"widget.lockscreen.package.displayName" = "Package Tracking";
+"widget.lockscreen.package.description" = "Show a selected package on lock screen";
+"widget.lockscreen.stats.displayName" = "Package Stats";
+"widget.lockscreen.stats.description" = "Show a single stat on lock screen";
+"widget.lockscreen.config.packageTitle" = "Select Package";
+"widget.lockscreen.config.packageDescription" = "Choose a package to display on lock screen";
+"widget.lockscreen.config.package" = "Package";
+"widget.lockscreen.config.statsTitle" = "Select Stat";
+"widget.lockscreen.config.statsDescription" = "Choose a stat to display on lock screen";
+"widget.lockscreen.config.stat" = "Stat";
+/* Control Center */
+"control.addPackage" = "Add Package";
+"control.addPackage.displayName" = "Add Package";
+"control.addPackage.description" = "Quickly add a new package to track";
+
+"widget.lockscreen.noPackages" = "No Packages";
+"widget.lockscreen.addHint" = "Add a package to see it here";

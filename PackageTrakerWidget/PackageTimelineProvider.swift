@@ -18,6 +18,17 @@ struct PackageTimelineEntry: TimelineEntry {
     let recentDelivered: [WidgetPackageItem] // Free：30天內已取（delivered）
     let isPro: Bool
 
+    // 預計算統計值（從主 App 寫入）
+    let stats: WidgetStatValues?
+
+    // Free Widget 配置
+    let topStat: FreeWidgetStatType
+    let bottomStat: FreeWidgetStatType
+
+    // Lock Screen 配置
+    let selectedPackage: WidgetPackageItem?  // 使用者選擇的包裹
+    let selectedStat: FreeWidgetStatType     // 使用者選擇的統計
+
     /// 預覽用範例資料（PRO）
     static var preview: PackageTimelineEntry {
         PackageTimelineEntry(
@@ -33,6 +44,7 @@ struct PackageTimelineEntry: TimelineEntry {
                     statusColor: .green,
                     latestDescription: "已到達 全家 台北信義店",
                     pickupLocation: "全家 台北信義店",
+                    pickupCode: "2847",
                     updatedAt: Date()
                 ),
                 WidgetPackageItem(
@@ -45,6 +57,7 @@ struct PackageTimelineEntry: TimelineEntry {
                     statusColor: .blue,
                     latestDescription: "貨件已到達 台北轉運中心",
                     pickupLocation: nil,
+                    pickupCode: nil,
                     updatedAt: Date().addingTimeInterval(-3600)
                 ),
                 WidgetPackageItem(
@@ -57,12 +70,25 @@ struct PackageTimelineEntry: TimelineEntry {
                     statusColor: .orange,
                     latestDescription: "賣家已出貨",
                     pickupLocation: nil,
+                    pickupCode: nil,
                     updatedAt: Date().addingTimeInterval(-7200)
                 ),
             ],
             pendingPackages: [],
             recentDelivered: [],
-            isPro: true
+            isPro: true,
+            stats: WidgetStatValues(
+                pendingPickup: 2, deliveredLast30Days: 5,
+                thisMonthSpending: 3500, pendingAmount: 1200,
+                last30DaysSpending: 8000, thisMonthDelivered: 3,
+                inTransit: 2, avgDeliveryDays: 2.5,
+                spendingDeltaCurrent: 3500, spendingDeltaPrevious: 2800,
+                codPendingAmount: 500
+            ),
+            topStat: .pendingPickup,
+            bottomStat: .deliveredLast30Days,
+            selectedPackage: nil,
+            selectedStat: .pendingPickup
         )
     }
 
@@ -82,6 +108,7 @@ struct PackageTimelineEntry: TimelineEntry {
                     statusColor: .green,
                     latestDescription: nil,
                     pickupLocation: nil,
+                    pickupCode: "2847",
                     updatedAt: Date()
                 )
             ],
@@ -96,10 +123,23 @@ struct PackageTimelineEntry: TimelineEntry {
                     statusColor: .green,
                     latestDescription: nil,
                     pickupLocation: nil,
+                    pickupCode: nil,
                     updatedAt: Date().addingTimeInterval(-3600)
                 )
             ],
-            isPro: false
+            isPro: false,
+            stats: WidgetStatValues(
+                pendingPickup: 1, deliveredLast30Days: 1,
+                thisMonthSpending: 500, pendingAmount: 500,
+                last30DaysSpending: 1200, thisMonthDelivered: 1,
+                inTransit: 1, avgDeliveryDays: 2.0,
+                spendingDeltaCurrent: 500, spendingDeltaPrevious: 800,
+                codPendingAmount: 0
+            ),
+            topStat: .pendingPickup,
+            bottomStat: .deliveredLast30Days,
+            selectedPackage: nil,
+            selectedStat: .pendingPickup
         )
     }
 }
@@ -117,6 +157,7 @@ struct WidgetPackageItem: Identifiable {
     let statusColor: WidgetStatusColor
     let latestDescription: String?
     let pickupLocation: String?
+    let pickupCode: String?
     let updatedAt: Date
 
     /// 顯示名稱（優先使用自訂名稱）
@@ -141,6 +182,7 @@ struct WidgetPackageItem: Identifiable {
             statusColor: WidgetStatusColor.from(statusRawValue: data.statusRawValue),
             latestDescription: data.latestDescription,
             pickupLocation: data.pickupLocation ?? data.storeName,
+            pickupCode: data.pickupCode,
             updatedAt: data.updatedAt
         )
     }
@@ -231,13 +273,73 @@ struct PackageTimelineProvider: TimelineProvider {
             .map { WidgetPackageItem.from($0) }
 
         let proItems = isPro ? Array(rawData.prefix(5).map { WidgetPackageItem.from($0) }) : []
+        let stats = WidgetDataService.readWidgetStats()
 
         return PackageTimelineEntry(
             date: .now,
             packages: proItems,
             pendingPackages: pending,
             recentDelivered: delivered,
-            isPro: isPro
+            isPro: isPro,
+            stats: stats,
+            topStat: .pendingPickup,
+            bottomStat: .deliveredLast30Days,
+            selectedPackage: nil,
+            selectedStat: .pendingPickup
+        )
+    }
+}
+
+// MARK: - Free Widget Timeline Provider (AppIntent, configurable stats)
+
+struct FreeWidgetTimelineProvider: AppIntentTimelineProvider {
+    typealias Entry = PackageTimelineEntry
+    typealias Intent = FreeWidgetIntent
+
+    func placeholder(in context: Context) -> PackageTimelineEntry {
+        PackageTimelineEntry.freePreview
+    }
+
+    func snapshot(for configuration: FreeWidgetIntent, in context: Context) async -> PackageTimelineEntry {
+        createEntry(for: configuration)
+    }
+
+    func timeline(for configuration: FreeWidgetIntent, in context: Context) async -> Timeline<PackageTimelineEntry> {
+        let entry = createEntry(for: configuration)
+        let nextUpdate = Calendar.current.date(byAdding: .minute, value: 15, to: Date())!
+        return Timeline(entries: [entry], policy: .after(nextUpdate))
+    }
+
+    private func createEntry(for configuration: FreeWidgetIntent) -> PackageTimelineEntry {
+        let rawData = WidgetDataService.readWidgetData()
+        let isPro = WidgetDataService.readSubscriptionTier() == .pro
+        let stats = WidgetDataService.readWidgetStats()
+
+        let thirtyDaysAgo = Date().addingTimeInterval(-30 * 24 * 3600)
+        let recentData = rawData.filter { data in
+            if let eventTime = data.latestEventTimestamp {
+                return eventTime > thirtyDaysAgo
+            }
+            return data.updatedAt > thirtyDaysAgo
+        }
+        let pending = recentData
+            .filter { $0.statusRawValue == "arrivedAtStore" }
+            .map { WidgetPackageItem.from($0) }
+        let delivered = recentData
+            .filter { $0.statusRawValue == "delivered" }
+            .map { WidgetPackageItem.from($0) }
+
+        return PackageTimelineEntry(
+            date: .now,
+            packages: [],
+            pendingPackages: pending,
+            recentDelivered: delivered,
+            isPro: isPro,
+            stats: stats,
+            topStat: configuration.topStat,
+            bottomStat: configuration.bottomStat,
+            selectedPackage: nil,
+            selectedStat: .pendingPickup
         )
     }
 }
@@ -294,7 +396,101 @@ struct ProPackageTimelineProvider: AppIntentTimelineProvider {
             packages: proItems,
             pendingPackages: [],
             recentDelivered: [],
-            isPro: isPro
+            isPro: isPro,
+            stats: nil,
+            topStat: .pendingPickup,
+            bottomStat: .deliveredLast30Days,
+            selectedPackage: nil,
+            selectedStat: .pendingPickup
+        )
+    }
+}
+
+// MARK: - Lock Screen Package Timeline Provider
+
+struct LockScreenPackageTimelineProvider: AppIntentTimelineProvider {
+    typealias Entry = PackageTimelineEntry
+    typealias Intent = LockScreenPackageIntent
+
+    func placeholder(in context: Context) -> PackageTimelineEntry {
+        PackageTimelineEntry.freePreview
+    }
+
+    func snapshot(for configuration: LockScreenPackageIntent, in context: Context) async -> PackageTimelineEntry {
+        createEntry(for: configuration)
+    }
+
+    func timeline(for configuration: LockScreenPackageIntent, in context: Context) async -> Timeline<PackageTimelineEntry> {
+        let entry = createEntry(for: configuration)
+        let nextUpdate = Calendar.current.date(byAdding: .minute, value: 15, to: Date())!
+        return Timeline(entries: [entry], policy: .after(nextUpdate))
+    }
+
+    private func createEntry(for configuration: LockScreenPackageIntent) -> PackageTimelineEntry {
+        let rawData = WidgetDataService.readWidgetData()
+        let isPro = WidgetDataService.readSubscriptionTier() == .pro
+
+        // 使用者選擇的包裹，fallback 到待取件第一筆或最新包裹
+        let selected: WidgetPackageItem?
+        if let chosenId = configuration.package?.id,
+           let match = rawData.first(where: { $0.id == chosenId }) {
+            selected = WidgetPackageItem.from(match)
+        } else {
+            let pending = rawData.first(where: { $0.statusRawValue == "arrivedAtStore" })
+            let fallback = pending ?? rawData.first
+            selected = fallback.map { WidgetPackageItem.from($0) }
+        }
+
+        return PackageTimelineEntry(
+            date: .now,
+            packages: [],
+            pendingPackages: [],
+            recentDelivered: [],
+            isPro: isPro,
+            stats: nil,
+            topStat: .pendingPickup,
+            bottomStat: .deliveredLast30Days,
+            selectedPackage: selected,
+            selectedStat: .pendingPickup
+        )
+    }
+}
+
+// MARK: - Lock Screen Stats Timeline Provider
+
+struct LockScreenStatsTimelineProvider: AppIntentTimelineProvider {
+    typealias Entry = PackageTimelineEntry
+    typealias Intent = LockScreenStatsIntent
+
+    func placeholder(in context: Context) -> PackageTimelineEntry {
+        PackageTimelineEntry.freePreview
+    }
+
+    func snapshot(for configuration: LockScreenStatsIntent, in context: Context) async -> PackageTimelineEntry {
+        createEntry(for: configuration)
+    }
+
+    func timeline(for configuration: LockScreenStatsIntent, in context: Context) async -> Timeline<PackageTimelineEntry> {
+        let entry = createEntry(for: configuration)
+        let nextUpdate = Calendar.current.date(byAdding: .minute, value: 15, to: Date())!
+        return Timeline(entries: [entry], policy: .after(nextUpdate))
+    }
+
+    private func createEntry(for configuration: LockScreenStatsIntent) -> PackageTimelineEntry {
+        let isPro = WidgetDataService.readSubscriptionTier() == .pro
+        let stats = WidgetDataService.readWidgetStats()
+
+        return PackageTimelineEntry(
+            date: .now,
+            packages: [],
+            pendingPackages: [],
+            recentDelivered: [],
+            isPro: isPro,
+            stats: stats,
+            topStat: .pendingPickup,
+            bottomStat: .deliveredLast30Days,
+            selectedPackage: nil,
+            selectedStat: configuration.stat
         )
     }
 }

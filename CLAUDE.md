@@ -110,11 +110,31 @@ firebase deploy --only functions                 # Deploy to Firebase
 ### Widget Extension (`PackageTrakerWidget/`)
 
 - Separate target with its own `WidgetSharedModels.swift` (does NOT import main app)
-- Supports `.systemSmall`, `.systemMedium`, `.systemLarge` sizes
-- `PackageTimelineProvider` refreshes every 15 minutes
 - App Group: `group.com.kenny.PackageTraker` for data sharing
-- Deep link URL scheme: `packagetraker://package/{id}`
+- Deep link URL scheme: `packagetraker://package/{id}`, `packagetraker://addPackage`
 - Feature flag: `FeatureFlags.widgetEnabled = true`
+- `PackageTimelineProvider` refreshes every 15 minutes
+- `WidgetStatValues` — main app pre-computes 10 stat values, writes to shared UserDefaults, widget reads them
+
+**Home Screen Widgets (3):**
+- `PackagePickupWidget` (.systemSmall) — configurable 2-stat cards via `FreeWidgetIntent` + `FreeWidgetStatType` (10 types, 2 free / 8 Pro-locked). Uses `AppIntentConfiguration`
+- `QuickAddWidget` (.systemSmall) — tap to add package
+- `PackageTrakerWidget` (.systemSmall/medium/large) — PRO, configurable package display
+
+**Lock Screen Widgets (4):**
+- `LockScreenQuickAddWidget` (.accessoryCircular) — SF Symbol `shippingbox.fill`, deep link to add package
+- `LockScreenCircularWidget` (.accessoryCircular) — Gauge showing pending pickup count
+- `LockScreenPackageWidget` (.accessoryRectangular) — configurable via `LockScreenPackageIntent`, user picks which package to display
+- `LockScreenStatsWidget` (.accessoryRectangular) — configurable via `LockScreenStatsIntent`, user picks which stat to display
+
+**Control Center (1):**
+- `AddPackageControl` — `ControlWidgetButton` with `shippingbox.fill` icon, opens add package flow
+- `AddPackageControlIntent` — must return `some IntentResult & OpensIntent` with `OpenURLIntent`, and `openAppWhenRun = true`
+- **CRITICAL**: `AddPackageControl.swift` Target Membership must include BOTH `PackageTraker` (main app) AND `PackageTrakerWidgetExtension`, otherwise tap silently fails
+
+**Free Widget Configurable Stats (`FreeWidgetStatType`, 10 types):**
+- Free: `pendingPickup`, `deliveredLast30Days`
+- Pro: `thisMonthSpending`, `pendingAmount`, `last30DaysSpending`, `thisMonthDelivered`, `inTransit`, `avgDeliveryDays`, `spendingDelta`, `codPendingAmount`
 
 ### Cloud Functions Backend (`functions/`)
 
@@ -129,6 +149,9 @@ Firebase Cloud Functions v2 (TypeScript, Node.js 20, asia-east1):
 - `services/pushNotification.ts` - FCM push via firebase-admin
 - `i18n/notifications.ts` - Multilingual push templates (zh-Hant, zh-Hans, en)
 - `utils/carrierNames.ts`, `utils/statusMapper.ts` - Shared mapping utilities
+
+**Deployed but not yet used by app (2026-04-16):**
+- `trackTwProxy.ts` - `importPackage` + `getTracking` onCall v2 functions (server-side Track.TW proxy). Deployed to asia-east1, ACTIVE, but v1.7.0 app still calls Track.TW directly via `TrackTwAPIClient`. Source code was reverted locally. To re-integrate: use `FirebaseFunctions` SDK (`Functions.functions(region:).httpsCallable()`), NOT raw HTTP (v2 onCall URL format differs from v1).
 
 **Note:** `backend/` is a deprecated Python/FastAPI service (replaced by Track.TW API). Do not modify.
 
@@ -211,8 +234,14 @@ Most services use `static let shared` singleton pattern: `SubscriptionManager.sh
 - Input: `.adaptiveInputStyle()`
 
 ### API Keys
-- `Secrets.swift` contains `trackTwAPIToken` and `geminiAPIKey` (placeholders, actual values from environment/Keychain)
+- `Secrets.swift` contains `trackTwAPIToken` (in .gitignore, not tracked). Retrieve from Firebase Secret Manager if lost: `firebase functions:secrets:access TRACKW_TOKEN`
 - Track.TW token also in Firebase Secret Manager (`TRACKW_TOKEN`) for Cloud Functions
+
+### Data Model: `isArchived`
+- `Package.isArchived` is a reserved field — **no code currently sets it to `true`**
+- All packages always have `isArchived = false`; the field exists for future manual archive feature
+- Home page `@Query` filters `!isArchived`; History page uses `isArchived || status == "delivered"`
+- **Do NOT manually set `isArchived = true`** without also updating stats logic and scheduler queries
 
 ## Track.TW API Integration
 
