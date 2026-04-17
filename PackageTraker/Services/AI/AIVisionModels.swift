@@ -104,6 +104,7 @@ enum AIVisionError: LocalizedError {
     case parseError
     case sdkNotAvailable
     case dailyLimitReached
+    case freeTrialExhausted
     case proRequired
 
     var isQuotaExceeded: Bool {
@@ -140,6 +141,8 @@ enum AIVisionError: LocalizedError {
             return String(localized: "ai.error.sdkNotAvailable")
         case .dailyLimitReached:
             return String(localized: "ai.error.dailyLimitReached")
+        case .freeTrialExhausted:
+            return String(localized: "aiTrial.exhausted.subtitle")
         }
     }
 }

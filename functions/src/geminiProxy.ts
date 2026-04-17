@@ -13,14 +13,19 @@ import {defineSecret} from "firebase-functions/params";
 import {getFirestore, FieldValue} from "firebase-admin/firestore";
 import {logger} from "firebase-functions/v2";
 import axios from "axios";
+import {TrackTwAPI} from "./services/trackTwApi";
 
 const geminiApiKey = defineSecret("GEMINI_API_KEY");
 const geminiApiKeyDebug = defineSecret("GEMINI_API_KEY_DEBUG");
+const trackTwToken = defineSecret("TRACKW_TOKEN");
 
 const db = getFirestore();
 
-/** 每日 AI 掃描上限 */
+/** Pro 每日 AI 掃描上限 */
 const DAILY_LIMIT = 20;
+
+/** 免費用戶試用總次數（不是每日，是累計） */
+const FREE_TRIAL_LIMIT = 3;
 
 /** Gemini 模型 */
 const MODEL_NAME = "gemini-2.5-flash";
@@ -165,7 +170,7 @@ export const analyzePackageImage = onCall(
     region: "asia-east1",
     memory: "512MiB",
     timeoutSeconds: 60,
-    secrets: [geminiApiKey, geminiApiKeyDebug],
+    secrets: [geminiApiKey, geminiApiKeyDebug, trackTwToken],
   },
   async (request) => {
     // 1. 驗證登入
@@ -174,36 +179,53 @@ export const analyzePackageImage = onCall(
       throw new HttpsError("unauthenticated", "Login required");
     }
 
-    // 2. 檢查訂閱層級
-    const userDoc = await db.doc(`users/${uid}`).get();
-    const userData = userDoc.data();
-    const tier = userData?.subscriptionTier;
-    if (tier !== "pro") {
-      throw new HttpsError("permission-denied", "Pro subscription required");
-    }
-
-    // 3. 檢查每日用量（終身方案不限次數）
-    const productID = userData?.subscriptionProductID as string | undefined;
-    const isLifetime = productID?.includes("lifetime") === true;
+    // 2. 並行讀取 user doc + usage doc（省一次 Firestore round trip）
     const today = getTaiwanDateString();
     const usageRef = db.doc(`users/${uid}/aiUsage/${today}`);
-    const usageDoc = await usageRef.get();
-    const currentCount = (usageDoc.data()?.count as number) || 0;
+    const [userDoc, usageDoc] = await Promise.all([
+      db.doc(`users/${uid}`).get(),
+      usageRef.get(),
+    ]);
 
-    if (!isLifetime && currentCount >= DAILY_LIMIT) {
-      throw new HttpsError(
-        "resource-exhausted",
-        `Daily AI scan limit reached (${DAILY_LIMIT}/day)`
-      );
+    const userData = userDoc.data();
+    const tier = userData?.subscriptionTier;
+    const isPro = tier === "pro";
+    const productID = userData?.subscriptionProductID as string | undefined;
+    const isLifetime = isPro && productID?.includes("lifetime") === true;
+
+    // 3. 檢查用量限制
+    const usageData = usageDoc.data();
+    if (isPro) {
+      // Pro 用戶：終身無限，其餘每日 20 次
+      if (!isLifetime) {
+        const currentCount = (usageData?.count as number) || 0;
+        if (currentCount >= DAILY_LIMIT) {
+          throw new HttpsError(
+            "resource-exhausted",
+            `Daily AI scan limit reached (${DAILY_LIMIT}/day)`
+          );
+        }
+      }
+    } else {
+      // 免費用戶：累計 3 次試用（存在 user doc 上，跨日不重置）
+      const aiTrialUsed = (userData?.aiTrialUsedCount as number) || 0;
+      if (aiTrialUsed >= FREE_TRIAL_LIMIT) {
+        throw new HttpsError(
+          "resource-exhausted",
+          `Free trial limit reached (${FREE_TRIAL_LIMIT} total)`
+        );
+      }
     }
+    const currentCount = (usageData?.count as number) || 0;
 
     // 4. 驗證 request 資料
-    const {imageBase64, mimeType} = request.data;
+    const {imageBase64, mimeType, carrierUUID} = request.data;
     if (!imageBase64 || typeof imageBase64 !== "string") {
       throw new HttpsError("invalid-argument", "imageBase64 is required");
     }
 
     const resolvedMimeType = mimeType || "image/jpeg";
+    // carrierUUID 可選 — 有的話 server 會直接做 Track.TW import+track
 
     // 5. 呼叫 Gemini API（debug 模式使用獨立 API Key，避免佔用正式配額）
     const isDebug = request.data.debug === true;
@@ -249,21 +271,70 @@ export const analyzePackageImage = onCall(
       throw new HttpsError("internal", "AI service error");
     }
 
-    // 6. 遞增用量計數器
-    await usageRef.set(
-      {
-        count: FieldValue.increment(1),
-        lastUsedAt: FieldValue.serverTimestamp(),
-      },
-      {merge: true}
-    );
+    // 6. 如果有 carrierUUID + tracking number，直接在 server 端做 Track.TW
+    let trackingData: Record<string, unknown> | null = null;
+    const trackingNumber = result.trackingNumber as string | undefined;
+    if (carrierUUID && trackingNumber && typeof carrierUUID === "string") {
+      try {
+        const api = new TrackTwAPI(trackTwToken.value().trim());
+        const importResult = await api.importPackages(carrierUUID, [trackingNumber]);
+        const relationId = importResult[trackingNumber];
+        if (relationId) {
+          const tracking = await api.getTracking(relationId);
+          trackingData = {
+            relationId,
+            trackingNumber: tracking.tracking_number,
+            carrierId: tracking.carrier_id,
+            events: tracking.package_history.map((e) => ({
+              time: e.time,
+              status: e.status,
+              checkpointStatus: e.checkpoint_status,
+            })),
+          };
+        }
+      } catch (trackErr) {
+        // Track.TW 失敗不擋 AI 結果，client 可以自己重試
+        logger.warn("[GeminiProxy] Track.TW failed, returning AI result only", {
+          uid, error: String(trackErr),
+        });
+      }
+    }
 
-    logger.info(`[GeminiProxy] uid=${uid} scan #${currentCount + 1}`, {
+    // 7. 遞增用量計數器
+    const writeOps: Promise<FirebaseFirestore.WriteResult>[] = [
+      usageRef.set(
+        {
+          count: FieldValue.increment(1),
+          lastUsedAt: FieldValue.serverTimestamp(),
+        },
+        {merge: true}
+      ),
+    ];
+    // 免費用戶：遞增 user doc 上的累計試用次數
+    if (!isPro) {
+      writeOps.push(
+        db.doc(`users/${uid}`).update({
+          aiTrialUsedCount: FieldValue.increment(1),
+        })
+      );
+    }
+    await Promise.all(writeOps);
+
+    const newCount = currentCount + 1;
+    logger.info(`[GeminiProxy] uid=${uid} scan #${newCount}`, {
       carrier: result.carrier || "unknown",
       hasTrackingNumber: !!result.trackingNumber,
     });
 
-    return result;
+    // 直接回傳用量 + tracking data
+    return {
+      ...result,
+      _usage: {
+        used: newCount,
+        limit: isLifetime ? -1 : DAILY_LIMIT,
+      },
+      ...(trackingData ? {_tracking: trackingData} : {}),
+    };
   }
 );
 

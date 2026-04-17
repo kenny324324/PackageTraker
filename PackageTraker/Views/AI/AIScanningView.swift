@@ -226,58 +226,69 @@ struct AIScanningView: View {
         vm.isQuotaError = false
 
         do {
-            // 階段 1：AI 辨識
+            // 一次請求完成 AI 辨識 + Track.TW（server 端並行處理）
             vm.loadingStage = .aiRecognition
             AnalyticsService.logAIScanStarted()
 
-            print("📸 [AIScanningView] 開始 AI 辨識...")
-            let result = try await analyzeImageWithRetry(image)
+            print("📸 [AIScanningView] 開始 AI 辨識 + Track.TW...")
+            let analyzeResult = try await analyzeImageWithRetry(image)
+            let result = analyzeResult.aiResult
             print("✅ [AIScanningView] AI 辨識完成")
             vm.aiResult = result
 
-            // 階段 2：API 驗證
             vm.loadingStage = .apiVerification
 
             guard let trackingNumber = result.trackingNumber, !trackingNumber.isEmpty else {
                 throw TrackingError.invalidTrackingNumber
             }
 
-            // 驗證單號基本格式
             guard CarrierDetector.isValidFormat(trackingNumber) else {
                 print("❌ [AIScanningView] 單號格式不正確: \(trackingNumber)")
                 throw TrackingError.invalidTrackingNumber
             }
 
-            // 直接用使用者選的 carrier
             let carrier = self.carrier
             print("📋 [AIScanningView] 使用者選擇: \(carrier.displayName)")
 
-            let relationId = try await trackingManager.importPackage(
-                number: trackingNumber,
-                carrier: carrier
-            )
-            var trackResult = try await trackingManager.track(
-                number: trackingNumber,
-                carrier: carrier
-            )
-            print("✅ [AIScanningView] \(carrier.displayName) 追蹤完成，\(trackResult.events.count) 筆事件")
+            // 優先用 server 端已完成的 Track.TW 結果
+            let trackResult: TrackingResult
+            let relationId: String
 
-            // 事件輪詢：若初次無事件，最多再試 5 次
-            if trackResult.events.isEmpty {
-                for attempt in 1...5 {
-                    try await Task.sleep(for: .seconds(3))
-                    guard !Task.isCancelled else { break }
-                    trackResult = try await trackingManager.track(number: trackingNumber, carrier: carrier)
-                    if !trackResult.events.isEmpty {
-                        print("✅ 第 \(attempt) 次輪詢取得 \(trackResult.events.count) 筆事件")
-                        break
-                    }
+            if let serverData = analyzeResult.trackingData {
+                // Server 已做完 Track.TW — 直接用
+                relationId = serverData.relationId
+                let events = serverData.events.map { e in
+                    TrackingEventDTO(
+                        timestamp: Date(timeIntervalSince1970: TimeInterval(e.time)),
+                        status: TrackingStatus.fromTrackTw(
+                            checkpointStatus: e.checkpointStatus,
+                            statusDescription: e.status
+                        ),
+                        description: e.status,
+                        location: nil
+                    )
                 }
-            }
-
-            // 仍然無事件 → 報錯
-            if trackResult.events.isEmpty {
-                throw TrackingError.noTrackingData
+                let currentStatus = events.first?.status ?? .pending
+                trackResult = TrackingResult(
+                    trackingNumber: trackingNumber,
+                    carrier: carrier,
+                    currentStatus: currentStatus,
+                    events: events,
+                    rawResponse: nil,
+                    relationId: relationId
+                )
+                print("✅ [AIScanningView] 使用 server 端 Track.TW 結果，\(events.count) 筆事件")
+            } else {
+                // Server 端 Track.TW 失敗 — fallback 到 client 端
+                print("⚠️ [AIScanningView] Server Track.TW 失敗，fallback 到 client")
+                relationId = try await trackingManager.importPackage(
+                    number: trackingNumber,
+                    carrier: carrier
+                )
+                trackResult = try await trackingManager.track(
+                    number: trackingNumber,
+                    carrier: carrier
+                )
             }
 
             vm.aiResult = result
@@ -295,8 +306,6 @@ struct AIScanningView: View {
             let generator = UINotificationFeedbackGenerator()
             generator.notificationOccurred(.success)
 
-            // 短暫延遲後顯示結果
-            try? await Task.sleep(for: .milliseconds(600))
             vm.workflowCompleted = true
             vm.navigateToQuickAdd = true
 
@@ -325,6 +334,9 @@ struct AIScanningView: View {
                 case .dailyLimitReached:
                     errorType = "daily_limit"
                     AnalyticsService.logAIDailyLimitHit(count: 20)
+                case .freeTrialExhausted:
+                    errorType = "free_trial_exhausted"
+                    vm.isQuotaError = true
                 case .proRequired:
                     errorType = "pro_required"
                 default:
@@ -348,12 +360,12 @@ struct AIScanningView: View {
         }
     }
 
-    private func analyzeImageWithRetry(_ image: UIImage, maxAttempts: Int = 2) async throws -> AIVisionResult {
+    private func analyzeImageWithRetry(_ image: UIImage, maxAttempts: Int = 2) async throws -> AIVisionService.AnalyzeResult {
         var lastError: Error?
 
         for attempt in 1...maxAttempts {
             do {
-                return try await aiService.analyzePackageImage(image)
+                return try await aiService.analyzePackageImage(image, carrier: carrier)
             } catch {
                 lastError = error
 
@@ -376,7 +388,7 @@ struct AIScanningView: View {
             return !aiError.isQuotaExceeded
         case .parseError:
             return true
-        case .dailyLimitReached, .proRequired, .subscriptionRequired:
+        case .dailyLimitReached, .freeTrialExhausted, .proRequired, .subscriptionRequired:
             return false
         default:
             return false
@@ -392,6 +404,8 @@ struct AIScanningView: View {
             switch aiError {
             case .dailyLimitReached:
                 return String(localized: "ai.error.dailyLimitReached")
+            case .freeTrialExhausted:
+                return String(localized: "aiTrial.exhausted.subtitle")
             case .proRequired:
                 return String(localized: "ai.error.subscriptionRequired")
             case .apiError:

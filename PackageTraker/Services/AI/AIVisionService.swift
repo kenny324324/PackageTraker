@@ -21,7 +21,7 @@ class AIVisionService {
 
     // MARK: - Constants
 
-    private let maxImageDimension: CGFloat = 1024
+    private let maxImageDimension: CGFloat = 768
     private let dailyLimit = 20
 
     // 本地快取 keys
@@ -57,8 +57,26 @@ class AIVisionService {
 
     // MARK: - Public Methods
 
-    /// 分析包裹截圖（透過 Cloud Function 代理）
-    func analyzePackageImage(_ image: UIImage) async throws -> AIVisionResult {
+    /// AI + Track.TW 合併結果
+    struct AnalyzeResult {
+        let aiResult: AIVisionResult
+        let trackingData: ServerTrackingData?
+    }
+
+    /// Server 端 Track.TW 回傳的追蹤資料
+    struct ServerTrackingData {
+        let relationId: String
+        let events: [ServerTrackingEvent]
+    }
+
+    struct ServerTrackingEvent {
+        let time: Int          // Unix timestamp
+        let status: String     // 中文描述
+        let checkpointStatus: String  // transit/delivered/pending/exception
+    }
+
+    /// 分析包裹截圖（透過 Cloud Function 代理，含 Track.TW import+track）
+    func analyzePackageImage(_ image: UIImage, carrier: Carrier? = nil) async throws -> AnalyzeResult {
         // 壓縮圖片
         guard let imageData = compressImage(image) else {
             throw AIVisionError.invalidImage
@@ -71,6 +89,10 @@ class AIVisionService {
                 "imageBase64": base64Image,
                 "mimeType": "image/jpeg",
             ]
+            // 傳 carrierUUID 讓 server 直接做 Track.TW
+            if let uuid = carrier?.trackTwUUID {
+                payload["carrierUUID"] = uuid
+            }
             #if DEBUG
             payload["debug"] = true
             #endif
@@ -79,8 +101,15 @@ class AIVisionService {
 
             let aiResult = try parseCloudFunctionResult(data)
 
-            // 成功後從伺服器同步最新用量（確保跨裝置一致）
-            _ = await fetchUsageFromServer()
+            // 解析 server 端 Track.TW 結果
+            let trackingData = parseServerTrackingData(data)
+
+            // 用 response 裡帶回的用量更新本地快取（省一次網路請求）
+            if let usage = data["_usage"] as? [String: Any],
+               let used = usage["used"] as? Int {
+                UserDefaults.standard.set(used, forKey: dailyCountKey)
+                UserDefaults.standard.set(taiwanDateString(), forKey: dailyDateKey)
+            }
 
             // 免費用戶：遞增試用次數
             if !SubscriptionManager.shared.hasAIAccess {
@@ -88,12 +117,34 @@ class AIVisionService {
                 UserDefaults.standard.set(current + 1, forKey: "aiTrialUsedCount")
             }
 
-            return aiResult
+            return AnalyzeResult(aiResult: aiResult, trackingData: trackingData)
 
         } catch {
             // 將 Cloud Function 錯誤轉換為 AIVisionError
             throw mapCloudFunctionError(error)
         }
+    }
+
+    /// 解析 server 回傳的 _tracking 資料
+    private func parseServerTrackingData(_ data: [String: Any]) -> ServerTrackingData? {
+        guard let tracking = data["_tracking"] as? [String: Any],
+              let relationId = tracking["relationId"] as? String else {
+            return nil
+        }
+
+        var events: [ServerTrackingEvent] = []
+        if let rawEvents = tracking["events"] as? [[String: Any]] {
+            events = rawEvents.compactMap { e in
+                guard let time = e["time"] as? Int,
+                      let status = e["status"] as? String,
+                      let checkpointStatus = e["checkpointStatus"] as? String else {
+                    return nil
+                }
+                return ServerTrackingEvent(time: time, status: status, checkpointStatus: checkpointStatus)
+            }
+        }
+
+        return ServerTrackingData(relationId: relationId, events: events)
     }
 
     // MARK: - Direct Cloud Function Call（繞過 HTTPSCallable）
@@ -171,7 +222,7 @@ class AIVisionService {
     /// 壓縮圖片
     private func compressImage(_ image: UIImage) -> Data? {
         let resized = resizeImage(image, maxDimension: maxImageDimension)
-        return resized.jpegData(compressionQuality: 0.8)
+        return resized.jpegData(compressionQuality: 0.6)
     }
 
     /// 縮小圖片
@@ -206,6 +257,9 @@ class AIVisionService {
                 let msg = message.lowercased()
                 // 429 或 RESOURCE_EXHAUSTED → quota
                 if code == 429 || status == "RESOURCE_EXHAUSTED" {
+                    if msg.contains("free trial") {
+                        return .freeTrialExhausted
+                    }
                     if msg.contains("daily") {
                         return .dailyLimitReached
                     }

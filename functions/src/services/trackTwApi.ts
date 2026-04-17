@@ -49,6 +49,21 @@ export class TrackTwAPI {
   }
 
   /**
+   * 匯入包裹
+   * POST /package/import
+   */
+  async importPackages(
+    carrierId: string,
+    trackingNumbers: string[]
+  ): Promise<Record<string, string>> {
+    const response = await this.client.post<{data: Record<string, string>}>(
+      "/package/import",
+      {carrier_id: carrierId, tracking_numbers: trackingNumbers}
+    );
+    return response.data.data;
+  }
+
+  /**
    * 查詢包裹追蹤詳情
    * GET /package/tracking/{relationId}
    */
