@@ -11,6 +11,7 @@ struct DeveloperOptionsView: View {
     @State private var apiStatus: String = ""
     @State private var isTestingAPI = false
     @State private var showSoftPaywall = false
+    @State private var showPaywall = false
     @State private var showPromoSheet = false
     @State private var showWhatsNew = false
     @State private var whatsNewData: WhatsNewData?
@@ -181,6 +182,13 @@ struct DeveloperOptionsView: View {
                     Label("切換至免費", systemImage: "arrow.uturn.backward")
                 }
                 .disabled(!subscriptionManager.isPro)
+
+                Button {
+                    showPaywall = true
+                } label: {
+                    Label("顯示付費牆", systemImage: "creditcard.fill")
+                        .foregroundStyle(.blue)
+                }
             } header: {
                 Text("訂閱測試")
             } footer: {
@@ -483,6 +491,9 @@ struct DeveloperOptionsView: View {
         }
         .navigationTitle("開發者選項")
         .navigationBarTitleDisplayMode(.inline)
+        .fullScreenCover(isPresented: $showPaywall) {
+            PaywallView(trigger: .homeStats)
+        }
         .sheet(isPresented: $showSoftPaywall) {
             SoftPaywallSheet {
                 // Dev preview

@@ -117,8 +117,8 @@ class SubscriptionManager: ObservableObject {
         // 讀取產品 ID 快取
         currentProductID = UserDefaults.standard.string(forKey: "subscriptionProductID")
 
-        // 確保 App Group 也有正確的訂閱狀態（Widget 需要讀取）
-        WidgetDataService.shared.updateSubscriptionTier(currentTier)
+        // 確保 App Group 也有正確的訂閱狀態（Widget 需要讀取，含試用期）
+        WidgetDataService.shared.updateSubscriptionTier(isPro ? .pro : .free)
 
         // 同步 FCM Topic（確保推播分群正確）
         updateFCMTopics(tier: currentTier, productID: currentProductID)
@@ -336,8 +336,8 @@ class SubscriptionManager: ObservableObject {
     /// 本地快取
     private func persistTier(_ tier: SubscriptionTier) {
         UserDefaults.standard.set(tier.rawValue, forKey: "subscriptionTier")
-        // 同步到 Widget App Group（確保 Widget 能讀到正確訂閱狀態）
-        WidgetDataService.shared.updateSubscriptionTier(tier)
+        // 同步到 Widget App Group（確保 Widget 能讀到正確訂閱狀態，含試用期）
+        WidgetDataService.shared.updateSubscriptionTier(isPro ? .pro : .free)
     }
 
     /// 本地快取產品 ID

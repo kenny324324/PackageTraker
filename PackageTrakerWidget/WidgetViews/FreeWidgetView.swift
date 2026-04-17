@@ -45,8 +45,8 @@ struct FreeWidgetView: View {
     // MARK: - Locked Card (Pro)
 
     private func lockedCard(for stat: FreeWidgetStatType) -> some View {
-        VStack(spacing: 0) {
-            // 標題列
+        VStack(alignment: .leading, spacing: 0) {
+            // 標題列（左上）
             HStack(spacing: 4) {
                 Image(systemName: stat.iconName)
                     .font(.system(size: 12, weight: .semibold))
@@ -54,21 +54,20 @@ struct FreeWidgetView: View {
                 Text(titleFor(stat))
                     .font(.system(size: 13, weight: .semibold, design: .rounded))
                     .foregroundStyle(.secondary)
-                Spacer(minLength: 0)
             }
 
-            // Lock + PRO 偏下居中
             Spacer(minLength: 0)
-            VStack(spacing: 2) {
+
+            // 🔒 PRO（右下）
+            HStack(spacing: 4) {
+                Spacer()
                 Image(systemName: "lock.fill")
-                    .font(.system(size: 16))
+                    .font(.system(size: 14))
                     .foregroundStyle(.secondary)
                 Text("PRO")
-                    .font(.system(size: 9, weight: .bold, design: .rounded))
+                    .font(.system(size: 10, weight: .bold, design: .rounded))
                     .foregroundStyle(.secondary)
             }
-            Spacer(minLength: 0)
-                .frame(maxHeight: 4)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 8)

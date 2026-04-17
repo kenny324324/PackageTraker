@@ -231,8 +231,8 @@ struct PackageTrakerApp: App {
                 if case .forceUpdate(let url) = result {
                     forceUpdateURL = url
                 }
-                // 啟動時同步訂閱層級到 Widget（確保 Widget 能讀取到正確狀態）
-                WidgetDataService.shared.updateSubscriptionTier(subscriptionManager.currentTier)
+                // 啟動時同步訂閱層級到 Widget（確保 Widget 能讀取到正確狀態，含試用期）
+                WidgetDataService.shared.updateSubscriptionTier(subscriptionManager.isPro ? .pro : .free)
 
                 // 載入邀請碼資料
                 if FeatureFlags.referralEnabled {
@@ -243,8 +243,8 @@ struct PackageTrakerApp: App {
                 if newTier == .free {
                     ThemeManager.shared.resetToDefaultIfNeeded()
                 }
-                // 同步訂閱層級到 Widget
-                WidgetDataService.shared.updateSubscriptionTier(newTier)
+                // 同步訂閱層級到 Widget（含試用期）
+                WidgetDataService.shared.updateSubscriptionTier(subscriptionManager.isPro ? .pro : .free)
                 WidgetCenter.shared.reloadAllTimelines()
             }
             .onChange(of: appFlow) { _, newFlow in

@@ -412,6 +412,9 @@ class ReferralService: ObservableObject {
             pendingReferredBy = nil
             UserDefaults.standard.removeObject(forKey: "pendingReferredBy")
 
+            // 同步 Widget 訂閱狀態（試用期視為 Pro）
+            WidgetDataService.shared.updateSubscriptionTier(.pro)
+
             print("[Referral] ✅ Referral completed! Both get trial. Referee until \(trialEnd), referrer until \(ownerNewEnd)")
         } catch {
             print("[Referral] ❌ Failed to complete referral: \(error.localizedDescription)")
