@@ -439,5 +439,5 @@ struct SignInView: View {
     SignInView(refreshService: PackageRefreshService()) {
         print("Loading complete")
     }
-    .modelContainer(for: [Package.self, TrackingEvent.self, LinkedEmailAccount.self], inMemory: true)
+    .modelContainer(for: [Package.self, TrackingEvent.self], inMemory: true)
 }

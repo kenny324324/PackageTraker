@@ -9,7 +9,6 @@ import SwiftUI
 import SwiftData
 import StoreKit
 import Combine
-import BackgroundTasks
 import UserNotifications
 import WidgetKit
 import FirebaseCore
@@ -31,13 +30,21 @@ struct PackageTrakerApp: App {
     // APNs Token 轉發給 FCM
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
-    // 背景任務識別碼
-    static let emailSyncTaskIdentifier = "com.packagetraker.emailsync"
-
-    // SwiftData Container（登出時需要存取 mainContext 清除本地資料）
+    // SwiftData Container（��出時需要存取 mainContext 清除本地資料）
     private let sharedModelContainer: ModelContainer = {
-        let schema = Schema([Package.self, TrackingEvent.self, LinkedEmailAccount.self, SavedPickupLocation.self])
-        return try! ModelContainer(for: schema)
+        let schema = Schema([Package.self, TrackingEvent.self, SavedPickupLocation.self])
+        do {
+            return try ModelContainer(for: schema)
+        } catch {
+            // Schema 不相容或 DB 損壞 → 刪掉舊 DB，重建空容器
+            // 使用者資料會從 Firestore 重新同步回來
+            let storeURL = URL.applicationSupportDirectory.appending(path: "default.store")
+            for suffix in ["", "-wal", "-shm"] {
+                let fileURL = URL(fileURLWithPath: storeURL.path() + suffix)
+                try? FileManager.default.removeItem(at: fileURL)
+            }
+            return try! ModelContainer(for: schema)
+        }
     }()
 
     // App 流程狀態（根據初始認證狀態決定）
@@ -121,10 +128,6 @@ struct PackageTrakerApp: App {
             _appFlow = State(initialValue: .signIn)
         }
 
-        // 註冊背景任務（郵件同步功能暫時停用）
-        if FeatureFlags.emailAutoImportEnabled {
-            registerBackgroundTasks()
-        }
     }
 
     var body: some Scene {
@@ -444,89 +447,6 @@ struct PackageTrakerApp: App {
             return
         }
 
-        // 處理 Google OAuth 回調
-        if url.scheme?.contains("googleusercontent") == true {
-            _ = GmailAuthManager.shared.handleURL(url)
-        }
-    }
-
-    // MARK: - Background Tasks
-
-    private func registerBackgroundTasks() {
-        // 註冊郵件同步背景任務
-        BGTaskScheduler.shared.register(
-            forTaskWithIdentifier: Self.emailSyncTaskIdentifier,
-            using: nil
-        ) { task in
-            guard let appRefreshTask = task as? BGAppRefreshTask else { return }
-            self.handleEmailSyncTask(task: appRefreshTask)
-        }
-    }
-
-    private func handleEmailSyncTask(task: BGAppRefreshTask) {
-        // 排程下次任務
-        scheduleEmailSyncTask()
-
-        // 建立同步任務
-        let syncTask = Task {
-            await performEmailSync()
-        }
-
-        // 設定過期處理
-        task.expirationHandler = {
-            syncTask.cancel()
-        }
-
-        // 等待任務完成
-        Task {
-            _ = await syncTask.result
-            task.setTaskCompleted(success: true)
-        }
-    }
-
-    private func performEmailSync() async {
-        // 檢查是否已登入
-        guard GmailAuthManager.shared.isSignedIn else { return }
-
-        let gmailService = GmailService()
-        let emailParser = TaiwaneseEmailParser.shared
-
-        do {
-            // 取得物流相關郵件
-            let messages = try await gmailService.fetchTrackingEmails(maxResults: 20)
-
-            // 解析郵件
-            let results = emailParser.parseEmails(messages)
-
-            // 這裡應該將結果儲存到 SwiftData
-            // 但背景任務中存取 ModelContext 需要特殊處理
-            // 實際實作時需要使用 ModelContainer 的背景 context
-
-            print("背景同步完成：解析了 \(results.count) 封郵件")
-        } catch {
-            print("背景同步失敗：\(error.localizedDescription)")
-        }
-    }
-
-    /// 排程郵件同步背景任務
-    static func scheduleEmailSyncTask() {
-        let request = BGAppRefreshTaskRequest(identifier: emailSyncTaskIdentifier)
-        // 最早在 15 分鐘後執行
-        request.earliestBeginDate = Date(timeIntervalSinceNow: 15 * 60)
-
-        do {
-            try BGTaskScheduler.shared.submit(request)
-        } catch {
-            print("無法排程背景任務：\(error.localizedDescription)")
-        }
-    }
-}
-
-// MARK: - Helper Extension
-
-extension PackageTrakerApp {
-    private func scheduleEmailSyncTask() {
-        Self.scheduleEmailSyncTask()
     }
 }
 

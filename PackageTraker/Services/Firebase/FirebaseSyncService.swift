@@ -428,11 +428,6 @@ final class FirebaseSyncService: ObservableObject {
                 modelContext.delete(event)
             }
 
-            let accounts = try modelContext.fetch(FetchDescriptor<LinkedEmailAccount>())
-            for account in accounts {
-                modelContext.delete(account)
-            }
-
             let locations = try modelContext.fetch(FetchDescriptor<SavedPickupLocation>())
             for location in locations {
                 modelContext.delete(location)

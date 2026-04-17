@@ -2,7 +2,7 @@ import SwiftUI
 import Combine
 
 /// 主題管理器 - 管理 App 的主題色彩
-class ThemeManager: ObservableObject {
+final class ThemeManager: ObservableObject {
     static let shared = ThemeManager()
 
     /// 選擇的主題色（使用 AppStorage 持久化）

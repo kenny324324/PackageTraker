@@ -20,8 +20,7 @@ struct PackageListView: View {
            sort: \Package.lastUpdated, order: .reverse)
     private var packages: [Package]
 
-    @Query private var linkedAccounts: [LinkedEmailAccount]
-
+    @State private var viewModel: PackageListViewModel?
     @State private var showAddMethodSheet = false
     @State private var showManualAdd = false
     @State private var showAICarrierSelect = false
@@ -31,7 +30,6 @@ struct PackageListView: View {
     @State private var paywallTrigger: PaywallTrigger = .general
     @State private var pendingAddAction: PendingAddAction = .none
     @State private var selectedPackage: Package?
-    @State private var emailSyncStatus: String?
     @State private var sheetStatType: StatType?
 
     // AI 試用 upsell
@@ -55,28 +53,12 @@ struct PackageListView: View {
     // Hero 動畫用的 Namespace
     @Namespace private var heroNamespace
 
-    private let gmailAuthManager = GmailAuthManager.shared
-
-    /// 30 天前的日期
-    private var thirtyDaysAgo: Date {
-        Calendar.current.date(byAdding: .day, value: -30, to: Date()) ?? Date()
+    private var vm: PackageListViewModel {
+        viewModel ?? PackageListViewModel(modelContext: modelContext, refreshService: refreshService)
     }
 
-    /// 過濾後的包裹（最後狀態距今超過 30 天的不顯示，可選隱藏已取貨）
     private var filteredPackages: [Package] {
-        packages.filter { package in
-            // 隱藏已取貨的包裹
-            if hideDeliveredPackages && package.status == .delivered {
-                return false
-            }
-            // 使用最後狀態的時間（最新事件的時間）判斷
-            if let latestEventTime = package.latestEventTimestamp {
-                // 距今超過 30 天就不顯示
-                return latestEventTime > thirtyDaysAgo
-            }
-            // 沒有事件的包裹，使用 lastUpdated
-            return package.lastUpdated > thirtyDaysAgo
-        }
+        vm.filteredPackages(packages, hideDelivered: hideDeliveredPackages)
     }
 
     var body: some View {
@@ -105,7 +87,8 @@ struct PackageListView: View {
                     .alert(String(localized: "detail.deleteConfirm"), isPresented: $showDeleteConfirmation) {
                         Button(String(localized: "common.delete"), role: .destructive) {
                             if let package = packageToDelete {
-                                deletePackage(package)
+                                vm.deletePackage(package, allPackages: packages)
+                                packageToDelete = nil
                             }
                         }
                         Button(String(localized: "common.cancel"), role: .cancel) {
@@ -119,7 +102,8 @@ struct PackageListView: View {
                     .alert(String(localized: "detail.markCompleteConfirm"), isPresented: $showCompleteConfirmation) {
                         Button(String(localized: "detail.markComplete")) {
                             if let package = packageToMarkComplete {
-                                markAsDelivered(package)
+                                vm.markAsDelivered(package, allPackages: packages)
+                                packageToMarkComplete = nil
                             }
                         }
                         Button(String(localized: "common.cancel"), role: .cancel) {
@@ -133,7 +117,7 @@ struct PackageListView: View {
             .sheet(item: $sheetStatType) { statType in
                 PackageListSheetView(
                     title: statType.localizedLabel,
-                    packages: packagesForStat(statType)
+                    packages: vm.packagesForStat(statType, packages: packages)
                 )
             }
             .navigationDestination(item: $selectedPackage) { package in
@@ -142,7 +126,6 @@ struct PackageListView: View {
             }
             .onChange(of: showAddPackage) { _, newValue in
                 if newValue {
-                    // 有預填資料 → 直接進入手動新增（跳過方法選擇）
                     if prefillCarrier != nil || prefillTrackingNumber != nil {
                         showManualAdd = true
                     } else {
@@ -159,7 +142,7 @@ struct PackageListView: View {
                 pendingPackageId = nil
             }
             .task {
-                // 啟動時同步 Widget 資料（確保既有包裹資料寫入 App Group）
+                viewModel = PackageListViewModel(modelContext: modelContext, refreshService: refreshService)
                 WidgetDataService.shared.updateWidgetData(packages: packages)
                 WidgetCenter.shared.reloadAllTimelines()
             }
@@ -184,7 +167,7 @@ struct PackageListView: View {
                 break
             }
             pendingAddAction = .none
-            Task { await refreshPendingPackages() }
+            Task { await vm.refreshPendingPackages(packages) }
         }) {
             AddMethodSheet(
                 onManualAdd: {
@@ -206,10 +189,9 @@ struct PackageListView: View {
             )
         }
         .sheet(isPresented: $showManualAdd, onDismiss: {
-            // 清除預填資料
             prefillCarrier = nil
             prefillTrackingNumber = nil
-            Task { await refreshPendingPackages() }
+            Task { await vm.refreshPendingPackages(packages) }
         }) {
             AddPackageView(
                 prefillCarrier: Carrier.allCases.first(where: { $0.rawValue == prefillCarrier }),
@@ -217,7 +199,7 @@ struct PackageListView: View {
             )
         }
         .sheet(isPresented: $showAICarrierSelect, onDismiss: {
-            Task { await refreshPendingPackages() }
+            Task { await vm.refreshPendingPackages(packages) }
         }) {
             AICarrierSelectView()
         }
@@ -277,52 +259,13 @@ struct PackageListView: View {
         }
     }
 
-    private func deletePackage(_ package: Package) {
-        let packageId = package.id
-        let remainingPackages = packages.filter { $0.id != package.id }
-        modelContext.delete(package)
-        try? modelContext.save()
-        packageToDelete = nil
-        // 從 Firestore 刪除
-        FirebaseSyncService.shared.deletePackage(packageId)
-        // 更新 Widget
-        WidgetDataService.shared.updateWidgetData(packages: remainingPackages)
-        WidgetCenter.shared.reloadAllTimelines()
-    }
-
-    private func markAsDelivered(_ package: Package) {
-        let now = Date()
-        let description = String(localized: "detail.markCompleteEvent")
-
-        package.status = .delivered
-        package.lastUpdated = now
-        package.latestDescription = description
-
-        let event = TrackingEvent(
-            id: TrackingEvent.deterministicId(trackingNumber: package.trackingNumber, timestamp: now, description: description),
-            timestamp: now,
-            status: .delivered,
-            description: description
-        )
-        event.package = package
-        package.events.append(event)
-
-        try? modelContext.save()
-        packageToMarkComplete = nil
-        FirebaseSyncService.shared.syncPackage(package, includeStatus: true)
-
-        WidgetDataService.shared.updateWidgetData(packages: packages)
-        WidgetCenter.shared.reloadAllTimelines()
-    }
-
     // MARK: - Views
 
     private var emptyStateContent: some View {
         VStack(spacing: 0) {
-            // 統計摘要（固定在頂部）
             StatsSummaryView(
-                stat1: (selectedStat1, computeStatValue(selectedStat1)),
-                stat2: (selectedStat2, computeStatValue(selectedStat2)),
+                stat1: (selectedStat1, vm.computeStatValue(selectedStat1, packages: packages)),
+                stat2: (selectedStat2, vm.computeStatValue(selectedStat2, packages: packages)),
                 onStat1Tap: statTapAction(for: selectedStat1),
                 onStat2Tap: statTapAction(for: selectedStat2),
                 onStat1Edit: { editingStatSlot = 1 },
@@ -331,7 +274,6 @@ struct PackageListView: View {
             .padding(.horizontal)
             .padding(.top, 8)
 
-            // 空狀態居中在剩餘空間
             EmptyPackageListView()
                 .frame(maxHeight: .infinity)
         }
@@ -364,12 +306,6 @@ struct PackageListView: View {
                     }
                 }
 
-                // 郵件同步狀態提示（功能暫時停用）
-                if FeatureFlags.emailAutoImportEnabled, let status = emailSyncStatus {
-                    emailSyncStatusBanner(status)
-                        .padding(.horizontal)
-                }
-
                 // 限時優惠 Banner
                 if promoManager.isPromoActive && !promoBannerDismissed && !SubscriptionManager.shared.isPro {
                     PromoBanner(
@@ -381,8 +317,8 @@ struct PackageListView: View {
 
                 // 統計摘要
                 StatsSummaryView(
-                    stat1: (selectedStat1, computeStatValue(selectedStat1)),
-                    stat2: (selectedStat2, computeStatValue(selectedStat2)),
+                    stat1: (selectedStat1, vm.computeStatValue(selectedStat1, packages: packages)),
+                    stat2: (selectedStat2, vm.computeStatValue(selectedStat2, packages: packages)),
                     onStat1Tap: statTapAction(for: selectedStat1),
                     onStat2Tap: statTapAction(for: selectedStat2),
                     onStat1Edit: { editingStatSlot = 1 },
@@ -390,9 +326,9 @@ struct PackageListView: View {
                 )
                 .padding(.horizontal)
 
-                // 按物流商分組顯示（水平滾動列表自己處理 padding）
-                ForEach(groupedByCarrier.keys.sorted(), id: \.self) { carrierName in
-                    if let carrierPackages = groupedByCarrier[carrierName] {
+                // 按物流商分組顯示
+                ForEach(vm.groupedByCarrier(filteredPackages).keys.sorted(), id: \.self) { carrierName in
+                    if let carrierPackages = vm.groupedByCarrier(filteredPackages)[carrierName] {
                         PackageSectionView(
                             title: carrierName,
                             packages: carrierPackages,
@@ -418,51 +354,7 @@ struct PackageListView: View {
             .padding(.bottom)
         }
         .refreshable {
-            await refreshAllPackages()
-        }
-    }
-
-    private func emailSyncStatusBanner(_ status: String) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: "envelope.badge.fill")
-                .foregroundStyle(.green)
-
-            Text(status)
-                .font(.caption)
-
-            Spacer()
-
-            Button {
-                emailSyncStatus = nil
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .padding(12)
-        .background(Color.secondaryCardBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
-    }
-
-    // MARK: - Computed Properties
-
-    private var pendingPackages: [Package] {
-        allRecentPackages.filter { $0.status.isPendingPickup }
-    }
-
-    /// 30 天內已取貨的包裹（不受「隱藏已取貨」影響）
-    private var deliveredRecentPackages: [Package] {
-        allRecentPackages.filter { $0.status == .delivered }
-    }
-
-    /// 30 天內所有包裹（不含隱藏過濾，用於統計）
-    private var allRecentPackages: [Package] {
-        packages.filter { package in
-            if let latestEventTime = package.latestEventTimestamp {
-                return latestEventTime > thirtyDaysAgo
-            }
-            return package.lastUpdated > thirtyDaysAgo
+            await vm.refreshAllPackages(filteredPackages)
         }
     }
 
@@ -478,330 +370,8 @@ struct PackageListView: View {
         return StatType(rawValue: selectedStat2RawValue) ?? .deliveredLast30Days
     }
 
-    private func computeStatValue(_ type: StatType) -> StatValue {
-        let calendar = Calendar.current
-        let now = Date()
-
-        switch type {
-        case .pendingPickup:
-            return .integer(pendingPackages.count)
-
-        case .deliveredLast30Days:
-            return .integer(deliveredRecentPackages.count)
-
-        case .thisMonthSpending:
-            let total = packages
-                .filter { calendar.isDate($0.createdAt, equalTo: now, toGranularity: .month) }
-                .compactMap(\.amount)
-                .reduce(0, +)
-            return .currency(total)
-
-        case .pendingAmount:
-            let total = packages
-                .filter { $0.status.isPendingPickup }
-                .compactMap(\.amount)
-                .reduce(0, +)
-            return .currency(total)
-
-        case .last30DaysSpending:
-            let total = allRecentPackages
-                .compactMap(\.amount)
-                .reduce(0, +)
-            return .currency(total)
-
-        case .thisMonthDelivered:
-            let count = packages.filter {
-                $0.status == .delivered &&
-                calendar.isDate($0.lastUpdated, equalTo: now, toGranularity: .month)
-            }.count
-            return .integer(count)
-
-        case .inTransit:
-            let count = packages.filter {
-                $0.status == .shipped || $0.status == .inTransit
-            }.count
-            return .integer(count)
-
-        case .avgDeliveryDays:
-            let deliveredWithDates = deliveredRecentPackages.compactMap { pkg -> Int? in
-                guard let start = pkg.orderCreatedTimestamp,
-                      let end = pkg.pickupEventTimestamp ?? pkg.latestEventTimestamp,
-                      let days = calendar.dateComponents([.day], from: start, to: end).day,
-                      days >= 0 else { return nil }
-                return days
-            }
-            guard !deliveredWithDates.isEmpty else { return .days(-1) }
-            let avg = Double(deliveredWithDates.reduce(0, +)) / Double(deliveredWithDates.count)
-            return .days(avg)
-
-        case .spendingDelta:
-            let thisMonth = packages
-                .filter { calendar.isDate($0.createdAt, equalTo: now, toGranularity: .month) }
-                .compactMap(\.amount)
-                .reduce(0, +)
-            let lastMonth: Double = {
-                guard let lastMonthDate = calendar.date(byAdding: .month, value: -1, to: now) else { return 0 }
-                return packages
-                    .filter { calendar.isDate($0.createdAt, equalTo: lastMonthDate, toGranularity: .month) }
-                    .compactMap(\.amount)
-                    .reduce(0, +)
-            }()
-            return .delta(current: thisMonth, previous: lastMonth)
-
-        case .codPendingAmount:
-            let total = packages
-                .filter { $0.status.isPendingPickup && $0.paymentMethod == .cod }
-                .compactMap(\.amount)
-                .reduce(0, +)
-            return .currency(total)
-        }
-    }
-
     private func statTapAction(for type: StatType) -> (() -> Void)? {
         return { sheetStatType = type }
-    }
-
-    private func packagesForStat(_ type: StatType) -> [Package] {
-        let calendar = Calendar.current
-        let now = Date()
-
-        switch type {
-        case .pendingPickup:
-            return pendingPackages
-
-        case .deliveredLast30Days:
-            return deliveredRecentPackages
-
-        case .thisMonthSpending:
-            return packages.filter {
-                calendar.isDate($0.createdAt, equalTo: now, toGranularity: .month) && $0.amount != nil
-            }
-
-        case .pendingAmount:
-            return packages.filter { $0.status.isPendingPickup && $0.amount != nil }
-
-        case .last30DaysSpending:
-            return allRecentPackages.filter { $0.amount != nil }
-
-        case .thisMonthDelivered:
-            return packages.filter {
-                $0.status == .delivered &&
-                calendar.isDate($0.lastUpdated, equalTo: now, toGranularity: .month)
-            }
-
-        case .inTransit:
-            return packages.filter { $0.status == .shipped || $0.status == .inTransit }
-
-        case .avgDeliveryDays:
-            return allRecentPackages.filter {
-                $0.status == .delivered && $0.orderCreatedTimestamp != nil
-            }
-
-        case .spendingDelta:
-            return packages.filter {
-                calendar.isDate($0.createdAt, equalTo: now, toGranularity: .month) && $0.amount != nil
-            }
-
-        case .codPendingAmount:
-            return packages.filter { $0.status.isPendingPickup && $0.paymentMethod == .cod }
-        }
-    }
-
-    /// 按物流商分組
-    private var groupedByCarrier: [String: [Package]] {
-        Dictionary(grouping: filteredPackages) { package in
-            package.carrier.displayName
-        }
-    }
-
-    // MARK: - Actions
-
-    private func refreshAllPackages() async {
-        // 1. 先同步郵件中的新包裹（如果已連結 Gmail）
-        // 注意：此功能暫時停用，由 FeatureFlags 控制
-        if FeatureFlags.emailAutoImportEnabled && gmailAuthManager.isSignedIn {
-            await syncEmailPackages()
-        }
-
-        // 2. 使用 refreshService 刷新（漸進式，每個包裹完成就 save）
-        await refreshService.refreshAll(filteredPackages, in: modelContext)
-    }
-
-    private func syncEmailPackages() async {
-        let gmailService = GmailService()
-        let emailParser = TaiwaneseEmailParser.shared
-        let trackingService = TrackTwAPIService()
-
-        do {
-            // 取得物流相關郵件
-            let messages = try await gmailService.fetchTrackingEmails(maxResults: 30)
-            print("[PackageSync] 📧 取得 \(messages.count) 封郵件")
-
-            // 解析郵件（只取得單號，不判斷狀態）
-            let results = emailParser.parseEmails(messages)
-            print("[PackageSync] 📦 成功解析 \(results.count) 個包裹")
-
-            // 去重：同一個單號只處理一次（保留最新的郵件）
-            var uniqueResults: [String: ParsedEmailResult] = [:]
-            for result in results {
-                let key = result.trackingNumber
-                if let existing = uniqueResults[key] {
-                    // 保留日期較新的
-                    if result.emailDate > existing.emailDate {
-                        uniqueResults[key] = result
-                    }
-                } else {
-                    uniqueResults[key] = result
-                }
-            }
-            print("[PackageSync] 🔄 去重後剩餘 \(uniqueResults.count) 個包裹")
-            for (_, result) in uniqueResults {
-                print("[PackageSync]   - \(result.carrier.displayName): \(result.trackingNumber) (來源: \(result.source))")
-            }
-
-            // 處理每個單號：API 查詢成功才新增
-            var newPackagesCount = 0
-
-            for (_, result) in uniqueResults {
-                let trackingNumber = result.trackingNumber
-
-                // 檢查是否已存在
-                let existingPackage = packages.first { $0.trackingNumber == trackingNumber }
-
-                if existingPackage == nil {
-                    // 新單號：先查詢 API，成功才新增
-                    let apiResult = await verifyAndCreatePackage(
-                        result: result,
-                        using: trackingService
-                    )
-
-                    if apiResult {
-                        newPackagesCount += 1
-                        print("[PackageSync] ✅ 新增並驗證成功: \(trackingNumber)")
-                    } else {
-                        print("[PackageSync] ❌ API 驗證失敗，不新增: \(trackingNumber)")
-                    }
-                } else if let existing = existingPackage {
-                    // 更新現有包裹的取件碼（如果有新的）
-                    if let pickupCode = result.pickupCode, existing.pickupCode == nil {
-                        existing.pickupCode = pickupCode
-                    }
-                    if let pickupLocation = result.pickupLocation, existing.pickupLocation == nil {
-                        existing.pickupLocation = pickupLocation
-                    }
-                }
-            }
-
-            // 更新 LinkedEmailAccount 的同步狀態
-            if let account = linkedAccounts.first {
-                let summary = newPackagesCount > 0
-                    ? "新增 \(newPackagesCount) 個包裹"
-                    : "沒有新包裹"
-                account.updateSyncStatus(summary: summary)
-
-                // 記錄已同步的郵件 ID
-                for message in messages {
-                    account.markMessageAsSynced(message.id)
-                }
-            }
-
-            // 顯示同步結果
-            if newPackagesCount > 0 {
-                emailSyncStatus = "從郵件中新增了 \(newPackagesCount) 個包裹"
-
-                // 3 秒後自動隱藏
-                Task {
-                    try? await Task.sleep(nanoseconds: 3_000_000_000)
-                    await MainActor.run {
-                        emailSyncStatus = nil
-                    }
-                }
-            }
-
-            try? modelContext.save()
-
-        } catch {
-            print("郵件同步失敗：\(error.localizedDescription)")
-        }
-    }
-
-    /// 透過 API 驗證單號，成功才建立包裹
-    private func verifyAndCreatePackage(
-        result: ParsedEmailResult,
-        using trackingService: TrackTwAPIService
-    ) async -> Bool {
-        let trackingNumber = result.trackingNumber
-        let carrier = result.carrier
-
-        // 檢查是否支援此物流商
-        guard trackingService.supportedCarriers.contains(carrier) else {
-            print("[PackageSync] ⏭️ 不支援的物流商: \(carrier.displayName)，直接新增（待手動確認）")
-            // 不支援的物流商，還是新增包裹，但狀態為 pending
-            let newPackage = Package(
-                trackingNumber: trackingNumber,
-                carrier: carrier,
-                customName: result.orderDescription
-            )
-            newPackage.pickupCode = result.pickupCode
-            newPackage.pickupLocation = result.pickupLocation
-            newPackage.createdAt = result.emailDate
-            modelContext.insert(newPackage)
-            return true
-        }
-
-        print("[PackageSync] 🔍 API 驗證: \(trackingNumber)")
-        do {
-            let apiResult = try await trackingService.track(
-                number: trackingNumber,
-                carrier: carrier
-            )
-
-            // API 查詢成功，建立包裹
-            let newPackage = Package(
-                trackingNumber: trackingNumber,
-                carrier: carrier,
-                customName: result.orderDescription,
-                status: apiResult.currentStatus
-            )
-            newPackage.trackTwRelationId = apiResult.relationId
-            newPackage.pickupCode = result.pickupCode
-            newPackage.pickupLocation = result.pickupLocation
-            newPackage.createdAt = result.emailDate
-            newPackage.lastUpdated = Date()
-            newPackage.latestDescription = apiResult.events.first?.description
-
-            // 添加追蹤事件
-            for eventDTO in apiResult.events {
-                let event = TrackingEvent(
-                    timestamp: eventDTO.timestamp,
-                    status: eventDTO.status,
-                    description: eventDTO.description,
-                    location: eventDTO.location
-                )
-                newPackage.events.append(event)
-            }
-
-            modelContext.insert(newPackage)
-            try? modelContext.save()
-            print("[PackageSync] ✅ API 驗證成功: \(trackingNumber) -> \(apiResult.currentStatus.displayName)")
-            return true
-
-        } catch {
-            // API 查詢失敗，不新增包裹
-            print("[PackageSync] ❌ API 驗證失敗: \(trackingNumber) - \(error.localizedDescription)")
-            return false
-        }
-    }
-
-    /// 自動刷新剛新增的 pending 包裹（無事件的）
-    private func refreshPendingPackages() async {
-        let pending = packages.filter { $0.status == .pending && $0.events.isEmpty }
-        guard !pending.isEmpty else { return }
-
-        print("🔄 自動刷新 \(pending.count) 個新增包裹")
-        for package in pending {
-            _ = await refreshService.refreshPackage(package, in: modelContext)
-        }
     }
 
     private var addButton: some View {
@@ -950,6 +520,6 @@ private struct ProFeatureCardBackgroundModifier: ViewModifier {
 
 #Preview {
     PackageListView(pendingPackageId: .constant(nil), showAddPackage: .constant(false), prefillCarrier: .constant(nil), prefillTrackingNumber: .constant(nil))
-        .modelContainer(for: [Package.self, TrackingEvent.self, LinkedEmailAccount.self], inMemory: true)
+        .modelContainer(for: [Package.self, TrackingEvent.self], inMemory: true)
         .environment(PackageRefreshService())
 }

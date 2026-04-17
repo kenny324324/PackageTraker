@@ -41,10 +41,8 @@ struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.requestReview) private var requestReview
 
-    @Query private var linkedAccounts: [LinkedEmailAccount]
     @Query private var existingPackages: [Package]
 
-    @StateObject private var gmailAuthManager = GmailAuthManager.shared
     @ObservedObject private var themeManager = ThemeManager.shared
     @ObservedObject private var authService = FirebaseAuthService.shared
     @ObservedObject private var subscriptionManager = SubscriptionManager.shared
@@ -1180,14 +1178,9 @@ struct SettingsView: View {
                 modelContext.delete(package)
             }
 
-            // 2. 刪除所有 LinkedEmailAccount
-            for account in linkedAccounts {
-                modelContext.delete(account)
-            }
-
             try modelContext.save()
 
-            // 3. 從 Firestore 刪除所有包裹
+            // 2. 從 Firestore 刪除所有包裹
             for id in packageIds {
                 FirebaseSyncService.shared.deletePackage(id)
             }
@@ -1197,10 +1190,7 @@ struct SettingsView: View {
                 UserDefaults.standard.removeObject(forKey: "hasPerformedInitialSync_\(uid)")
             }
 
-            // 5. Gmail 登出
-            gmailAuthManager.signOut()
-
-            // 6. 取消所有通知
+            // 5. 取消所有通知
             NotificationService.shared.cancelAllNotifications()
 
             // 7. 不清除用戶偏好（保留 refreshInterval, selectedTheme, 通知設定）
@@ -1229,5 +1219,5 @@ struct SettingsView: View {
 
 #Preview {
     SettingsView()
-        .modelContainer(for: [Package.self, TrackingEvent.self, LinkedEmailAccount.self], inMemory: true)
+        .modelContainer(for: [Package.self, TrackingEvent.self], inMemory: true)
 }

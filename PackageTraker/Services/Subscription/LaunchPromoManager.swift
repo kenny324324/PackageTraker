@@ -9,7 +9,7 @@ import Foundation
 import Combine
 
 @MainActor
-class LaunchPromoManager: ObservableObject {
+final class LaunchPromoManager: ObservableObject {
     static let shared = LaunchPromoManager()
 
     // MARK: - Constants

@@ -17,7 +17,7 @@ private typealias StoreTransaction = StoreKit.Transaction
 
 /// 訂閱管理器 — StoreKit 2
 @MainActor
-class SubscriptionManager: ObservableObject {
+final class SubscriptionManager: ObservableObject {
 
     // MARK: - Singleton
 

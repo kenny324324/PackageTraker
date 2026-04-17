@@ -15,8 +15,6 @@ struct AccountManagementView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
 
-    @Query private var linkedAccounts: [LinkedEmailAccount]
-
     @ObservedObject private var authService = FirebaseAuthService.shared
 
     @State private var showDeleteConfirmation = false
@@ -97,14 +95,9 @@ struct AccountManagementView: View {
                 modelContext.delete(package)
             }
 
-            // 2. 刪除所有 LinkedEmailAccount
-            for account in linkedAccounts {
-                modelContext.delete(account)
-            }
-
             try modelContext.save()
 
-            // 3. 從 Firestore 刪除所有包裹
+            // 2. 從 Firestore 刪除所有包裹
             for id in packageIds {
                 FirebaseSyncService.shared.deletePackage(id)
             }
@@ -145,5 +138,5 @@ struct AccountManagementView: View {
     NavigationStack {
         AccountManagementView()
     }
-    .modelContainer(for: [Package.self, TrackingEvent.self, LinkedEmailAccount.self], inMemory: true)
+    .modelContainer(for: [Package.self, TrackingEvent.self], inMemory: true)
 }

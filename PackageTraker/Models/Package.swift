@@ -124,18 +124,7 @@ final class Package {
     var displayCode: String {
         pickupCode ?? trackingNumber
     }
-    
-    /// 首頁卡片顯示文字（品名+價格 或 單號）- 已棄用，改用 cardMainText
-    var cardDisplayText: String {
-        if let name = customName, !name.isEmpty {
-            if let amount = formattedAmount {
-                return "\(name) \(amount)"
-            }
-            return name
-        }
-        return displayCode
-    }
-    
+
     /// 首頁卡片主要文字（品名 或 單號，不含價格）
     var cardMainText: String {
         if let name = customName, !name.isEmpty {

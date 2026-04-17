@@ -59,7 +59,7 @@ struct ReferralRecord: Identifiable {
 
 /// 邀請碼管理器
 @MainActor
-class ReferralService: ObservableObject {
+final class ReferralService: ObservableObject {
 
     // MARK: - Singleton
 
