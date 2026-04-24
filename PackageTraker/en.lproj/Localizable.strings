@@ -423,6 +423,11 @@
 "account.subscription.upgrade" = "Upgrade to Pro";
 "account.subscription.restore" = "Restore Purchases";
 
+// Avatar
+"avatar.uploadFailed" = "Avatar Upload Failed";
+"avatar.error.notAuthenticated" = "Please sign in before uploading an avatar";
+"avatar.error.compressionFailed" = "Failed to process image. Please try another photo.";
+
 // Package Quota
 "settings.quota.title" = "Free Package Tracking Quota";
 "settings.quota.remaining" = "Remaining";

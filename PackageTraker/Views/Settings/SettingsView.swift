@@ -62,6 +62,7 @@ struct SettingsView: View {
     @State private var showAccountDetail = false
     @State private var safariURL: IdentifiableURL?
     @AppStorage("cachedDisplayName") private var cachedDisplayName: String = ""
+    @AppStorage("cachedPhotoURL") private var cachedPhotoURL: String = ""
     @AppStorage("refreshInterval") private var refreshInterval: RefreshInterval = .thirtyMinutes
     @AppStorage("hideDeliveredPackages") private var hideDeliveredPackages = false
 
@@ -218,9 +219,7 @@ struct SettingsView: View {
             } label: {
                 HStack(spacing: 14) {
                     // 頭像
-                    Image(systemName: "person.crop.circle.fill")
-                        .font(.system(size: 48))
-                        .foregroundStyle(Color(.systemGray3))
+                    AvatarView(urlString: cachedPhotoURL, size: 48)
 
                     // 名稱
                     VStack(alignment: .leading, spacing: 2) {
@@ -1096,6 +1095,12 @@ struct SettingsView: View {
         Task {
             do {
                 let doc = try await db.collection("users").document(userId).getDocument()
+
+                if let photoURL = doc.data()?["photoURL"] as? String {
+                    await MainActor.run {
+                        cachedPhotoURL = photoURL
+                    }
+                }
 
                 if let nickname = doc.data()?["nickname"] as? String, !nickname.isEmpty {
                     await MainActor.run {

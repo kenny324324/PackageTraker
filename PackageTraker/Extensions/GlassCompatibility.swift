@@ -187,6 +187,18 @@ extension View {
         }
     }
 
+    /// 底部 Toolbar 群組樣式（多個按鈕共用一個 Capsule 容器）
+    @ViewBuilder
+    func adaptiveToolbarGroupStyle() -> some View {
+        if #available(iOS 26, *) {
+            self.glassEffect(.regular, in: Capsule())
+        } else {
+            self
+                .background(Color.secondaryCardBackground)
+                .clipShape(Capsule())
+        }
+    }
+
     /// 底部 Toolbar 膠囊按鈕樣式（帶文字）
     @ViewBuilder
     func adaptiveCapsuleButtonStyle(tint: Color? = nil) -> some View {

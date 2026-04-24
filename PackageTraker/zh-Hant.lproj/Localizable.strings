@@ -422,6 +422,11 @@
 "account.subscription.upgrade" = "升級至 Pro";
 "account.subscription.restore" = "恢復購買";
 
+// Avatar
+"avatar.uploadFailed" = "頭像上傳失敗";
+"avatar.error.notAuthenticated" = "請先登入再上傳頭像";
+"avatar.error.compressionFailed" = "圖片處理失敗，請改用其他照片";
+
 // Package Quota
 "settings.quota.title" = "免費包裹追蹤額度";
 "settings.quota.remaining" = "剩餘";

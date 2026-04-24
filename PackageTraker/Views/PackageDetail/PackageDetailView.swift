@@ -354,31 +354,32 @@ struct PackageDetailView: View {
 
     private var bottomToolbar: some View {
         HStack {
-            // 編輯按鈕
+            // 編輯按鈕（靠左）
             editButton
 
-            // 通知設定按鈕（Pro，已完成的包裹不顯示）
-            if !package.status.isCompleted {
-                notificationMenuButton
-            }
+            Spacer()
 
-            // 複製單號按鈕
-            Button(action: copyTrackingNumber) {
-                Image(systemName: "doc.on.doc")
-                    .font(.title3)
-                    .foregroundStyle(.white)
-                    .frame(width: 50, height: 50)
-            }
-            .adaptiveToolbarButtonStyle()
+            // 通知 / 複製 / 分享 — 合併為一個容器並居中
+            HStack(spacing: 0) {
+                if !package.status.isCompleted {
+                    notificationMenuButton
+                }
 
-            // 分享追蹤連結按鈕
-            Button(action: shareTrackingLink) {
-                Image(systemName: "square.and.arrow.up")
-                    .font(.title3)
-                    .foregroundStyle(.white)
-                    .frame(width: 50, height: 50)
+                Button(action: copyTrackingNumber) {
+                    Image(systemName: "doc.on.doc")
+                        .font(.title3)
+                        .foregroundStyle(.white)
+                        .frame(width: 50, height: 50)
+                }
+
+                Button(action: shareTrackingLink) {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.title3)
+                        .foregroundStyle(.white)
+                        .frame(width: 50, height: 50)
+                }
             }
-            .adaptiveToolbarButtonStyle()
+            .adaptiveToolbarGroupStyle()
 
             Spacer()
 
@@ -423,7 +424,8 @@ struct PackageDetailView: View {
             showEditSheet = true
         } label: {
             Image(systemName: "pencil")
-                .font(.title3)
+                .font(.title2)
+                .fontWeight(.semibold)
                 .foregroundStyle(.black)
                 .frame(width: 50, height: 50)
         }
@@ -435,7 +437,8 @@ struct PackageDetailView: View {
             showDeleteConfirmation = true
         } label: {
             Image(systemName: "trash")
-                .font(.title3)
+                .font(.title2)
+                .fontWeight(.semibold)
                 .foregroundStyle(.white)
                 .frame(width: 50, height: 50)
         }
@@ -528,7 +531,6 @@ struct PackageDetailView: View {
                 .foregroundStyle(allNotificationsOff ? Color.secondary : Color.white)
                 .frame(width: 50, height: 50)
         }
-        .adaptiveToolbarButtonStyle()
     }
 
     /// 儲存並同步到 Firestore

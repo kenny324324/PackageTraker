@@ -139,11 +139,11 @@ firebase deploy --only functions                 # Deploy to Firebase
 ### Cloud Functions Backend (`functions/`)
 
 Firebase Cloud Functions v2 (TypeScript, Node.js 20, asia-east1):
-- `scheduler.ts` - 30-minute tracking poll via Track.TW API (uses collectionGroup query for active packages)
+- `scheduler.ts` - Hourly tracking poll via Track.TW API (uses collectionGroup query with Firestore-level `status not-in [delivered, returned]` filter for active packages)
 - `triggers.ts` - Firestore `onDocumentUpdated` → FCM push on status change
 - `dailyReminder.ts` - 10:00 AM Taiwan time pickup reminder
 - `alertEmail.ts` - `onSystemAlertCreated` for system alert notifications
-- `statsAggregator.ts` - `updateAppStats` (every 6hr, collectionGroup count) + `updatePercentiles` (daily midnight)
+- `statsAggregator.ts` - `updateAppStats` (every 6hr, collectionGroup count) + `updatePercentiles` (monthly, 1st of month midnight)
 - `geminiProxy.ts` - Gemini AI proxy with daily usage limit (20/day for subscribers)
 - `services/trackTwApi.ts` - Track.TW HTTP client
 - `services/pushNotification.ts` - FCM push via firebase-admin
@@ -151,7 +151,7 @@ Firebase Cloud Functions v2 (TypeScript, Node.js 20, asia-east1):
 - `utils/carrierNames.ts`, `utils/statusMapper.ts` - Shared mapping utilities
 
 **Deployed but not yet used by app (2026-04-16):**
-- `trackTwProxy.ts` - `importPackage` + `getTracking` onCall v2 functions (server-side Track.TW proxy). Deployed to asia-east1, ACTIVE, but v1.7.0 app still calls Track.TW directly via `TrackTwAPIClient`. Source code was reverted locally. To re-integrate: use `FirebaseFunctions` SDK (`Functions.functions(region:).httpsCallable()`), NOT raw HTTP (v2 onCall URL format differs from v1).
+- `trackTwProxy.ts` - `importPackage` + `getTracking` onCall v2 functions (server-side Track.TW proxy). Deployed to asia-east1, ACTIVE, but v1.7.1 app still calls Track.TW directly via `TrackTwAPIClient`. Source code was reverted locally. To re-integrate: use `FirebaseFunctions` SDK (`Functions.functions(region:).httpsCallable()`), NOT raw HTTP (v2 onCall URL format differs from v1).
 
 **Note:** `backend/` is a deprecated Python/FastAPI service (replaced by Track.TW API). Do not modify.
 
@@ -250,6 +250,7 @@ Most services use `static let shared` singleton pattern: `SubscriptionManager.sh
 
 - Only carriers with `trackTwUUID` computed property are auto-trackable (18 of 21)
 - Relation IDs cached in-memory (`TrackTwAPIService.relationIdCache`) and persisted (`Package.trackTwRelationId`)
+- **CRITICAL**: `functions/src/utils/statusMapper.ts` mirrors `TrackingStatus.fromTrackTw()` in Swift. Both must stay in sync — changing status mapping logic in one requires updating the other. There is one known intentional difference: the TS version excludes `"離開寄件"` more precisely than the Swift version's broader `"離開"` exclusion.
 
 ## AI Scanning Carrier Detection Flow
 

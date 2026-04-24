@@ -25,7 +25,7 @@ struct PackageSectionView: View {
     var onPackageMarkComplete: ((Package) -> Void)? = nil
     var onPackageDelete: ((Package) -> Void)? = nil
     
-    @State private var sortOption: PackageSortOption = .addedDate
+    @AppStorage("packageSortOption") private var sortOption: PackageSortOption = .addedDate
 
     // 卡片寬度：中間值，約 250pt
     private var cardWidth: CGFloat {

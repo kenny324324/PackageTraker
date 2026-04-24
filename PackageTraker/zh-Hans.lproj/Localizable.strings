@@ -422,6 +422,11 @@
 "account.subscription.upgrade" = "升级至 Pro";
 "account.subscription.restore" = "恢复购买";
 
+// Avatar
+"avatar.uploadFailed" = "头像上传失败";
+"avatar.error.notAuthenticated" = "请先登录再上传头像";
+"avatar.error.compressionFailed" = "图片处理失败，请改用其他照片";
+
 // Package Quota
 "settings.quota.title" = "免费包裹追踪额度";
 "settings.quota.remaining" = "剩余";

@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import PhotosUI
 import StoreKit
 import FirebaseAuth
 import FirebaseFirestore
@@ -23,6 +24,7 @@ struct AccountDetailView: View {
 
     // 快取資料，使用 AppStorage 持久化避免閃爍
     @AppStorage("cachedDisplayName") private var cachedDisplayName: String = ""
+    @AppStorage("cachedPhotoURL") private var cachedPhotoURL: String = ""
     @State private var cachedCreationDate: Date?
 
     var body: some View {
@@ -30,9 +32,7 @@ struct AccountDetailView: View {
             ZStack(alignment: .bottom) {
                 VStack(spacing: 24) {
                     // 大頭像
-                    Image(systemName: "person.crop.circle.fill")
-                        .font(.system(size: 100))
-                        .foregroundStyle(Color(.systemGray3))
+                    AvatarView(urlString: cachedPhotoURL, size: 100)
                         .padding(.top, 16)
 
                     // 名稱
@@ -112,7 +112,11 @@ struct AccountDetailView: View {
                 }
             }
             .sheet(isPresented: $showEditSheet) {
-                EditProfileSheet(displayName: $cachedDisplayName, onSave: saveNickname)
+                EditProfileSheet(
+                    displayName: $cachedDisplayName,
+                    photoURL: $cachedPhotoURL,
+                    onSave: saveNickname
+                )
             }
             .fullScreenCover(isPresented: $showPaywall) {
                 PaywallView()
@@ -304,6 +308,12 @@ struct AccountDetailView: View {
             do {
                 let doc = try await db.collection("users").document(userId).getDocument()
 
+                if let photoURL = doc.data()?["photoURL"] as? String {
+                    await MainActor.run {
+                        cachedPhotoURL = photoURL
+                    }
+                }
+
                 if let nickname = doc.data()?["nickname"] as? String, !nickname.isEmpty {
                     await MainActor.run {
                         cachedDisplayName = nickname
@@ -368,8 +378,10 @@ struct AccountDetailView: View {
     }
 
     private func signOut() {
-        // 清除快取的顯示名稱
+        // 清除快取的顯示名稱與頭像
         cachedDisplayName = ""
+        cachedPhotoURL = ""
+        AvatarCache.shared.clear()
 
         // 清除 FCM Token
         Task {
@@ -392,22 +404,27 @@ struct AccountDetailView: View {
 struct EditProfileSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Binding var displayName: String
+    @Binding var photoURL: String
     let onSave: (String) -> Void
 
     @State private var editedName: String = ""
-    @State private var showImagePicker = false
+    @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var pickedImage: UIImage?
+    @State private var isUploading = false
+    @State private var uploadError: String?
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 24) {
                 // 頭像編輯
-                Button {
-                    showImagePicker = true
-                } label: {
+                PhotosPicker(
+                    selection: $selectedPhotoItem,
+                    matching: .images,
+                    photoLibrary: .shared()
+                ) {
                     ZStack(alignment: .bottomTrailing) {
-                        Image(systemName: "person.crop.circle.fill")
-                            .font(.system(size: 100))
-                            .foregroundStyle(Color(.systemGray3))
+                        avatarPreview
+                            .frame(width: 100, height: 100)
 
                         ZStack {
                             Circle()
@@ -420,7 +437,11 @@ struct EditProfileSheet: View {
                         }
                     }
                 }
+                .disabled(isUploading)
                 .padding(.top, 16)
+                .onChange(of: selectedPhotoItem) { _, newItem in
+                    Task { await loadPickedImage(newItem) }
+                }
 
                 // 暱稱編輯
                 VStack(alignment: .leading, spacing: 8) {
@@ -445,23 +466,84 @@ struct EditProfileSheet: View {
                         dismiss()
                     }
                     .foregroundStyle(Color.white)
+                    .disabled(isUploading)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(String(localized: "common.save")) {
-                        displayName = editedName
-                        onSave(editedName)
-                        dismiss()
+                    Button {
+                        Task { await save() }
+                    } label: {
+                        if isUploading {
+                            ProgressView()
+                                .tint(.white)
+                        } else {
+                            Text(String(localized: "common.save"))
+                                .fontWeight(.semibold)
+                                .foregroundStyle(Color.white)
+                        }
                     }
-                    .fontWeight(.semibold)
-                    .foregroundStyle(Color.white)
-                    .disabled(editedName.isEmpty)
+                    .disabled(editedName.isEmpty || isUploading)
                 }
             }
             .onAppear {
                 editedName = displayName
             }
+            .alert(
+                String(localized: "avatar.uploadFailed"),
+                isPresented: Binding(
+                    get: { uploadError != nil },
+                    set: { if !$0 { uploadError = nil } }
+                ),
+                presenting: uploadError
+            ) { _ in
+                Button(String(localized: "common.ok"), role: .cancel) {}
+            } message: { error in
+                Text(error)
+            }
         }
         .preferredColorScheme(.dark)
+    }
+
+    @ViewBuilder
+    private var avatarPreview: some View {
+        if let pickedImage {
+            Image(uiImage: pickedImage)
+                .resizable()
+                .scaledToFill()
+                .clipShape(Circle())
+        } else {
+            AvatarView(urlString: photoURL, size: 100)
+        }
+    }
+
+    private func loadPickedImage(_ item: PhotosPickerItem?) async {
+        guard let item else { return }
+        do {
+            if let data = try await item.loadTransferable(type: Data.self),
+               let image = UIImage(data: data) {
+                pickedImage = image
+            }
+        } catch {
+            uploadError = error.localizedDescription
+        }
+    }
+
+    private func save() async {
+        if let pickedImage {
+            isUploading = true
+            do {
+                let url = try await AvatarStorageService.shared.uploadAvatar(pickedImage)
+                photoURL = url
+            } catch {
+                uploadError = error.localizedDescription
+                isUploading = false
+                return
+            }
+            isUploading = false
+        }
+
+        displayName = editedName
+        onSave(editedName)
+        dismiss()
     }
 }
 
