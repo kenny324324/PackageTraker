@@ -76,7 +76,8 @@ function mapTransitSubStatus(description: string): TrackingStatus {
   if (
     description.includes("到店") ||
     description.includes("可取件") ||
-    description.includes("門市到貨")
+    description.includes("門市到貨") ||
+    description.includes("配達取件") // 全家: "貨件配達取件店鋪"
   ) {
     return "arrivedAtStore";
   }

@@ -3,6 +3,7 @@ import SwiftUI
 import SwiftData
 import FirebaseAuth
 import FirebaseFirestore
+import FirebaseFunctions
 
 /// 開發者選項（僅 DEBUG 模式）
 struct DeveloperOptionsView: View {
@@ -18,6 +19,13 @@ struct DeveloperOptionsView: View {
     @State private var isFetchingWhatsNew = false
 
     private let debugService = DebugNotificationService.shared
+    private let functions = Functions.functions(region: "asia-east1")
+    @State private var serverPushStatus: String = ""
+    @State private var isSendingServerPush = false
+    @State private var deadlineStatus: String = ""
+    @Query(filter: #Predicate<Package> { $0.statusRawValue == "arrivedAtStore" })
+    private var arrivedPackages: [Package]
+    private var arrivedPackagesCount: Int { arrivedPackages.count }
 
     var body: some View {
         List {
@@ -68,10 +76,32 @@ struct DeveloperOptionsView: View {
                 } label: {
                     Label("模擬狀態變化通知", systemImage: "arrow.triangle.2.circlepath")
                 }
+
+                Divider()
+
+                Button {
+                    Task { await sendServerTestPush() }
+                } label: {
+                    HStack {
+                        Label("發送伺服器測試推播", systemImage: "antenna.radiowaves.left.and.right")
+                            .foregroundStyle(.blue)
+                        if isSendingServerPush {
+                            Spacer()
+                            ProgressView()
+                        }
+                    }
+                }
+                .disabled(isSendingServerPush)
+
+                if !serverPushStatus.isEmpty {
+                    Text(serverPushStatus)
+                        .font(.caption)
+                        .foregroundStyle(serverPushStatus.contains("✅") ? .green : .red)
+                }
             } header: {
                 Text("通知測試")
             } footer: {
-                Text("立即發送本地通知，用於測試通知功能是否正常。請確保已開啟通知權限。")
+                Text("上方為本地通知測試。「伺服器測試推播」會走完整 FCM 鏈路（Cloud Function → APNs → 裝置），可驗證使用者反映「收不到推播」的問題。")
             }
 
             // MARK: - Mock 資料
@@ -126,6 +156,47 @@ struct DeveloperOptionsView: View {
                 Text("Mock 資料")
             } footer: {
                 Text("選擇狀態後自動生成物流商、名稱等資訊")
+            }
+
+            // MARK: - 取件倒數測試
+            Section {
+                HStack {
+                    Text("已到店包裹數")
+                    Spacer()
+                    Text("\(arrivedPackagesCount)")
+                        .foregroundStyle(arrivedPackagesCount > 0 ? .green : .secondary)
+                }
+
+                Menu {
+                    Button { setDeadlineDays(-1) } label: { Label("已逾期 1 天 (紅)", systemImage: "exclamationmark.triangle.fill") }
+                    Button { setDeadlineDays(0) } label: { Label("今天截止 (紅)", systemImage: "exclamationmark.circle.fill") }
+                    Button { setDeadlineDays(1) } label: { Label("剩餘 1 天 (紅)", systemImage: "1.circle.fill") }
+                    Button { setDeadlineDays(2) } label: { Label("剩餘 2 天 (紅)", systemImage: "2.circle.fill") }
+                    Button { setDeadlineDays(3) } label: { Label("剩餘 3 天 (紅)", systemImage: "3.circle.fill") }
+                    Button { setDeadlineDays(4) } label: { Label("剩餘 4 天 (灰)", systemImage: "4.circle.fill") }
+                    Button { setDeadlineDays(5) } label: { Label("剩 5 天 → 顯示日期", systemImage: "5.circle.fill") }
+                    Button { setDeadlineDays(10) } label: { Label("剩 10 天 → 顯示日期", systemImage: "10.circle.fill") }
+                } label: {
+                    Label("修改全部已到店包裹截止日", systemImage: "calendar.badge.clock")
+                }
+                .disabled(arrivedPackagesCount == 0)
+
+                Button {
+                    clearAllPickupDeadlines()
+                } label: {
+                    Label("清除手動截止日（恢復自動計算）", systemImage: "arrow.counterclockwise")
+                }
+                .disabled(arrivedPackagesCount == 0)
+
+                if !deadlineStatus.isEmpty {
+                    Text(deadlineStatus)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            } header: {
+                Text("取件倒數測試")
+            } footer: {
+                Text("快速修改所有「已到店」包裹的取件截止日，方便測試卡片倒數顯示樣式（顏色、文字、日期格式）。修改的是 pickupDeadline 字串欄位，不影響真實 events。")
             }
 
             // MARK: - API 除錯
@@ -771,6 +842,58 @@ struct DeveloperOptionsView: View {
         } catch {
             print("[Debug] 建立截圖資料失敗: \(error)")
         }
+    }
+
+    private func setDeadlineDays(_ offset: Int) {
+        guard !arrivedPackages.isEmpty else { return }
+        let calendar = Calendar.current
+        guard let target = calendar.date(byAdding: .day, value: offset, to: Date()) else { return }
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "zh_TW")
+        formatter.dateFormat = "yyyy-MM-dd"
+        let dateString = formatter.string(from: target)
+
+        for package in arrivedPackages {
+            package.pickupDeadline = dateString
+        }
+        do {
+            try modelContext.save()
+            deadlineStatus = "✅ 已將 \(arrivedPackages.count) 個包裹截止日設為 \(dateString)（\(offset >= 0 ? "+" : "")\(offset) 天）"
+        } catch {
+            deadlineStatus = "❌ 修改失敗: \(error.localizedDescription)"
+        }
+    }
+
+    private func clearAllPickupDeadlines() {
+        guard !arrivedPackages.isEmpty else { return }
+        for package in arrivedPackages {
+            package.pickupDeadline = nil
+        }
+        do {
+            try modelContext.save()
+            deadlineStatus = "✅ 已清除 \(arrivedPackages.count) 個包裹的手動截止日"
+        } catch {
+            deadlineStatus = "❌ 清除失敗: \(error.localizedDescription)"
+        }
+    }
+
+    private func sendServerTestPush() async {
+        isSendingServerPush = true
+        serverPushStatus = ""
+        do {
+            let callable = functions.httpsCallable("sendTestPush")
+            let result = try await callable.call([:])
+            if let dict = result.data as? [String: Any],
+               let sent = dict["sentToDevices"] as? Int,
+               let failed = dict["failedDevices"] as? Int {
+                serverPushStatus = "✅ 已送出 \(sent) 台裝置（失敗 \(failed)）。等幾秒看有沒有收到。"
+            } else {
+                serverPushStatus = "✅ 已送出，請等幾秒。"
+            }
+        } catch {
+            serverPushStatus = "❌ 失敗: \(error.localizedDescription)"
+        }
+        isSendingServerPush = false
     }
 
     private func testAPIConnection() async {

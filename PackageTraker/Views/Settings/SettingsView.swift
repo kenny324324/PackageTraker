@@ -190,12 +190,12 @@ struct SettingsView: View {
                             showNotificationDeniedAlert = true
                             return
                         }
-                        FirebasePushService.shared.syncDeviceNotificationSettings()
+                        FirebasePushService.shared.syncDeviceNotificationSettingsInBackground()
                     }
                 } else if !newValue && oldValue {
                     // 用戶關閉通知，取消所有通知
                     NotificationService.shared.cancelAllNotifications()
-                    FirebasePushService.shared.syncDeviceNotificationSettings()
+                    FirebasePushService.shared.syncDeviceNotificationSettingsInBackground()
                 }
             }
             .onChange(of: hideDeliveredPackages) { _, newValue in

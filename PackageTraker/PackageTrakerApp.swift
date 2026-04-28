@@ -259,6 +259,10 @@ struct PackageTrakerApp: App {
                 if newPhase == .active {
                     // App 回到前景時清除 badge 紅點
                     UNUserNotificationCenter.current().setBadgeCount(0)
+                    // 同步通知設定到 Firestore（預防本機與 server 不一致）
+                    if Auth.auth().currentUser != nil {
+                        FirebasePushService.shared.syncDeviceNotificationSettingsInBackground()
+                    }
                 }
             }
             .onChange(of: authService.isAuthenticated) { oldValue, newValue in
@@ -287,6 +291,16 @@ struct PackageTrakerApp: App {
                     }
                     Task {
                         await FirebasePushService.shared.registerForPushNotifications()
+
+                        // 一次性升級：對歷史用戶強制重新同步通知設定
+                        // （避免舊版本上傳時序問題導致 Firestore 殘留錯誤值）
+                        let key = "notificationSettingsRehydrated_v1"
+                        if !UserDefaults.standard.bool(forKey: key) {
+                            let ok = await FirebasePushService.shared.syncDeviceNotificationSettings()
+                            if ok {
+                                UserDefaults.standard.set(true, forKey: key)
+                            }
+                        }
 
                         // 登入後載入邀請碼資料 + 套用待處理的邀請碼
                         if FeatureFlags.referralEnabled {

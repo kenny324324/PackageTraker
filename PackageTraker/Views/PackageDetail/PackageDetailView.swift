@@ -189,13 +189,20 @@ struct PackageDetailView: View {
                     }
 
                     // 取件期限
-                    HStack(spacing: 4) {
-                        Image(systemName: "calendar")
-                            .foregroundStyle(.secondary)
-                            .font(.caption)
-                        Text("\(String(localized: "detail.deadline")) \(formattedDeadlineDisplay)")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                    if let deadlineText = package.formattedPickupDeadlineDate {
+                        HStack(spacing: 4) {
+                            Image(systemName: "calendar")
+                                .foregroundStyle(deadlineColor)
+                                .font(.caption)
+                            Text("\(String(localized: "detail.deadline")) \(deadlineText)")
+                                .font(.subheadline)
+                                .foregroundStyle(deadlineColor)
+                            if let daysLeftText {
+                                Text(daysLeftText)
+                                    .font(.caption.bold())
+                                    .foregroundStyle(deadlineColor)
+                            }
+                        }
                     }
                 }
             }
@@ -205,7 +212,25 @@ struct PackageDetailView: View {
 
     /// 是否有額外資訊
     private var hasExtraInfo: Bool {
-        package.serviceType != nil || package.pickupDeadline != nil
+        package.serviceType != nil || package.resolvedPickupDeadline != nil
+    }
+
+    /// 取件期限顯示顏色：當天/逾期紅色，2 天內紅色，否則 secondary
+    private var deadlineColor: Color {
+        guard let days = package.daysUntilPickupDeadline else { return .secondary }
+        return days <= 2 ? .red : .secondary
+    }
+
+    /// 「還剩 X 天 / 今天截止 / 已逾期」文字（無資料則 nil）
+    private var daysLeftText: String? {
+        guard let days = package.daysUntilPickupDeadline else { return nil }
+        if days < 0 {
+            return String(localized: "card.daysLeft.expired")
+        }
+        if days == 0 {
+            return String(localized: "card.daysLeft.today")
+        }
+        return String(format: String(localized: "card.daysLeft.format"), days)
     }
 
     /// 是否有訂單資訊

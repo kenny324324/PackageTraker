@@ -100,7 +100,7 @@ export const updateAppStats = onSchedule(
  */
 export const updatePercentiles = onSchedule(
   {
-    schedule: "0 0 * * *",
+    schedule: "0 0 1 * *",
     timeZone: "Asia/Taipei",
     region: "asia-east1",
     timeoutSeconds: 540,

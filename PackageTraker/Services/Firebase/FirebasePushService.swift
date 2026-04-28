@@ -12,6 +12,24 @@ import FirebaseFirestore
 import FirebaseMessaging
 import UIKit
 
+/// 從 Firestore 讀回的裝置端通知設定快照（用於診斷比對）
+struct RemoteNotificationSettings: Equatable {
+    var enabled: Bool
+    var arrivalNotification: Bool
+    var shippedNotification: Bool
+    var pickupReminder: Bool
+    var lastTokenUploadAt: Date?
+
+    /// 是否與本機 UserDefaults 一致
+    func matchesLocal() -> Bool {
+        let d = UserDefaults.standard
+        return enabled == d.bool(forKey: "notificationsEnabled")
+            && arrivalNotification == d.bool(forKey: "arrivalNotificationEnabled")
+            && shippedNotification == d.bool(forKey: "shippedNotificationEnabled")
+            && pickupReminder == d.bool(forKey: "pickupReminderEnabled")
+    }
+}
+
 @MainActor
 final class FirebasePushService: NSObject, ObservableObject {
     static let shared = FirebasePushService()
@@ -48,10 +66,11 @@ final class FirebasePushService: NSObject, ObservableObject {
 
     // MARK: - 上傳 Token（多裝置：寫入 fcmTokens map，含裝置通知設定）
 
-    func uploadToken() async {
+    @discardableResult
+    func uploadToken() async -> Bool {
         guard let userId = Auth.auth().currentUser?.uid,
               let token = fcmToken else {
-            return
+            return false
         }
 
         let defaults = UserDefaults.standard
@@ -62,6 +81,7 @@ final class FirebasePushService: NSObject, ObservableObject {
                 "fcmTokens.\(deviceId)": [
                     "token": token,
                     "lastActive": FieldValue.serverTimestamp(),
+                    "lastTokenUploadAt": FieldValue.serverTimestamp(),
                     "notificationSettings": [
                         "enabled": defaults.bool(forKey: "notificationsEnabled"),
                         "arrivalNotification": defaults.bool(forKey: "arrivalNotificationEnabled"),
@@ -72,16 +92,19 @@ final class FirebasePushService: NSObject, ObservableObject {
                 "lastActive": FieldValue.serverTimestamp()
             ])
             print("[FCM] ✅ Token uploaded for device \(deviceId)")
+            return true
         } catch {
             print("[FCM] ❌ Failed to upload token: \(error.localizedDescription)")
+            return false
         }
     }
 
     // MARK: - 同步裝置通知設定到 Firestore
 
     /// 將當前裝置的通知設定同步到 fcmTokens map 中
-    func syncDeviceNotificationSettings() {
-        guard let userId = Auth.auth().currentUser?.uid else { return }
+    @discardableResult
+    func syncDeviceNotificationSettings() async -> Bool {
+        guard let userId = Auth.auth().currentUser?.uid else { return false }
 
         let defaults = UserDefaults.standard
         let settings: [String: Any] = [
@@ -91,15 +114,51 @@ final class FirebasePushService: NSObject, ObservableObject {
             "pickupReminder": defaults.bool(forKey: "pickupReminderEnabled")
         ]
 
-        Task {
-            do {
-                try await db.collection("users").document(userId).updateData([
-                    "fcmTokens.\(deviceId).notificationSettings": settings
-                ])
-                print("[FCM] ✅ Device notification settings synced")
-            } catch {
-                print("[FCM] ❌ Failed to sync notification settings: \(error.localizedDescription)")
+        do {
+            try await db.collection("users").document(userId).updateData([
+                "fcmTokens.\(deviceId).notificationSettings": settings,
+                "fcmTokens.\(deviceId).lastTokenUploadAt": FieldValue.serverTimestamp()
+            ])
+            print("[FCM] ✅ Device notification settings synced")
+            return true
+        } catch {
+            print("[FCM] ❌ Failed to sync notification settings: \(error.localizedDescription)")
+            return false
+        }
+    }
+
+    /// 觸發背景同步（無回傳值，用於 onChange 等不需 await 的場景）
+    func syncDeviceNotificationSettingsInBackground() {
+        Task { _ = await syncDeviceNotificationSettings() }
+    }
+
+    // MARK: - 讀取 Firestore 端的通知設定（診斷用）
+
+    /// 從 Firestore 讀取當前裝置的 notificationSettings 快照
+    func fetchRemoteNotificationSettings() async -> RemoteNotificationSettings? {
+        guard let userId = Auth.auth().currentUser?.uid else { return nil }
+
+        do {
+            let doc = try await db.collection("users").document(userId).getDocument()
+            guard let data = doc.data(),
+                  let tokens = data["fcmTokens"] as? [String: Any],
+                  let device = tokens[deviceId] as? [String: Any] else {
+                return nil
             }
+            let settings = device["notificationSettings"] as? [String: Any] ?? [:]
+            let lastUpload = (device["lastTokenUploadAt"] as? Timestamp)?.dateValue()
+                ?? (device["lastActive"] as? Timestamp)?.dateValue()
+
+            return RemoteNotificationSettings(
+                enabled: settings["enabled"] as? Bool ?? true,
+                arrivalNotification: settings["arrivalNotification"] as? Bool ?? true,
+                shippedNotification: settings["shippedNotification"] as? Bool ?? true,
+                pickupReminder: settings["pickupReminder"] as? Bool ?? true,
+                lastTokenUploadAt: lastUpload
+            )
+        } catch {
+            print("[FCM] ❌ Failed to fetch remote settings: \(error.localizedDescription)")
+            return nil
         }
     }
 

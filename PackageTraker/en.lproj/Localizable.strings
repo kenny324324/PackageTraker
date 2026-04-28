@@ -197,6 +197,54 @@
 "settings.shippedNotification" = "Shipped Notification";
 "settings.pickupReminder" = "Pickup Reminder";
 "settings.notificationHint" = "Enable to receive package status updates";
+"settings.notification.footer" = "Package status syncs about once an hour. Status changes (shipped, in transit, arrived) trigger an instant push. Packages already at the store on first sync will also notify you. If you're not receiving any pushes, tap Notification Diagnostic below.";
+
+// Pickup Deadline (card / detail)
+"card.pickupDeadline.format" = "Pickup by %@";
+"card.daysLeft.format" = "%d days left";
+"card.daysLeft.today" = "Due today";
+"card.daysLeft.expired" = "Overdue";
+
+// Notification Diagnostic
+"diagnostic.title" = "Notification Diagnostic";
+"diagnostic.howItWorks.title" = "How push works";
+"diagnostic.howItWorks.body" = "Package status syncs about once an hour. When the status changes (shipped, in transit, arrived) you'll get an instant push. If any of the items below isn't OK, pushes can't be delivered.";
+"diagnostic.systemPermission" = "System Permission";
+"diagnostic.appToggle" = "App Notification Toggle";
+"diagnostic.fcmToken" = "Push Service Registration";
+"diagnostic.status.granted" = "Granted";
+"diagnostic.status.denied" = "Denied";
+"diagnostic.status.notDetermined" = "Not Requested";
+"diagnostic.status.unknown" = "Unknown";
+"diagnostic.status.on" = "On";
+"diagnostic.status.off" = "Off";
+"diagnostic.status.registered" = "Registered";
+"diagnostic.status.notRegistered" = "Not Registered";
+"diagnostic.systemPermission.deniedDetail" = "Open System Settings > Pickup > Notifications to enable.";
+"diagnostic.systemPermission.notDeterminedDetail" = "Permission hasn't been requested. Tap the button below to retry.";
+"diagnostic.appToggle.offDetail" = "Go back and turn the master notification toggle on.";
+"diagnostic.fcmToken.missingDetail" = "No push token yet. Tap the button below to retry.";
+"diagnostic.openSystemSettings" = "Open System Settings";
+"diagnostic.retryRegistration" = "Retry Push Registration";
+"diagnostic.serverSettings" = "Server-side Settings Sync";
+"diagnostic.status.synced" = "In Sync";
+"diagnostic.status.outOfSync" = "Out of Sync";
+"diagnostic.status.notFound" = "Not Found";
+"diagnostic.status.partialOn" = "Partially On";
+"diagnostic.status.loading" = "Loading…";
+"diagnostic.serverSettings.notFoundDetail" = "The server has no record of this device's settings yet. Tap the button below to sync.";
+"diagnostic.serverSettings.outOfSyncDetail" = "Toggle states in the app don't match what the server has, which blocks pushes. Tap the button below to force a re-sync.";
+"diagnostic.appToggle.partialOffDetail" = "These are off: %@";
+"diagnostic.forceResync" = "Force Re-sync";
+"diagnostic.lastUpload.format" = "Last upload: %@";
+"diagnostic.lastUpload.unknown" = "Last upload: unknown";
+"diagnostic.resync.success" = "Synced successfully";
+"diagnostic.resync.failed" = "Sync failed. Check network and retry.";
+"settings.notification.permissionDenied.title" = "Notifications Blocked";
+"settings.notification.permissionDenied.body" = "You previously denied push permission. No notifications will arrive until you re-enable it in System Settings > Pickup > Notifications.";
+"settings.notification.permissionNeeded.title" = "Permission Required";
+"settings.notification.permissionNeeded.body" = "Allow notifications to receive package status updates.";
+"settings.notification.allowNow" = "Allow Now";
 "settings.dataManagement" = "Data Management";
 "settings.refreshInterval" = "Refresh Interval";
 "settings.clearData" = "Clear All Data";

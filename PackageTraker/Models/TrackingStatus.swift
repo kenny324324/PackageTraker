@@ -101,7 +101,7 @@ enum TrackingStatus: String, CaseIterable, Identifiable, Codable {
         //    ❌ "離開寄件門市" → inTransit（含「離開」）
         //    ❌ "送達物流中心" → inTransit（不含「門市」）
         if description.contains("到店") || description.contains("可取件") ||
-           description.contains("門市到貨") {
+           description.contains("門市到貨") || description.contains("配達取件") {
             return .arrivedAtStore
         }
         if description.contains("門市") &&

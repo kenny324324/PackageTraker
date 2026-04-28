@@ -197,6 +197,54 @@
 "settings.shippedNotification" = "出貨通知";
 "settings.pickupReminder" = "取貨提醒";
 "settings.notificationHint" = "開啟通知以即時收到包裹狀態更新";
+"settings.notification.footer" = "包裹狀態約每小時自動同步一次。狀態變化（出貨、到店、配送中）會即時推播；下載前已寄出的包裹首次同步後，若已到店也會收到通知。如果一直沒收到，請點擊下方「推播診斷」檢查。";
+
+// Pickup Deadline (card / detail)
+"card.pickupDeadline.format" = "取件期限 %@";
+"card.daysLeft.format" = "剩餘 %d 天";
+"card.daysLeft.today" = "今天截止";
+"card.daysLeft.expired" = "已逾期";
+
+// Notification Diagnostic
+"diagnostic.title" = "推播診斷";
+"diagnostic.howItWorks.title" = "推播怎麼運作？";
+"diagnostic.howItWorks.body" = "App 約每小時自動同步包裹狀態。當狀態變化（已寄出、配送中、已到店）會立即推播。若以下任一項目未通過，推播就無法送達。";
+"diagnostic.systemPermission" = "系統通知權限";
+"diagnostic.appToggle" = "App 通知總開關";
+"diagnostic.fcmToken" = "推播服務註冊";
+"diagnostic.status.granted" = "已授權";
+"diagnostic.status.denied" = "已拒絕";
+"diagnostic.status.notDetermined" = "尚未授權";
+"diagnostic.status.unknown" = "未知";
+"diagnostic.status.on" = "已開啟";
+"diagnostic.status.off" = "已關閉";
+"diagnostic.status.registered" = "已註冊";
+"diagnostic.status.notRegistered" = "未註冊";
+"diagnostic.systemPermission.deniedDetail" = "請至「系統設定 > 取貨吧 > 通知」開啟推播權限。";
+"diagnostic.systemPermission.notDeterminedDetail" = "尚未請求權限，點擊下方按鈕重新註冊。";
+"diagnostic.appToggle.offDetail" = "請回到上一頁，開啟通知總開關。";
+"diagnostic.fcmToken.missingDetail" = "推播服務尚未取得 Token，請點擊下方按鈕重試。";
+"diagnostic.openSystemSettings" = "前往系統設定";
+"diagnostic.retryRegistration" = "重新註冊推播";
+"diagnostic.serverSettings" = "伺服器端設定同步";
+"diagnostic.status.synced" = "已同步";
+"diagnostic.status.outOfSync" = "不一致";
+"diagnostic.status.notFound" = "找不到";
+"diagnostic.status.partialOn" = "部分開啟";
+"diagnostic.status.loading" = "讀取中…";
+"diagnostic.serverSettings.notFoundDetail" = "伺服器尚未收到此裝置的設定，請點下方按鈕重新同步。";
+"diagnostic.serverSettings.outOfSyncDetail" = "App 顯示的開關狀態與伺服器不一致，這會導致推播被擋掉。請點下方按鈕重新同步。";
+"diagnostic.appToggle.partialOffDetail" = "以下類型已關閉：%@";
+"diagnostic.forceResync" = "強制重新同步";
+"diagnostic.lastUpload.format" = "上次上傳：%@";
+"diagnostic.lastUpload.unknown" = "上次上傳：未知";
+"diagnostic.resync.success" = "同步成功";
+"diagnostic.resync.failed" = "同步失敗，請檢查網路後再試";
+"settings.notification.permissionDenied.title" = "通知權限被拒絕";
+"settings.notification.permissionDenied.body" = "你曾拒絕推播權限，目前無法收到任何通知。請至「系統設定 > 取貨吧 > 通知」開啟。";
+"settings.notification.permissionNeeded.title" = "尚未授權通知";
+"settings.notification.permissionNeeded.body" = "需要授權後才能收到包裹狀態變化的推播。";
+"settings.notification.allowNow" = "立即授權";
 "settings.dataManagement" = "資料管理";
 "settings.refreshInterval" = "更新頻率";
 "settings.clearData" = "清除所有資料";

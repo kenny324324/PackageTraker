@@ -164,8 +164,17 @@ struct SplashView: View {
             UserDefaults.standard.set(currentUid, forKey: "lastSignedInUid")
         }
 
-        // 冷啟動時重新註冊 FCM 推播（背景執行）
-        Task { await FirebasePushService.shared.registerForPushNotifications() }
+        // 冷啟動時重新註冊 FCM 推播（背景執行）+ 一次性 rehydrate
+        Task {
+            await FirebasePushService.shared.registerForPushNotifications()
+            let key = "notificationSettingsRehydrated_v1"
+            if !UserDefaults.standard.bool(forKey: key) {
+                let ok = await FirebasePushService.shared.syncDeviceNotificationSettings()
+                if ok {
+                    UserDefaults.standard.set(true, forKey: key)
+                }
+            }
+        }
 
         // 階段 0.5: 下載用戶偏好設定（訂閱層級、通知設定、主題等）
         await FirebaseSyncService.shared.downloadUserPreferences()

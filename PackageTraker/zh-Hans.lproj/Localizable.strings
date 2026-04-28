@@ -197,6 +197,54 @@
 "settings.shippedNotification" = "发货通知";
 "settings.pickupReminder" = "取货提醒";
 "settings.notificationHint" = "开启通知以即时收到包裹状态更新";
+"settings.notification.footer" = "包裹状态约每小时自动同步一次。状态变化（已发货、到店、配送中）会即时推送；下载前已寄出的包裹首次同步后，若已到店也会收到通知。如果一直没收到，请点击下方「推送诊断」检查。";
+
+// Pickup Deadline (card / detail)
+"card.pickupDeadline.format" = "取件期限 %@";
+"card.daysLeft.format" = "剩余 %d 天";
+"card.daysLeft.today" = "今天截止";
+"card.daysLeft.expired" = "已逾期";
+
+// Notification Diagnostic
+"diagnostic.title" = "推送诊断";
+"diagnostic.howItWorks.title" = "推送如何运作？";
+"diagnostic.howItWorks.body" = "App 约每小时自动同步包裹状态。当状态变化（已发货、配送中、已到店）会立即推送。若以下任一项目未通过，推送就无法送达。";
+"diagnostic.systemPermission" = "系统通知权限";
+"diagnostic.appToggle" = "App 通知总开关";
+"diagnostic.fcmToken" = "推送服务注册";
+"diagnostic.status.granted" = "已授权";
+"diagnostic.status.denied" = "已拒绝";
+"diagnostic.status.notDetermined" = "尚未授权";
+"diagnostic.status.unknown" = "未知";
+"diagnostic.status.on" = "已开启";
+"diagnostic.status.off" = "已关闭";
+"diagnostic.status.registered" = "已注册";
+"diagnostic.status.notRegistered" = "未注册";
+"diagnostic.systemPermission.deniedDetail" = "请至「系统设置 > 取货吧 > 通知」开启推送权限。";
+"diagnostic.systemPermission.notDeterminedDetail" = "尚未请求权限，点击下方按钮重新注册。";
+"diagnostic.appToggle.offDetail" = "请回到上一页，开启通知总开关。";
+"diagnostic.fcmToken.missingDetail" = "推送服务尚未取得 Token，请点击下方按钮重试。";
+"diagnostic.openSystemSettings" = "前往系统设置";
+"diagnostic.retryRegistration" = "重新注册推送";
+"diagnostic.serverSettings" = "服务器端设置同步";
+"diagnostic.status.synced" = "已同步";
+"diagnostic.status.outOfSync" = "不一致";
+"diagnostic.status.notFound" = "找不到";
+"diagnostic.status.partialOn" = "部分开启";
+"diagnostic.status.loading" = "读取中…";
+"diagnostic.serverSettings.notFoundDetail" = "服务器尚未收到此设备的设置，请点下方按钮重新同步。";
+"diagnostic.serverSettings.outOfSyncDetail" = "App 显示的开关状态与服务器不一致，这会导致推送被拦截。请点下方按钮重新同步。";
+"diagnostic.appToggle.partialOffDetail" = "以下类型已关闭：%@";
+"diagnostic.forceResync" = "强制重新同步";
+"diagnostic.lastUpload.format" = "上次上传：%@";
+"diagnostic.lastUpload.unknown" = "上次上传：未知";
+"diagnostic.resync.success" = "同步成功";
+"diagnostic.resync.failed" = "同步失败，请检查网络后再试";
+"settings.notification.permissionDenied.title" = "通知权限被拒绝";
+"settings.notification.permissionDenied.body" = "你曾拒绝推送权限，目前无法收到任何通知。请至「系统设置 > 取货吧 > 通知」开启。";
+"settings.notification.permissionNeeded.title" = "尚未授权通知";
+"settings.notification.permissionNeeded.body" = "需要授权后才能收到包裹状态变化的推送。";
+"settings.notification.allowNow" = "立即授权";
 "settings.dataManagement" = "数据管理";
 "settings.refreshInterval" = "更新频率";
 "settings.clearData" = "清除所有数据";

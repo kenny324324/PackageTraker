@@ -41,18 +41,15 @@ struct PackageCardView: View {
                     .foregroundStyle(.primary)
                     .lineLimit(1)
 
-                // 底部：地點 + 訂單日期
+                // 底部：地點 + 取件期限（已到貨）或訂單日期（其他狀態）
                 HStack {
                     Text(package.displayPickupLocation)
                         .font(.caption)
                         .foregroundStyle(.secondary)
 
                     Spacer()
-                    
-                    // 訂單成立日期
-                    Text(package.formattedOrderCreatedTime)
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
+
+                    PackageCardDateLabel(package: package)
                 }
             }
             .adaptiveInteractiveCardStyle()
@@ -88,6 +85,30 @@ struct PackageCardView: View {
             }
         }
         .modifier(HeroTransitionModifier(id: package.id, namespace: namespace))
+    }
+}
+
+/// 卡片右下角日期標籤：
+/// - 已到貨：5 天以上顯示日期；4 天內顯示「剩餘 X 天」；3 天內變紅
+/// - 其他狀態：顯示訂單成立日
+struct PackageCardDateLabel: View {
+    let package: Package
+
+    var body: some View {
+        if package.status == .arrivedAtStore,
+           let countdown = package.pickupCountdownDisplay() {
+            Text(countdown.text)
+                .font(.caption)
+                .fontWeight(countdown.isUrgent ? .semibold : .regular)
+                .foregroundStyle(countdown.isUrgent ? Color.red : Color(white: 0.6))
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+        } else {
+            Text(package.formattedOrderCreatedTime)
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+                .lineLimit(1)
+        }
     }
 }
 

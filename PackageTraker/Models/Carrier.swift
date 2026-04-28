@@ -189,6 +189,17 @@ enum Carrier: String, CaseIterable, Identifiable, Codable {
         }
     }
 
+    /// 超商取件保留天數（自動計算取件期限用）
+    /// 台灣超商取貨統一保留 7 天，逾期自動退回
+    var pickupHoldDays: Int? {
+        switch self {
+        case .sevenEleven, .familyMart, .hiLife, .okMart, .shopee:
+            return 7
+        default:
+            return nil
+        }
+    }
+
     /// 預設取貨地點（用於分類顯示）
     var defaultPickupLocation: String {
         switch self {

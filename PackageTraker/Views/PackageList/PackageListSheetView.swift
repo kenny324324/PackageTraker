@@ -102,9 +102,18 @@ struct PackageListSheetView: View {
                 VStack(alignment: .trailing, spacing: 4) {
                     StatusIconBadge(status: package.status)
 
-                    Text(package.formattedOrderCreatedTime)
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
+                    // 已到貨包裹一律顯示倒數天數（不論幾天）；其他狀態顯示訂單成立日
+                    if package.status == .arrivedAtStore,
+                       let countdown = package.pickupCountdownDisplay(alwaysShowDays: true) {
+                        Text(countdown.text)
+                            .font(.caption)
+                            .fontWeight(countdown.isUrgent ? .semibold : .regular)
+                            .foregroundStyle(countdown.isUrgent ? Color.red : Color(white: 0.6))
+                    } else {
+                        Text(package.formattedOrderCreatedTime)
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
                 }
             }
             .padding(.horizontal, 12)

@@ -181,6 +181,96 @@ final class Package {
         formatter.dateFormat = "MM/dd"
         return formatter.string(from: orderTime)
     }
+
+    // MARK: - Pickup Deadline
+
+    /// 第一次「到店」事件的時間戳記
+    var arrivedAtStoreTimestamp: Date? {
+        events
+            .filter { $0.status == .arrivedAtStore }
+            .sorted { $0.timestamp < $1.timestamp }
+            .first?.timestamp
+    }
+
+    /// 自動計算的取件截止日期（到店時間 + carrier.pickupHoldDays 天）
+    /// 截止時刻設為當天 23:59，符合超商取件實務
+    var computedPickupDeadline: Date? {
+        guard let arrivedAt = arrivedAtStoreTimestamp,
+              let holdDays = carrier.pickupHoldDays else {
+            return nil
+        }
+        let calendar = Calendar(identifier: .gregorian)
+        guard let plus = calendar.date(byAdding: .day, value: holdDays, to: arrivedAt) else {
+            return nil
+        }
+        return calendar.date(
+            bySettingHour: 23, minute: 59, second: 59, of: plus
+        ) ?? plus
+    }
+
+    /// 解析後的取件截止日期，優先使用 `pickupDeadline` 字串（手動填或同步寫回的）
+    /// 若字串解析失敗則 fallback 到 `computedPickupDeadline`
+    var resolvedPickupDeadline: Date? {
+        if let str = pickupDeadline, !str.isEmpty {
+            let formatters = ["yyyy-MM-dd", "yyyy/MM/dd", "MM/dd HH:mm", "MM/dd"]
+            for fmt in formatters {
+                let df = DateFormatter()
+                df.locale = Locale(identifier: "zh_TW")
+                df.dateFormat = fmt
+                if let date = df.date(from: str) {
+                    let calendar = Calendar(identifier: .gregorian)
+                    return calendar.date(
+                        bySettingHour: 23, minute: 59, second: 59, of: date
+                    ) ?? date
+                }
+            }
+        }
+        return computedPickupDeadline
+    }
+
+    /// 距離取件截止還剩幾天（負數代表已過期，0 代表今天截止）
+    var daysUntilPickupDeadline: Int? {
+        guard let deadline = resolvedPickupDeadline else { return nil }
+        let calendar = Calendar(identifier: .gregorian)
+        let startOfToday = calendar.startOfDay(for: Date())
+        let startOfDeadline = calendar.startOfDay(for: deadline)
+        return calendar.dateComponents([.day], from: startOfToday, to: startOfDeadline).day
+    }
+
+    /// 取件截止日期的格式化顯示（MM/dd）
+    var formattedPickupDeadlineDate: String? {
+        guard let deadline = resolvedPickupDeadline else { return nil }
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "zh_TW")
+        formatter.dateFormat = "MM/dd"
+        return formatter.string(from: deadline)
+    }
+
+    /// 取件倒數顯示
+    /// - parameter alwaysShowDays: true = 不論幾天都顯示「剩餘 X 天」（用於 sheet 列表）
+    ///                              false = 5 天以上顯示 MM/dd（用於卡片，避免擁擠）
+    /// 共用規則：
+    ///   - 0 天：今天截止
+    ///   - 負數：已逾期
+    ///   - 3 天內 / 今天 / 已逾期：紅色
+    /// 回傳 nil 代表沒有 deadline 資料，呼叫者請 fallback 到訂單日
+    func pickupCountdownDisplay(alwaysShowDays: Bool = false) -> (text: String, isUrgent: Bool)? {
+        guard let days = daysUntilPickupDeadline else { return nil }
+
+        if days < 0 {
+            return (String(localized: "card.daysLeft.expired"), true)
+        }
+        if days == 0 {
+            return (String(localized: "card.daysLeft.today"), true)
+        }
+        if alwaysShowDays || days <= 4 {
+            let text = String(format: String(localized: "card.daysLeft.format"), days)
+            return (text, days <= 3)
+        }
+        // 5 天以上顯示日期（卡片用）
+        guard let dateText = formattedPickupDeadlineDate else { return nil }
+        return (dateText, false)
+    }
 }
 
 /// 物流事件（詳情頁時間軸用）

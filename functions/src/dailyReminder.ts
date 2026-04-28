@@ -2,8 +2,8 @@
  * dailyReminder.ts
  *
  * 每日取貨提醒：每天台北時間 10:00
- * 查詢所有用戶中狀態為 arrivedAtStore 且未取貨的包裹，
- * 彙整後發送一則 FCM 推播提醒。
+ * 用 collectionGroup 直接查 arrivedAtStore 包裹，再反查對應用戶，
+ * 避免逐用戶掃描，大幅減少 Firestore reads。
  */
 
 import {onSchedule} from "firebase-functions/v2/scheduler";
@@ -26,59 +26,47 @@ export const dailyPickupReminder = onSchedule(
 
     const db = getFirestore();
 
-    // 取得所有用戶
-    const usersSnapshot = await db.collection("users").get();
-    logger.info(`[DailyReminder] Found ${usersSnapshot.size} users`);
+    // 用 collectionGroup 直接撈所有待取件包裹，不需逐用戶掃描
+    const packagesSnapshot = await db.collectionGroup("packages")
+      .where("status", "==", "arrivedAtStore")
+      .where("isArchived", "==", false)
+      .get();
+
+    // 過濾已刪除，並按 userId 分組
+    const userPackageMap = new Map<string, Array<{name: string; location: string}>>();
+
+    for (const doc of packagesSnapshot.docs) {
+      const data = doc.data();
+      if (data.isDeleted === true) continue;
+
+      const userId = doc.ref.parent.parent?.id;
+      if (!userId) continue;
+
+      if (!userPackageMap.has(userId)) {
+        userPackageMap.set(userId, []);
+      }
+      userPackageMap.get(userId)!.push({
+        name: data.customName || data.trackingNumber || "",
+        location: data.pickupLocation || data.userPickupLocation || data.storeName || "",
+      });
+    }
+
+    logger.info(
+      `[DailyReminder] Found ${packagesSnapshot.size} pending packages ` +
+      `across ${userPackageMap.size} users`
+    );
 
     let totalSent = 0;
-    let totalSkipped = 0;
 
-    for (const userDoc of usersSnapshot.docs) {
-      const userId = userDoc.id;
+    for (const [userId, packageInfos] of userPackageMap) {
+      const userDoc = await db.collection("users").doc(userId).get();
       const userData = userDoc.data();
+      if (!userData) continue;
 
-      // 檢查 FCM Token（支援新 map + 舊單一格式）
       const {tokens} = extractAllTokens(userData);
-      if (tokens.length === 0) {
-        continue;
-      }
+      if (tokens.length === 0) continue;
 
-      // 通知設定改為 per-device，由 sendPushToAllDevices 過濾
-
-      // 查詢該用戶的待取包裹
-      const packagesSnapshot = await db
-        .collection(`users/${userId}/packages`)
-        .where("status", "==", "arrivedAtStore")
-        .where("isArchived", "==", false)
-        .get();
-
-      // 過濾已刪除的包裹
-      const pendingPackages = packagesSnapshot.docs.filter((doc) => {
-        const data = doc.data();
-        return data.isDeleted !== true;
-      });
-
-      if (pendingPackages.length === 0) {
-        continue;
-      }
-
-      // 取得用戶語系
       const lang = normalizeLang(userData.language);
-
-      // 組裝包裹資訊
-      const packageInfos = pendingPackages.map((doc) => {
-        const data = doc.data();
-        return {
-          name: data.customName || data.trackingNumber || "",
-          location:
-            data.pickupLocation ||
-            data.userPickupLocation ||
-            data.storeName ||
-            "",
-        };
-      });
-
-      // 取得推播文字
       const text = getDailyReminderText(lang, packageInfos);
 
       const failedDeviceIds = await sendPushToAllDevices(userData, {
@@ -86,13 +74,12 @@ export const dailyPickupReminder = onSchedule(
         body: text.body,
         data: {
           type: "dailyReminder",
-          count: String(pendingPackages.length),
+          count: String(packageInfos.length),
         },
         collapseId: `daily-reminder-${userId}`,
         threadId: "daily-reminder",
       }, "pickupReminder");
 
-      // 寫入通知日誌
       await logNotification({
         userId,
         type: "dailyReminder",
@@ -102,7 +89,7 @@ export const dailyPickupReminder = onSchedule(
         failedDeviceIds,
         success: tokens.length > 0 && failedDeviceIds.length < tokens.length,
         metadata: {
-          reminderPackageCount: pendingPackages.length,
+          reminderPackageCount: packageInfos.length,
         },
       });
 
@@ -118,19 +105,13 @@ export const dailyPickupReminder = onSchedule(
         }
         if (Object.keys(updates).length > 0) {
           await db.collection("users").doc(userId).update(updates);
-          logger.info(`[DailyReminder] Cleaned ${failedDeviceIds.length} invalid tokens`);
         }
       }
 
       totalSent++;
-      logger.info(
-        `[DailyReminder] Sent to user ${userId}: ` +
-        `${pendingPackages.length} packages (${lang})`
-      );
+      logger.info(`[DailyReminder] Sent to user ${userId}: ${packageInfos.length} packages (${lang})`);
     }
 
-    logger.info(
-      `[DailyReminder] Completed: ${totalSent} sent, ${totalSkipped} skipped`
-    );
+    logger.info(`[DailyReminder] Completed: ${totalSent} sent`);
   }
 );

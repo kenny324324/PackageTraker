@@ -48,6 +48,10 @@ final class PackageRefreshService {
         let didStart = await refreshingNumbers.begin(package.trackingNumber)
         guard didStart else { return false }
 
+        // 紀錄首次同步狀態：用於修補「匯入即已到貨，沒有 transition 不觸發 Cloud Functions」的洞
+        let wasFirstSync = package.events.isEmpty
+        let oldStatus = package.status
+
         do {
             let result = try await trackingManager.track(package: package)
             await refreshingNumbers.end(package.trackingNumber)
@@ -55,6 +59,16 @@ final class PackageRefreshService {
             guard !Task.isCancelled else { return false }
             applyTrackingResult(result, to: package)
             try? context.save()
+
+            // 首次同步若狀態已是「已到貨」，本地觸發到貨通知
+            // （Cloud Functions onDocumentUpdated 只看狀態變化，匯入時沒有 before status，永遠不會 fire）
+            if wasFirstSync, package.status == .arrivedAtStore {
+                NotificationManager.shared.handleStatusChange(
+                    package: package,
+                    oldStatus: oldStatus,
+                    newStatus: package.status
+                )
+            }
             // 不回寫 Firestore：Scheduler 是 Firestore 狀態的唯一寫入者，
             // Client 刷新只更新本地 SwiftData 供即時顯示。
             // 避免 Client + Scheduler 同時寫入觸發多次 onDocumentUpdated 推播。
@@ -228,6 +242,18 @@ final class PackageRefreshService {
             return event
         }
         package.events = newEvents
+
+        // Track.TW 不回傳取件期限。狀態為「已到貨」且為超商類別時，
+        // 用「最早到店事件 + carrier.pickupHoldDays」自動回填，
+        // 不覆寫使用者手動填或 API 回傳的既有值。
+        if package.pickupDeadline == nil,
+           package.status == .arrivedAtStore,
+           let computed = package.computedPickupDeadline {
+            let formatter = DateFormatter()
+            formatter.locale = Locale(identifier: "zh_TW")
+            formatter.dateFormat = "yyyy-MM-dd"
+            package.pickupDeadline = formatter.string(from: computed)
+        }
     }
 }
 

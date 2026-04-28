@@ -16,7 +16,7 @@ import {getFirestore, FieldValue} from "firebase-admin/firestore";
 import {logger} from "firebase-functions/v2";
 import {createHash} from "crypto";
 import {TrackTwAPI} from "./services/trackTwApi";
-import {fromTrackTw, isCompletedStatus} from "./utils/statusMapper";
+import {fromTrackTw} from "./utils/statusMapper";
 
 const trackwToken = defineSecret("TRACKW_TOKEN");
 
@@ -28,7 +28,7 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const packageTrackingScheduler = onSchedule(
   {
-    schedule: "*/30 * * * *",
+    schedule: "0 * * * *",
     timeZone: "Asia/Taipei",
     region: "asia-east1",
     timeoutSeconds: 540,
@@ -47,16 +47,16 @@ export const packageTrackingScheduler = onSchedule(
     const db = getFirestore();
     const api = new TrackTwAPI(token);
 
-    // 使用 collectionGroup 直接查詢所有未封存、未刪除的包裹
+    // 使用 collectionGroup 直接查詢所有活躍包裹，排除已完成狀態
     const packagesSnapshot = await db.collectionGroup("packages")
       .where("isArchived", "==", false)
+      .where("status", "not-in", ["delivered", "returned"])
       .get();
 
-    // code-side 過濾：排除已刪除、已完成、無 relationId 的包裹
+    // code-side 過濾：排除已刪除、無 relationId 的包裹
     const activePackages = packagesSnapshot.docs.filter((doc) => {
       const data = doc.data();
       if (data.isDeleted === true) return false;
-      if (isCompletedStatus(data.status)) return false;
       if (!data.trackTwRelationId) return false;
       return true;
     });
