@@ -62,6 +62,8 @@
 "add.ocrButton" = "截图识别";
 "add.productName" = "品名";
 "add.productNamePlaceholder" = "例如：蓝牙耳机";
+"add.pickupCode" = "取件码";
+"add.pickupCodePlaceholder" = "选填，例如 6 位数验证码";
 "add.platform" = "购买平台";
 "add.platformPlaceholder" = "选择或输入平台";
 "add.pickupLocation" = "取货地点";

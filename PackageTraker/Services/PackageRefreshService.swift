@@ -69,9 +69,15 @@ final class PackageRefreshService {
                     newStatus: package.status
                 )
             }
-            // 不回寫 Firestore：Scheduler 是 Firestore 狀態的唯一寫入者，
-            // Client 刷新只更新本地 SwiftData 供即時顯示。
-            // 避免 Client + Scheduler 同時寫入觸發多次 onDocumentUpdated 推播。
+            // 一般狀態下 Scheduler 是 Firestore 狀態的唯一寫入者，避免 Client+Scheduler
+            // 同時寫入觸發多次 onDocumentUpdated 推播。
+            // 但「終端狀態」(delivered / returned) 不在 triggers.ts 的 NOTIFIABLE_STATUSES，
+            // 不會觸發推播；且 Track.TW 對部分物流商（蝦皮店到店）的取件事件常有數天延遲，
+            // 若不主動回寫，dailyReminder 會繼續每天打擾用戶。
+            // → 終端狀態由 Client 直接回寫 Firestore，作為 Scheduler 落後時的補位。
+            if oldStatus != package.status, package.status.isCompleted {
+                FirebaseSyncService.shared.syncPackage(package, includeStatus: true)
+            }
             // 更新 Widget 資料
             updateWidgetFromContext(context)
             return true

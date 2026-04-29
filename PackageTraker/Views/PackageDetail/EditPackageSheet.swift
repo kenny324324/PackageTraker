@@ -6,6 +6,7 @@ struct EditPackageSheet: View {
     @Environment(\.dismiss) private var dismiss
     
     @State private var customName: String = ""
+    @State private var pickupCodeText: String = ""
     @State private var selectedPlatform: String = ""
     @State private var selectedPaymentMethod: PaymentMethod?
     @State private var amountText: String = ""
@@ -25,7 +26,10 @@ struct EditPackageSheet: View {
                     
                     // 品名
                     customNameSection
-                    
+
+                    // 取件碼
+                    pickupCodeSection
+
                     // 購買平台
                     platformSection
                     
@@ -121,7 +125,18 @@ struct EditPackageSheet: View {
                 .adaptiveInputStyle()
         }
     }
-    
+
+    private var pickupCodeSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(String(localized: "add.pickupCode"))
+                .font(.headline)
+
+            TextField(String(localized: "add.pickupCodePlaceholder"), text: $pickupCodeText)
+                .textFieldStyle(.plain)
+                .adaptiveInputStyle()
+        }
+    }
+
     private var platformSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(String(localized: "add.platform"))
@@ -226,6 +241,7 @@ struct EditPackageSheet: View {
     
     private func loadCurrentValues() {
         customName = package.customName ?? ""
+        pickupCodeText = package.pickupCode ?? ""
         selectedPlatform = package.purchasePlatform ?? ""
         selectedPaymentMethod = package.paymentMethod
         if let amount = package.amount {
@@ -236,9 +252,10 @@ struct EditPackageSheet: View {
         notes = package.notes ?? ""
         userPickupLocation = package.userPickupLocation ?? ""
     }
-    
+
     private func saveChanges() {
         package.customName = customName.isEmpty ? nil : customName
+        package.pickupCode = pickupCodeText.isEmpty ? nil : pickupCodeText
         package.purchasePlatform = selectedPlatform.isEmpty ? nil : selectedPlatform
         package.paymentMethod = selectedPaymentMethod
         package.amount = Double(amountText)

@@ -22,6 +22,7 @@ struct PackageInfoView: View {
     var prefillAmount: String? = nil
 
     @State private var customName = ""
+    @State private var pickupCodeText = ""
     @State private var selectedPaymentMethod: PaymentMethod?
     @State private var amountText = ""
     @State private var selectedPlatform = ""
@@ -39,6 +40,7 @@ struct PackageInfoView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 customNameSection
+                pickupCodeSection
                 platformSection
                 pickupLocationSection
 
@@ -104,6 +106,9 @@ struct PackageInfoView: View {
             if let name = prefillName, customName.isEmpty {
                 customName = name
             }
+            if let code = prefillPickupCode, pickupCodeText.isEmpty {
+                pickupCodeText = code
+            }
             if let location = prefillPickupLocation, userPickupLocation.isEmpty {
                 userPickupLocation = location
             }
@@ -124,6 +129,17 @@ struct PackageInfoView: View {
                 .font(.headline)
 
             TextField(String(localized: "add.productNamePlaceholder"), text: $customName)
+                .textFieldStyle(.plain)
+                .adaptiveInputStyle()
+        }
+    }
+
+    private var pickupCodeSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(String(localized: "add.pickupCode"))
+                .font(.headline)
+
+            TextField(String(localized: "add.pickupCodePlaceholder"), text: $pickupCodeText)
                 .textFieldStyle(.plain)
                 .adaptiveInputStyle()
         }
@@ -240,6 +256,7 @@ struct PackageInfoView: View {
 
     private var hasAdditionalInfo: Bool {
         !customName.isEmpty ||
+        !pickupCodeText.isEmpty ||
         selectedPaymentMethod != nil ||
         !amountText.isEmpty ||
         !selectedPlatform.isEmpty ||
@@ -267,7 +284,7 @@ struct PackageInfoView: View {
             trackingNumber: trackingNumber,
             carrier: carrier,
             customName: customName.isEmpty ? nil : customName,
-            pickupCode: prefillPickupCode,
+            pickupCode: pickupCodeText.isEmpty ? nil : pickupCodeText,
             pickupLocation: trackingResult.events.first?.location ?? carrier.defaultPickupLocation,
             status: trackingResult.currentStatus,
             latestDescription: trackingResult.events.first?.description,
@@ -329,6 +346,7 @@ struct PackageInfoView: View {
         guard let package = duplicatePackage else { return }
 
         if !customName.isEmpty { package.customName = customName }
+        if !pickupCodeText.isEmpty { package.pickupCode = pickupCodeText }
         if let method = selectedPaymentMethod { package.paymentMethodRawValue = method.rawValue }
         if let amount = Double(amountText) { package.amount = amount }
         if !selectedPlatform.isEmpty { package.purchasePlatform = selectedPlatform }
