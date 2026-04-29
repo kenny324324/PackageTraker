@@ -68,4 +68,28 @@ enum AnalyticsService {
             "product_id": productId,
         ])
     }
+
+    // MARK: - Promo Sheet（launch / milestone 共用）
+
+    static func logPromoSheetShown(variant: String) {
+        Analytics.logEvent("promo_sheet_shown", parameters: [
+            "variant": variant,
+        ])
+    }
+
+    static func logPromoSheetCTAClicked(variant: String) {
+        Analytics.logEvent("promo_sheet_cta_clicked", parameters: [
+            "variant": variant,
+        ])
+    }
+
+    // MARK: - 1000 用戶里程碑
+
+    static func logMilestonePromoBannerTapped() {
+        Analytics.logEvent("milestone_promo_banner_tapped", parameters: nil)
+    }
+
+    static func logMilestonePromoPurchased() {
+        Analytics.logEvent("milestone_promo_purchased", parameters: nil)
+    }
 }

@@ -685,6 +685,16 @@
 "promo.sheet.description" = "買斷方案限時半價，一次付費永久解鎖所有 Pro 功能";
 "promo.sheet.cta" = "立即查看優惠";
 
+// 1000 用戶里程碑慶祝
+"milestone.promo.badge" = "慶祝活動";
+"milestone.promo.banner" = "1000 使用者慶祝活動！買斷限時 6.5 折";
+"milestone.promo.banner.final" = "最後 %d 天！買斷限時 6.5 折";
+"milestone.promo.remaining_days" = "活動剩餘 %d 天";
+"milestone.promo.final_countdown" = "最後 %d 天！";
+"milestone.promo.sheet.title" = "1000 位使用者慶祝活動！";
+"milestone.promo.sheet.description" = "感謝 1000 位使用者的支持！買斷方案限時 6.5 折，一次付費永久解鎖所有 Pro 功能";
+"milestone.promo.sheet.cta" = "立即查看優惠";
+
 // MARK: - 常用取貨地點
 "settings.savedLocations" = "常用取貨地點";
 "savedLocations.title" = "常用取貨地點";

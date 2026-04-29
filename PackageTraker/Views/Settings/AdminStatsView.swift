@@ -1,6 +1,94 @@
 #if DEBUG
 import SwiftUI
-import FirebaseFunctions
+import FirebaseAuth
+
+// MARK: - Cloud Function HTTP Client
+//
+// DEBUG-only admin function 透過 URLSession 直接呼叫 callable Cloud Function 的
+// HTTPS endpoint，**不走 FirebaseFunctions SDK 也不取 Bearer token**。
+//
+// 為什麼不取 token：iOS 26 + Firebase Auth SDK 的 `getIDToken { ... }` callback 在
+// 某些 device state 下永不 fire（其他 Firebase 服務透過內部不同 path 不受影響）。
+//
+// 改怎麼驗 admin：client 同步取 `Auth.auth().currentUser.uid` 放進 body，server 端
+// 比對 admin uid allowlist。DEBUG-only tooling，這層信任可接受。
+
+private enum CloudFunctionError: LocalizedError {
+    case notSignedIn
+    case invalidResponse
+    case http(Int, String)
+
+    var errorDescription: String? {
+        switch self {
+        case .notSignedIn: return "未登入"
+        case .invalidResponse: return "回應格式錯誤"
+        case .http(let code, let msg): return "HTTP \(code): \(msg)"
+        }
+    }
+}
+
+func callCloudFunction(_ name: String, params: [String: Any] = [:]) async throws -> [String: Any] {
+    guard let adminUid = Auth.auth().currentUser?.uid else {
+        throw CloudFunctionError.notSignedIn
+    }
+
+    // admin uid 統一用 `adminUid` 欄位（避免和 getUserDetail 的 target uid 撞名）
+    var body = params
+    body["adminUid"] = adminUid
+
+    let url = URL(string: "https://asia-east1-packagetraker-e80b0.cloudfunctions.net/\(name)")!
+    var request = URLRequest(url: url)
+    request.httpMethod = "POST"
+    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    request.httpBody = try JSONSerialization.data(withJSONObject: ["data": body])
+    request.timeoutInterval = 30
+
+    // 用 callback-based dataTask + Continuation，避開 URLSession.data(for:) async wrapper
+    // （iOS 26 + Swift Concurrency 環境下也有 hang 問題）
+    let (data, response): (Data, URLResponse) = try await withCheckedThrowingContinuation { continuation in
+        let task = URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error {
+                continuation.resume(throwing: error)
+            } else if let data, let response {
+                continuation.resume(returning: (data, response))
+            } else {
+                continuation.resume(throwing: CloudFunctionError.invalidResponse)
+            }
+        }
+        task.resume()
+    }
+
+    guard let httpResp = response as? HTTPURLResponse else {
+        throw CloudFunctionError.invalidResponse
+    }
+
+    let json = (try? JSONSerialization.jsonObject(with: data) as? [String: Any]) ?? [:]
+
+    if httpResp.statusCode >= 400 {
+        let msg = (json["error"] as? [String: Any])?["message"] as? String ?? "Unknown"
+        throw CloudFunctionError.http(httpResp.statusCode, msg)
+    }
+
+    guard let result = json["result"] as? [String: Any] else {
+        throw CloudFunctionError.invalidResponse
+    }
+    return result
+}
+
+// MARK: - Helpers
+
+private func parseStringIntDict(_ raw: Any?) -> [String: Int] {
+    guard let dict = raw as? [String: Any] else { return [:] }
+    var result: [String: Int] = [:]
+    for (k, v) in dict {
+        if let i = v as? Int {
+            result[k] = i
+        } else if let n = v as? NSNumber {
+            result[k] = n.intValue
+        }
+    }
+    return result
+}
 
 // MARK: - Data Models
 
@@ -10,6 +98,8 @@ private struct AdminSummary {
     let monthly: Int
     let yearly: Int
     let lifetime: Int
+    let appVersionDistribution: [String: Int]
+    let iosVersionDistribution: [String: Int]
 }
 
 private struct AdminUser: Identifiable {
@@ -127,15 +217,18 @@ private struct AdminPackageEvent: Identifiable, TimelineEventData {
 
 struct AdminStatsView: View {
     @State private var isLoading = false
+    @State private var isLoadingMore = false
     @State private var errorMessage: String?
     @State private var summary: AdminSummary?
     @State private var users: [AdminUser] = []
+    @State private var nextCursor: String?
     @State private var searchText = ""
     @State private var sortOrder: SortOrder = .packageCount
     @State private var userFilter: UserFilter = .all
     @State private var selectedUser: AdminUser?
 
-    private let functions = Functions.functions(region: "asia-east1")
+    private static let pageSize = 50
+
     private let isoFormatter: ISO8601DateFormatter = {
         let f = ISO8601DateFormatter()
         f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -169,47 +262,41 @@ struct AdminStatsView: View {
 
     var body: some View {
         List {
-            if let summary {
-                summarySection(summary)
-            }
-
             usersSection
         }
         .searchable(text: $searchText, prompt: "搜尋 email")
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                HStack(spacing: 12) {
-                    Menu {
-                        ForEach(UserFilter.allCases, id: \.self) { filter in
-                            Button {
-                                userFilter = filter
-                            } label: {
-                                if userFilter == filter {
-                                    Label(filter.rawValue, systemImage: "checkmark")
-                                } else {
-                                    Text(filter.rawValue)
-                                }
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                Menu {
+                    ForEach(UserFilter.allCases, id: \.self) { filter in
+                        Button {
+                            userFilter = filter
+                        } label: {
+                            if userFilter == filter {
+                                Label(filter.rawValue, systemImage: "checkmark")
+                            } else {
+                                Text(filter.rawValue)
                             }
                         }
-                    } label: {
-                        Image(systemName: userFilter == .all ? "line.3.horizontal.decrease.circle" : "line.3.horizontal.decrease.circle.fill")
                     }
+                } label: {
+                    Image(systemName: userFilter == .all ? "line.3.horizontal.decrease.circle" : "line.3.horizontal.decrease.circle.fill")
+                }
 
-                    Menu {
-                        ForEach(SortOrder.allCases, id: \.self) { order in
-                            Button {
-                                sortOrder = order
-                            } label: {
-                                if sortOrder == order {
-                                    Label(order.rawValue, systemImage: "checkmark")
-                                } else {
-                                    Text(order.rawValue)
-                                }
+                Menu {
+                    ForEach(SortOrder.allCases, id: \.self) { order in
+                        Button {
+                            sortOrder = order
+                        } label: {
+                            if sortOrder == order {
+                                Label(order.rawValue, systemImage: "checkmark")
+                            } else {
+                                Text(order.rawValue)
                             }
                         }
-                    } label: {
-                        Image(systemName: "arrow.up.arrow.down")
                     }
+                } label: {
+                    Image(systemName: "arrow.up.arrow.down")
                 }
             }
         }
@@ -232,40 +319,10 @@ struct AdminStatsView: View {
         .task {
             await fetchStats()
         }
-        .navigationTitle("資料庫統計")
+        .navigationTitle("使用者列表")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $selectedUser) { user in
-            AdminUserDetailSheet(user: user, functions: functions)
-        }
-    }
-
-    // MARK: - Summary Section
-
-    @ViewBuilder
-    private func summarySection(_ summary: AdminSummary) -> some View {
-        Section {
-            statsRow("總用戶數", value: "\(summary.totalUsers)", icon: "person.2.fill")
-            statsRow("訂閱用戶", value: "\(summary.subscribedUsers)", icon: "star.fill", color: .yellow)
-
-            if summary.subscribedUsers > 0 {
-                Divider()
-                statsRow("月訂閱", value: "\(summary.monthly)", icon: "calendar")
-                statsRow("年訂閱", value: "\(summary.yearly)", icon: "calendar.badge.clock")
-                statsRow("終身", value: "\(summary.lifetime)", icon: "infinity", color: .purple)
-            }
-        } header: {
-            Text("總覽")
-        }
-    }
-
-    private func statsRow(_ title: String, value: String, icon: String, color: Color = .secondary) -> some View {
-        HStack {
-            Label(title, systemImage: icon)
-                .foregroundStyle(color)
-            Spacer()
-            Text(value)
-                .fontWeight(.semibold)
-                .foregroundStyle(.white)
+            AdminUserDetailSheet(user: user)
         }
     }
 
@@ -320,8 +377,30 @@ struct AdminStatsView: View {
                 }
                 .foregroundStyle(.primary)
             }
+
+            if nextCursor != nil {
+                Button {
+                    Task { await loadMore() }
+                } label: {
+                    HStack {
+                        Spacer()
+                        if isLoadingMore {
+                            ProgressView()
+                        } else {
+                            Text("載入更多")
+                                .foregroundStyle(Color.appAccent)
+                        }
+                        Spacer()
+                    }
+                }
+                .disabled(isLoadingMore)
+            }
         } header: {
-            Text("所有用戶 (\(filteredUsers.count))")
+            if let total = summary?.totalUsers {
+                Text("用戶 (\(filteredUsers.count) / \(users.count) 已載入，共 \(total))")
+            } else {
+                Text("用戶 (\(filteredUsers.count))")
+            }
         }
     }
 
@@ -331,30 +410,39 @@ struct AdminStatsView: View {
         isLoading = true
         defer { isLoading = false }
 
+        users = []
+        nextCursor = nil
+
+        await fetchPage(cursor: nil)
+    }
+
+    private func loadMore() async {
+        guard let cursor = nextCursor, !isLoadingMore else { return }
+        isLoadingMore = true
+        defer { isLoadingMore = false }
+        await fetchPage(cursor: cursor)
+    }
+
+    private func fetchPage(cursor: String?) async {
         do {
-            let callable = functions.httpsCallable("getAdminStats")
-            callable.timeoutInterval = 120
-            let result = try await callable.call()
+            var params: [String: Any] = ["limit": Self.pageSize]
+            if let cursor { params["cursor"] = cursor }
+            let data = try await callCloudFunction("getAdminStats", params: params)
 
-            guard let data = result.data as? [String: Any] else {
-                errorMessage = "回傳格式錯誤"
-                return
-            }
-
-            // Parse summary
             if let summaryData = data["summary"] as? [String: Any] {
                 summary = AdminSummary(
                     totalUsers: summaryData["totalUsers"] as? Int ?? 0,
                     subscribedUsers: summaryData["subscribedUsers"] as? Int ?? 0,
                     monthly: summaryData["monthly"] as? Int ?? 0,
                     yearly: summaryData["yearly"] as? Int ?? 0,
-                    lifetime: summaryData["lifetime"] as? Int ?? 0
+                    lifetime: summaryData["lifetime"] as? Int ?? 0,
+                    appVersionDistribution: parseStringIntDict(summaryData["appVersionDistribution"]),
+                    iosVersionDistribution: parseStringIntDict(summaryData["iosVersionDistribution"])
                 )
             }
 
-            // Parse users
             if let usersData = data["users"] as? [[String: Any]] {
-                users = usersData.map { dict in
+                let newUsers = usersData.map { dict in
                     AdminUser(
                         id: dict["uid"] as? String ?? "",
                         email: dict["email"] as? String ?? "(no email)",
@@ -368,7 +456,10 @@ struct AdminStatsView: View {
                         iosVersion: dict["iosVersion"] as? String
                     )
                 }
+                users.append(contentsOf: newUsers)
             }
+
+            nextCursor = data["nextCursor"] as? String
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -380,11 +471,116 @@ struct AdminStatsView: View {
     }
 }
 
+// MARK: - AdminAnalyticsView
+
+struct AdminAnalyticsView: View {
+    @State private var isLoading = false
+    @State private var errorMessage: String?
+    @State private var summary: AdminSummary?
+
+    var body: some View {
+        List {
+            if let summary {
+                overallSection(summary)
+                subscriptionSection(summary)
+            }
+        }
+        .overlay {
+            if isLoading && summary == nil {
+                ProgressView("載入中⋯")
+            }
+        }
+        .refreshable {
+            await fetchSummary()
+        }
+        .alert("錯誤", isPresented: .init(
+            get: { errorMessage != nil },
+            set: { if !$0 { errorMessage = nil } }
+        )) {
+            Button("確定") { errorMessage = nil }
+        } message: {
+            Text(errorMessage ?? "")
+        }
+        .task {
+            await fetchSummary()
+        }
+        .navigationTitle("統計分析")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    // MARK: - Sections
+
+    @ViewBuilder
+    private func overallSection(_ summary: AdminSummary) -> some View {
+        Section {
+            row("總用戶數", value: "\(summary.totalUsers)", icon: "person.2.fill")
+            row("訂閱用戶", value: "\(summary.subscribedUsers)", icon: "star.fill", color: .yellow)
+
+            if summary.totalUsers > 0 {
+                let rate = Double(summary.subscribedUsers) / Double(summary.totalUsers) * 100
+                row("訂閱率", value: String(format: "%.2f%%", rate), icon: "percent")
+            }
+        } header: {
+            Text("總覽")
+        }
+    }
+
+    @ViewBuilder
+    private func subscriptionSection(_ summary: AdminSummary) -> some View {
+        Section {
+            row("月訂閱", value: "\(summary.monthly)", icon: "calendar")
+            row("年訂閱", value: "\(summary.yearly)", icon: "calendar.badge.clock")
+            row("終身", value: "\(summary.lifetime)", icon: "infinity", color: .purple)
+        } header: {
+            Text("訂閱方案分佈")
+        }
+    }
+
+    private func row(_ title: String, value: String, icon: String, color: Color = .secondary) -> some View {
+        HStack {
+            Label(title, systemImage: icon)
+                .foregroundStyle(color)
+            Spacer()
+            Text(value)
+                .fontWeight(.semibold)
+                .foregroundStyle(.white)
+        }
+    }
+
+    // MARK: - Fetch
+
+    private func fetchSummary() async {
+        isLoading = true
+        defer { isLoading = false }
+
+        do {
+            // 只需要 summary，limit=1 拿最少資料
+            let data = try await callCloudFunction("getAdminStats", params: ["limit": 1])
+
+            guard let summaryData = data["summary"] as? [String: Any] else {
+                errorMessage = "回傳格式錯誤"
+                return
+            }
+
+            summary = AdminSummary(
+                totalUsers: summaryData["totalUsers"] as? Int ?? 0,
+                subscribedUsers: summaryData["subscribedUsers"] as? Int ?? 0,
+                monthly: summaryData["monthly"] as? Int ?? 0,
+                yearly: summaryData["yearly"] as? Int ?? 0,
+                lifetime: summaryData["lifetime"] as? Int ?? 0,
+                appVersionDistribution: parseStringIntDict(summaryData["appVersionDistribution"]),
+                iosVersionDistribution: parseStringIntDict(summaryData["iosVersionDistribution"])
+            )
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+}
+
 // MARK: - AdminUserDetailSheet
 
 private struct AdminUserDetailSheet: View {
     let user: AdminUser
-    let functions: Functions
 
     @Environment(\.dismiss) private var dismiss
     @State private var isLoading = false
@@ -677,12 +873,9 @@ private struct AdminUserDetailSheet: View {
         defer { isLoading = false }
 
         do {
-            let callable = functions.httpsCallable("getUserDetail")
-            callable.timeoutInterval = 30
-            let result = try await callable.call(["uid": user.id])
+            let data = try await callCloudFunction("getUserDetail", params: ["uid": user.id])
 
-            guard let data = result.data as? [String: Any],
-                  let userData = data["user"] as? [String: Any],
+            guard let userData = data["user"] as? [String: Any],
                   let packagesData = data["packages"] as? [[String: Any]],
                   let rawFields = data["rawFields"] as? [String: Any] else {
                 errorMessage = "回傳格式錯誤"
@@ -957,25 +1150,38 @@ private struct RawFieldsSheet: View {
 
 struct AdminVersionsView: View {
     @State private var isLoading = false
+    @State private var isLoadingMore = false
     @State private var errorMessage: String?
+    @State private var summary: AdminSummary?
     @State private var users: [AdminUser] = []
+    @State private var nextCursor: String?
     @State private var appVersionFilter: String = "全部"
     @State private var iosVersionFilter: String = "全部"
 
-    private let functions = Functions.functions(region: "asia-east1")
+    private static let pageSize = 50
+
     private let isoFormatter: ISO8601DateFormatter = {
         let f = ISO8601DateFormatter()
         f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         return f
     }()
 
+    /// App 版本選項（從 summary 拿，所有使用者都納入）
     private var uniqueAppVersions: [String] {
-        let versions = Set(users.compactMap(\.appVersion)).sorted().reversed()
+        guard let summary else { return ["全部"] }
+        let versions = summary.appVersionDistribution.keys
+            .filter { $0 != "未知" }
+            .sorted()
+            .reversed()
         return ["全部"] + versions
     }
 
     private var uniqueIOSVersions: [String] {
-        let versions = Set(users.compactMap(\.iosVersion)).sorted().reversed()
+        guard let summary else { return ["全部"] }
+        let versions = summary.iosVersionDistribution.keys
+            .filter { $0 != "未知" }
+            .sorted()
+            .reversed()
         return ["全部"] + versions
     }
 
@@ -1009,51 +1215,37 @@ struct AdminVersionsView: View {
             Text(errorMessage ?? "")
         }
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                HStack(spacing: 12) {
-                    Menu {
-                        ForEach(uniqueAppVersions, id: \.self) { version in
-                            Button {
-                                appVersionFilter = version
-                            } label: {
-                                if appVersionFilter == version {
-                                    Label(version, systemImage: "checkmark")
-                                } else {
-                                    Text(version)
-                                }
-                            }
-                        }
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "app.badge")
-                            if appVersionFilter != "全部" {
-                                Text(appVersionFilter)
-                                    .font(.caption2)
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                Menu {
+                    ForEach(uniqueAppVersions, id: \.self) { version in
+                        Button {
+                            appVersionFilter = version
+                        } label: {
+                            if appVersionFilter == version {
+                                Label(version, systemImage: "checkmark")
+                            } else {
+                                Text(version)
                             }
                         }
                     }
+                } label: {
+                    Image(systemName: "app.badge")
+                }
 
-                    Menu {
-                        ForEach(uniqueIOSVersions, id: \.self) { version in
-                            Button {
-                                iosVersionFilter = version
-                            } label: {
-                                if iosVersionFilter == version {
-                                    Label(version, systemImage: "checkmark")
-                                } else {
-                                    Text(version)
-                                }
-                            }
-                        }
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "iphone.gen3")
-                            if iosVersionFilter != "全部" {
-                                Text(iosVersionFilter)
-                                    .font(.caption2)
+                Menu {
+                    ForEach(uniqueIOSVersions, id: \.self) { version in
+                        Button {
+                            iosVersionFilter = version
+                        } label: {
+                            if iosVersionFilter == version {
+                                Label(version, systemImage: "checkmark")
+                            } else {
+                                Text(version)
                             }
                         }
                     }
+                } label: {
+                    Image(systemName: "iphone.gen3")
                 }
             }
         }
@@ -1068,15 +1260,15 @@ struct AdminVersionsView: View {
 
     private var distributionSection: some View {
         Section {
-            // App 版本分佈
-            let appGroups = Dictionary(grouping: users) { $0.appVersion ?? "未知" }
+            // App 版本分佈（從 summary 拿，全用戶）
+            let appGroups = (summary?.appVersionDistribution ?? [:])
                 .sorted { $0.key > $1.key }
-            ForEach(appGroups, id: \.key) { version, group in
+            ForEach(appGroups, id: \.key) { version, count in
                 HStack {
                     Label(version, systemImage: "app.badge")
                         .font(.subheadline)
                     Spacer()
-                    Text("\(group.count)")
+                    Text("\(count)")
                         .fontWeight(.semibold)
                         .foregroundStyle(.white)
                 }
@@ -1085,20 +1277,24 @@ struct AdminVersionsView: View {
             Divider()
 
             // iOS 版本分佈
-            let iosGroups = Dictionary(grouping: users) { $0.iosVersion ?? "未知" }
+            let iosGroups = (summary?.iosVersionDistribution ?? [:])
                 .sorted { $0.key > $1.key }
-            ForEach(iosGroups, id: \.key) { version, group in
+            ForEach(iosGroups, id: \.key) { version, count in
                 HStack {
                     Label("iOS \(version)", systemImage: "iphone.gen3")
                         .font(.subheadline)
                     Spacer()
-                    Text("\(group.count)")
+                    Text("\(count)")
                         .fontWeight(.semibold)
                         .foregroundStyle(.white)
                 }
             }
         } header: {
-            Text("版本分佈")
+            if let total = summary?.totalUsers {
+                Text("版本分佈（共 \(total) 位用戶）")
+            } else {
+                Text("版本分佈")
+            }
         }
     }
 
@@ -1139,9 +1335,27 @@ struct AdminVersionsView: View {
                     }
                     .padding(.vertical, 2)
                 }
+
+                if nextCursor != nil {
+                    Button {
+                        Task { await loadMore() }
+                    } label: {
+                        HStack {
+                            Spacer()
+                            if isLoadingMore {
+                                ProgressView()
+                            } else {
+                                Text("載入更多")
+                                    .foregroundStyle(Color.appAccent)
+                            }
+                            Spacer()
+                        }
+                    }
+                    .disabled(isLoadingMore)
+                }
             }
         } header: {
-            Text("用戶 (\(filteredUsers.count))")
+            Text("用戶 (\(filteredUsers.count) / \(users.count) 已載入)")
         }
     }
 
@@ -1151,31 +1365,56 @@ struct AdminVersionsView: View {
         isLoading = true
         defer { isLoading = false }
 
+        users = []
+        nextCursor = nil
+
+        await fetchPage(cursor: nil)
+    }
+
+    private func loadMore() async {
+        guard let cursor = nextCursor, !isLoadingMore else { return }
+        isLoadingMore = true
+        defer { isLoadingMore = false }
+        await fetchPage(cursor: cursor)
+    }
+
+    private func fetchPage(cursor: String?) async {
         do {
-            let callable = functions.httpsCallable("getAdminStats")
-            callable.timeoutInterval = 120
-            let result = try await callable.call()
+            var params: [String: Any] = ["limit": Self.pageSize]
+            if let cursor { params["cursor"] = cursor }
+            let data = try await callCloudFunction("getAdminStats", params: params)
 
-            guard let data = result.data as? [String: Any],
-                  let usersData = data["users"] as? [[String: Any]] else {
-                errorMessage = "回傳格式錯誤"
-                return
-            }
-
-            users = usersData.map { dict in
-                AdminUser(
-                    id: dict["uid"] as? String ?? "",
-                    email: dict["email"] as? String ?? "(no email)",
-                    subscriptionTier: dict["subscriptionTier"] as? String,
-                    subscriptionProductID: dict["subscriptionProductID"] as? String,
-                    packageCount: dict["packageCount"] as? Int ?? 0,
-                    lastActive: parseISO(dict["lastActive"] as? String),
-                    createdAt: parseISO(dict["createdAt"] as? String),
-                    language: dict["language"] as? String,
-                    appVersion: dict["appVersion"] as? String,
-                    iosVersion: dict["iosVersion"] as? String
+            if let summaryData = data["summary"] as? [String: Any] {
+                summary = AdminSummary(
+                    totalUsers: summaryData["totalUsers"] as? Int ?? 0,
+                    subscribedUsers: summaryData["subscribedUsers"] as? Int ?? 0,
+                    monthly: summaryData["monthly"] as? Int ?? 0,
+                    yearly: summaryData["yearly"] as? Int ?? 0,
+                    lifetime: summaryData["lifetime"] as? Int ?? 0,
+                    appVersionDistribution: parseStringIntDict(summaryData["appVersionDistribution"]),
+                    iosVersionDistribution: parseStringIntDict(summaryData["iosVersionDistribution"])
                 )
             }
+
+            if let usersData = data["users"] as? [[String: Any]] {
+                let newUsers = usersData.map { dict in
+                    AdminUser(
+                        id: dict["uid"] as? String ?? "",
+                        email: dict["email"] as? String ?? "(no email)",
+                        subscriptionTier: dict["subscriptionTier"] as? String,
+                        subscriptionProductID: dict["subscriptionProductID"] as? String,
+                        packageCount: dict["packageCount"] as? Int ?? 0,
+                        lastActive: parseISO(dict["lastActive"] as? String),
+                        createdAt: parseISO(dict["createdAt"] as? String),
+                        language: dict["language"] as? String,
+                        appVersion: dict["appVersion"] as? String,
+                        iosVersion: dict["iosVersion"] as? String
+                    )
+                }
+                users.append(contentsOf: newUsers)
+            }
+
+            nextCursor = data["nextCursor"] as? String
         } catch {
             errorMessage = error.localizedDescription
         }

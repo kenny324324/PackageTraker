@@ -93,10 +93,18 @@ final class SubscriptionManager: ObservableObject {
         products.first { $0.id == SubscriptionProductID.lifetimeLaunch.rawValue }
     }
 
-    /// 最佳買斷產品（優惠進行中回傳 launch，否則回傳原價）
+    /// 1000 用戶里程碑買斷產品
+    var lifetimeMilestoneProduct: Product? {
+        products.first { $0.id == SubscriptionProductID.lifetimeMilestone.rawValue }
+    }
+
+    /// 最佳買斷產品（三層優先級：launchPromo > milestone > 原價）
     var bestLifetimeProduct: Product? {
         if LaunchPromoManager.shared.isPromoActive, let promo = lifetimeLaunchProduct {
             return promo
+        }
+        if MilestonePromoManager.shared.isPromoActive, let milestone = lifetimeMilestoneProduct {
+            return milestone
         }
         return lifetimeProduct
     }
@@ -318,8 +326,8 @@ final class SubscriptionManager: ObservableObject {
             messaging.subscribe(toTopic: "free_users")
             messaging.unsubscribe(fromTopic: "subscription_users")
             messaging.unsubscribe(fromTopic: "lifetime_users")
-        } else if productID == "com.kenny.PackageTraker.pro.lifetime" {
-            // 終身方案
+        } else if let productID, SubscriptionProductID.allLifetimeIDs.contains(productID) {
+            // 終身方案（含 launch / milestone 折扣版）
             messaging.subscribe(toTopic: "lifetime_users")
             messaging.unsubscribe(fromTopic: "free_users")
             messaging.unsubscribe(fromTopic: "subscription_users")

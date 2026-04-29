@@ -38,7 +38,9 @@ struct PackageListView: View {
     // 包裹額度預警 banner
     @State private var quotaBannerDismissed = false
     @State private var promoBannerDismissed = false
+    @State private var milestoneBannerDismissed = false
     @ObservedObject private var promoManager = LaunchPromoManager.shared
+    @ObservedObject private var milestonePromo = MilestonePromoManager.shared
 
     // 編輯、完成、刪除
     @State private var packageToEdit: Package?
@@ -262,7 +264,30 @@ struct PackageListView: View {
     // MARK: - Views
 
     private var emptyStateContent: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: 16) {
+            // 限時優惠 / Milestone Banner（launchPromo > milestone）— 與 packageListContent 一致放在 stats 上方
+            if !SubscriptionManager.shared.isPro {
+                if promoManager.isPromoActive && !promoBannerDismissed {
+                    PromoBanner(
+                        onTap: { paywallTrigger = .general; showPaywall = true },
+                        onDismiss: { promoBannerDismissed = true }
+                    )
+                    .padding(.horizontal)
+                    .padding(.top, 8)
+                } else if milestonePromo.isPromoActive && !milestoneBannerDismissed {
+                    MilestonePromoBanner(
+                        onTap: {
+                            AnalyticsService.logMilestonePromoBannerTapped()
+                            paywallTrigger = .general
+                            showPaywall = true
+                        },
+                        onDismiss: { milestoneBannerDismissed = true }
+                    )
+                    .padding(.horizontal)
+                    .padding(.top, 8)
+                }
+            }
+
             StatsSummaryView(
                 stat1: (selectedStat1, vm.computeStatValue(selectedStat1, packages: packages)),
                 stat2: (selectedStat2, vm.computeStatValue(selectedStat2, packages: packages)),
@@ -272,7 +297,6 @@ struct PackageListView: View {
                 onStat2Edit: { editingStatSlot = 2 }
             )
             .padding(.horizontal)
-            .padding(.top, 8)
 
             EmptyPackageListView()
                 .frame(maxHeight: .infinity)
@@ -306,13 +330,25 @@ struct PackageListView: View {
                     }
                 }
 
-                // 限時優惠 Banner
-                if promoManager.isPromoActive && !promoBannerDismissed && !SubscriptionManager.shared.isPro {
-                    PromoBanner(
-                        onTap: { paywallTrigger = .general; showPaywall = true },
-                        onDismiss: { promoBannerDismissed = true }
-                    )
-                    .padding(.horizontal)
+                // 限時優惠 Banner（launchPromo 優先；milestone 次之；同一時間只顯示一個）
+                if !SubscriptionManager.shared.isPro {
+                    if promoManager.isPromoActive && !promoBannerDismissed {
+                        PromoBanner(
+                            onTap: { paywallTrigger = .general; showPaywall = true },
+                            onDismiss: { promoBannerDismissed = true }
+                        )
+                        .padding(.horizontal)
+                    } else if milestonePromo.isPromoActive && !milestoneBannerDismissed {
+                        MilestonePromoBanner(
+                            onTap: {
+                                AnalyticsService.logMilestonePromoBannerTapped()
+                                paywallTrigger = .general
+                                showPaywall = true
+                            },
+                            onDismiss: { milestoneBannerDismissed = true }
+                        )
+                        .padding(.horizontal)
+                    }
                 }
 
                 // 統計摘要

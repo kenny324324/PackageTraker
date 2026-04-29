@@ -48,6 +48,7 @@ struct PaywallView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var subscriptionManager = SubscriptionManager.shared
     @ObservedObject private var promoManager = LaunchPromoManager.shared
+    @ObservedObject private var milestonePromo = MilestonePromoManager.shared
 
     @State private var selectedProduct: Product?
     @State private var showError = false
@@ -272,11 +273,17 @@ struct PaywallView: View {
     private var planSelectionSection: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 16) {
-                // Lifetime (Special Design)
+                // Lifetime (Special Design) — 三層優先級：launchPromo > milestone > 原價
                 if promoManager.isPromoActive,
                    let promoProduct = subscriptionManager.lifetimeLaunchProduct {
                     promoLifetimePlanCard(
                         promoProduct: promoProduct,
+                        originalProduct: subscriptionManager.lifetimeProduct
+                    )
+                } else if milestonePromo.isPromoActive,
+                          let milestoneProduct = subscriptionManager.lifetimeMilestoneProduct {
+                    milestoneLifetimePlanCard(
+                        milestoneProduct: milestoneProduct,
                         originalProduct: subscriptionManager.lifetimeProduct
                     )
                 } else if let lifetime = subscriptionManager.lifetimeProduct {
@@ -497,6 +504,126 @@ struct PaywallView: View {
                     .stroke(Color.white.opacity(0.3), lineWidth: 1)
             )
             .shadow(color: .orange.opacity(0.3), radius: 8, x: 0, y: 4)
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - Milestone Lifetime Card
+
+    private func milestoneLifetimePlanCard(milestoneProduct: Product, originalProduct: Product?) -> some View {
+        let isSelected = selectedProduct?.id == milestoneProduct.id
+        let isFinal = milestonePromo.isFinalCountdown
+
+        let badgeColors: [Color] = isFinal
+            ? [Color(hex: "FF3B5C"), Color(hex: "8B2EFF")]
+            : [Color(hex: "8B2EFF"), Color(hex: "C089FF")]
+        let cardColors: [Color] = [Color(hex: "C089FF"), Color(hex: "FFD27A")]
+        let badgeText: String = isFinal
+            ? String(format: NSLocalizedString("milestone.promo.final_countdown", comment: ""), milestonePromo.remainingDays)
+            : String(localized: "milestone.promo.badge")
+
+        return Button {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                selectedProduct = milestoneProduct
+            }
+        } label: {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        // 1000 用戶慶祝 badge
+                        Text(badgeText)
+                            .font(.system(size: 10, weight: .bold))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(
+                                LinearGradient(colors: badgeColors,
+                                               startPoint: .leading,
+                                               endPoint: .trailing)
+                            )
+                            .foregroundStyle(.white)
+                            .clipShape(Capsule())
+
+                        Text(String(localized: "paywall.plan.lifetime"))
+                            .font(.subheadline)
+                            .fontWeight(.bold)
+                            .foregroundStyle(.black)
+                    }
+
+                    Spacer()
+
+                    ZStack {
+                        Circle()
+                            .stroke(isSelected ? Color.black : Color.black.opacity(0.3), lineWidth: 2)
+                            .frame(width: 20, height: 20)
+
+                        if isSelected {
+                            Circle()
+                                .fill(Color.black)
+                                .frame(width: 12, height: 12)
+                        }
+                    }
+                }
+
+                // One-time badge
+                Text(String(localized: "paywall.plan.oneTime"))
+                    .font(.system(size: 10))
+                    .fontWeight(.semibold)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 1)
+                    .background(Color.black.opacity(0.2))
+                    .clipShape(Capsule())
+                    .foregroundStyle(.black)
+
+                // Price: original strikethrough + milestone price
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    if let original = originalProduct {
+                        Text(original.displayPrice)
+                            .font(.subheadline)
+                            .strikethrough()
+                            .foregroundStyle(.black.opacity(0.5))
+                    }
+                    Text(milestoneProduct.displayPrice)
+                        .font(.title3)
+                        .fontWeight(.bold)
+                        .foregroundStyle(.black)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                }
+
+                // Remaining days
+                HStack(spacing: 4) {
+                    Image(systemName: isFinal ? "alarm.fill" : "calendar")
+                        .font(.system(size: 10))
+                    Text(String(format: NSLocalizedString("milestone.promo.remaining_days", comment: ""), milestonePromo.remainingDays))
+                        .font(.system(size: 11))
+                        .fontWeight(.semibold)
+                }
+                .foregroundStyle(.black.opacity(0.7))
+            }
+            .padding(14)
+            .background(GeometryReader { geo in
+                Color.clear
+                    .preference(key: CardWidthKey.self, value: geo.size.width)
+                    .preference(key: CardHeightKey.self, value: geo.size.height)
+            })
+            .frame(minWidth: 180,
+                   idealWidth: cardWidth > 0 ? cardWidth : nil,
+                   maxWidth: cardWidth > 0 ? cardWidth : nil,
+                   minHeight: cardHeight > 0 ? cardHeight : nil,
+                   alignment: .top)
+            .background(
+                LinearGradient(
+                    colors: cardColors,
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 20))
+            .overlay(
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(Color.white.opacity(0.3), lineWidth: 1)
+            )
+            .shadow(color: Color(hex: "8B2EFF").opacity(0.3), radius: 8, x: 0, y: 4)
         }
         .buttonStyle(.plain)
     }
@@ -780,6 +907,9 @@ struct PaywallView: View {
                     let success = await subscriptionManager.purchase(product)
                     if success {
                         AnalyticsService.logSubscriptionPurchased(productId: product.id)
+                        if product.id == SubscriptionProductID.lifetimeMilestone.rawValue {
+                            AnalyticsService.logMilestonePromoPurchased()
+                        }
                         dismiss()
                     }
                     if subscriptionManager.errorMessage != nil { showError = true }

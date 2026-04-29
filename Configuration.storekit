@@ -43,6 +43,21 @@
       "productID" : "com.kenny.PackageTraker.pro.lifetime.launch",
       "referenceName" : "Pro Lifetime Launch Offer",
       "type" : "NonConsumable"
+    },
+    {
+      "displayPrice" : "12.99",
+      "familyShareable" : false,
+      "internalID" : "B5C6D7E8",
+      "localizations" : [
+        {
+          "description" : "1000 Users Celebration · Lifetime",
+          "displayName" : "Pro Lifetime (1000 Users Celebration)",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.kenny.PackageTraker.pro.lifetime.milestone",
+      "referenceName" : "Pro Lifetime Milestone",
+      "type" : "NonConsumable"
     }
   ],
   "settings" : {

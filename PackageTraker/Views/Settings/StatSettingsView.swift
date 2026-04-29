@@ -13,10 +13,12 @@ struct StatSettingsView: View {
     private var packages: [Package]
 
     @ObservedObject private var promoManager = LaunchPromoManager.shared
+    @ObservedObject private var milestonePromo = MilestonePromoManager.shared
 
     @State private var editingSlot: Int? = nil
     @State private var showPaywall = false
     @State private var promoBannerDismissed = false
+    @State private var milestoneBannerDismissed = false
 
     private var isPro: Bool {
         !FeatureFlags.subscriptionEnabled || subscriptionManager.isPro
@@ -47,12 +49,22 @@ struct StatSettingsView: View {
                 // 選擇區
                 slotsSection
 
-                // 限時優惠 Banner（非 Pro 且優惠進行中）
-                if !isPro && promoManager.isPromoActive && !promoBannerDismissed {
-                    PromoBanner(
-                        onTap: { showPaywall = true },
-                        onDismiss: { promoBannerDismissed = true }
-                    )
+                // Promo Banner（launchPromo 優先 → milestone）
+                if !isPro {
+                    if promoManager.isPromoActive && !promoBannerDismissed {
+                        PromoBanner(
+                            onTap: { showPaywall = true },
+                            onDismiss: { promoBannerDismissed = true }
+                        )
+                    } else if milestonePromo.isPromoActive && !milestoneBannerDismissed {
+                        MilestonePromoBanner(
+                            onTap: {
+                                AnalyticsService.logMilestonePromoBannerTapped()
+                                showPaywall = true
+                            },
+                            onDismiss: { milestoneBannerDismissed = true }
+                        )
+                    }
                 }
             }
             .padding()

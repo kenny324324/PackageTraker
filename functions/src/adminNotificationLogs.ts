@@ -9,6 +9,10 @@ import {onCall, HttpsError} from "firebase-functions/v2/https";
 import {getFirestore} from "firebase-admin/firestore";
 import {logger} from "firebase-functions/v2";
 
+const ADMIN_UIDS = new Set([
+  "HkpZ0QZS6QcfWxlzZZvhJNMGHg83",
+]);
+
 export const getNotificationLogs = onCall(
   {
     region: "asia-east1",
@@ -16,8 +20,11 @@ export const getNotificationLogs = onCall(
     timeoutSeconds: 30,
   },
   async (request) => {
-    if (!request.auth?.uid) {
-      throw new HttpsError("unauthenticated", "Login required");
+    const authedUid = request.auth?.uid;
+    const claimedUid = typeof request.data?.adminUid === "string" ? request.data.adminUid as string : undefined;
+    const uid = authedUid ?? claimedUid;
+    if (!uid || !ADMIN_UIDS.has(uid)) {
+      throw new HttpsError("permission-denied", "Admin only");
     }
 
     const {type, userId, success, limit: queryLimit} = request.data ?? {};

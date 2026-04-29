@@ -686,6 +686,16 @@
 "promo.sheet.description" = "Lifetime plan 50% off — one-time purchase, unlock all Pro features forever";
 "promo.sheet.cta" = "View Offer";
 
+// 1000 Users Milestone Celebration
+"milestone.promo.badge" = "Celebration";
+"milestone.promo.banner" = "1000 Users Celebration! Lifetime 35% off";
+"milestone.promo.banner.final" = "%d Days Left! Lifetime 35%% off";
+"milestone.promo.remaining_days" = "%d days remaining";
+"milestone.promo.final_countdown" = "Last %d days!";
+"milestone.promo.sheet.title" = "1000 Users Celebration!";
+"milestone.promo.sheet.description" = "Thanks for supporting us to reach 1000 users! Lifetime plan now 35% off — one-time purchase, unlock all Pro features forever";
+"milestone.promo.sheet.cta" = "View Offer";
+
 // MARK: - Saved Locations
 "settings.savedLocations" = "Pickup Locations";
 "savedLocations.title" = "Pickup Locations";

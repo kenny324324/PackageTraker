@@ -1,6 +1,5 @@
 #if DEBUG
 import SwiftUI
-import FirebaseFunctions
 
 // MARK: - Data Models
 
@@ -80,7 +79,6 @@ struct NotificationLogsView: View {
         }
     }
 
-    private let functions = Functions.functions(region: "asia-east1")
     private let isoFormatter: ISO8601DateFormatter = {
         let f = ISO8601DateFormatter()
         f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -252,15 +250,10 @@ struct NotificationLogsView: View {
         isLoading = true
         defer { isLoading = false }
 
-        let params: [String: Any] = ["limit": queryLimit]
-
         do {
-            let callable = functions.httpsCallable("getNotificationLogs")
-            callable.timeoutInterval = 30
-            let result = try await callable.call(params)
+            let data = try await callCloudFunction("getNotificationLogs", params: ["limit": queryLimit])
 
-            guard let data = result.data as? [String: Any],
-                  let logsData = data["logs"] as? [[String: Any]] else {
+            guard let logsData = data["logs"] as? [[String: Any]] else {
                 errorMessage = "回傳格式錯誤"
                 return
             }

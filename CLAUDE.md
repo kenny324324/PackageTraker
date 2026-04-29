@@ -151,7 +151,7 @@ Firebase Cloud Functions v2 (TypeScript, Node.js 20, asia-east1):
 - `utils/carrierNames.ts`, `utils/statusMapper.ts` - Shared mapping utilities
 
 **Deployed but not yet used by app (2026-04-16):**
-- `trackTwProxy.ts` - `importPackage` + `getTracking` onCall v2 functions (server-side Track.TW proxy). Deployed to asia-east1, ACTIVE, but v1.7.1 app still calls Track.TW directly via `TrackTwAPIClient`. Source code was reverted locally. To re-integrate: use `FirebaseFunctions` SDK (`Functions.functions(region:).httpsCallable()`), NOT raw HTTP (v2 onCall URL format differs from v1).
+- `trackTwProxy.ts` - `importPackage` + `getTracking` onCall v2 functions (server-side Track.TW proxy). Deployed to asia-east1, ACTIVE, but v1.8.0 app still calls Track.TW directly via `TrackTwAPIClient`. Source code was reverted locally. To re-integrate: use `FirebaseFunctions` SDK (`Functions.functions(region:).httpsCallable()`), NOT raw HTTP (v2 onCall URL format differs from v1).
 
 **Note:** `backend/` is a deprecated Python/FastAPI service (replaced by Track.TW API). Do not modify.
 

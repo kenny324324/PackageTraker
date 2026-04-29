@@ -24,6 +24,9 @@ struct FeatureFlags {
     /// 限時優惠（新用戶 48hr 買斷半價）
     static let launchPromoEnabled = true
 
+    /// 1000 用戶里程碑慶祝（買斷限時 1290，由 Remote Config 控制啟用日期/結束日期）
+    static let milestonePromoEnabled = true
+
     /// 邀請碼系統
     static let referralEnabled = true
 }

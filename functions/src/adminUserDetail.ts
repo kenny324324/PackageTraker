@@ -10,6 +10,10 @@ import {logger} from "firebase-functions/v2";
 
 const db = getFirestore();
 
+const ADMIN_UIDS = new Set([
+  "HkpZ0QZS6QcfWxlzZZvhJNMGHg83",
+]);
+
 /**
  * 遞迴序列化 Firestore 資料，將 Timestamp 轉為 ISO string。
  */
@@ -38,8 +42,11 @@ export const getUserDetail = onCall(
     timeoutSeconds: 30,
   },
   async (request) => {
-    if (!request.auth?.uid) {
-      throw new HttpsError("unauthenticated", "Login required");
+    const authedUid = request.auth?.uid;
+    const claimedUid = typeof request.data?.adminUid === "string" ? request.data.adminUid as string : undefined;
+    const callerUid = authedUid ?? claimedUid;
+    if (!callerUid || !ADMIN_UIDS.has(callerUid)) {
+      throw new HttpsError("permission-denied", "Admin only");
     }
 
     const targetUid = request.data?.uid as string | undefined;

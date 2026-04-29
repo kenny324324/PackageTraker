@@ -685,6 +685,16 @@
 "promo.sheet.description" = "买断方案限时半价，一次付费永久解锁所有 Pro 功能";
 "promo.sheet.cta" = "立即查看优惠";
 
+// 1000 用户里程碑庆祝
+"milestone.promo.badge" = "庆祝活动";
+"milestone.promo.banner" = "1000 位用户庆祝活动！买断限时 6.5 折";
+"milestone.promo.banner.final" = "最后 %d 天！买断限时 6.5 折";
+"milestone.promo.remaining_days" = "活动剩余 %d 天";
+"milestone.promo.final_countdown" = "最后 %d 天！";
+"milestone.promo.sheet.title" = "1000 位用户庆祝活动！";
+"milestone.promo.sheet.description" = "感谢 1000 位用户的支持！买断方案限时 6.5 折，一次付费永久解锁所有 Pro 功能";
+"milestone.promo.sheet.cta" = "立即查看优惠";
+
 // MARK: - 常用取货地点
 "settings.savedLocations" = "常用取货地点";
 "savedLocations.title" = "常用取货地点";

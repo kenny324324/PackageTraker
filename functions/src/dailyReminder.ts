@@ -7,11 +7,18 @@
  */
 
 import {onSchedule} from "firebase-functions/v2/scheduler";
-import {getFirestore, FieldValue} from "firebase-admin/firestore";
+import {getFirestore, FieldValue, Timestamp} from "firebase-admin/firestore";
 import {logger} from "firebase-functions/v2";
 import {sendPushToAllDevices, extractAllTokens} from "./services/pushNotification";
 import {logNotification} from "./services/notificationLogger";
 import {getDailyReminderText, normalizeLang} from "./i18n/notifications";
+
+/**
+ * 包裹停在 arrivedAtStore 超過此天數就停止發每日提醒。
+ * 多數超商取件期限為 7 天；若仍停留在到店未取，多半是物流商系統未推送「已取件」事件，
+ * 用戶實際上已取貨。繼續每天推播會被視為打擾。
+ */
+const STALE_PICKUP_THRESHOLD_DAYS = 7;
 
 export const dailyPickupReminder = onSchedule(
   {
@@ -32,12 +39,23 @@ export const dailyPickupReminder = onSchedule(
       .where("isArchived", "==", false)
       .get();
 
-    // 過濾已刪除，並按 userId 分組
+    // 過濾已刪除與過期未更新，並按 userId 分組
     const userPackageMap = new Map<string, Array<{name: string; location: string}>>();
+    const staleCutoff = Timestamp.fromMillis(
+      Date.now() - STALE_PICKUP_THRESHOLD_DAYS * 24 * 60 * 60 * 1000
+    );
+    let staleSkipped = 0;
 
     for (const doc of packagesSnapshot.docs) {
       const data = doc.data();
       if (data.isDeleted === true) continue;
+
+      // 跳過 arrivedAtStore 已超過閾值天數的包裹（極可能用戶已取貨但物流商未推事件）
+      const lastUpdated = data.lastUpdated as Timestamp | undefined;
+      if (lastUpdated && lastUpdated.toMillis() < staleCutoff.toMillis()) {
+        staleSkipped++;
+        continue;
+      }
 
       const userId = doc.ref.parent.parent?.id;
       if (!userId) continue;
@@ -53,7 +71,8 @@ export const dailyPickupReminder = onSchedule(
 
     logger.info(
       `[DailyReminder] Found ${packagesSnapshot.size} pending packages ` +
-      `across ${userPackageMap.size} users`
+      `across ${userPackageMap.size} users ` +
+      `(skipped ${staleSkipped} stale > ${STALE_PICKUP_THRESHOLD_DAYS} days)`
     );
 
     let totalSent = 0;

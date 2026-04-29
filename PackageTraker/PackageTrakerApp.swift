@@ -87,6 +87,7 @@ struct PackageTrakerApp: App {
     @State private var showSoftPaywall = false
     @State private var showSoftPaywallFullPaywall = false
     @State private var showPromoSheet = false
+    @State private var showMilestonePromoSheet = false
 
     // Firebase 認證服務
     @StateObject private var authService = FirebaseAuthService.shared
@@ -212,7 +213,17 @@ struct PackageTrakerApp: App {
                 }
             }
             .sheet(isPresented: $showPromoSheet) {
-                PromoSheet {
+                PromoSheet(variant: .launch) {
+                    showSoftPaywallFullPaywall = true
+                }
+            }
+            .sheet(isPresented: $showMilestonePromoSheet, onDismiss: {
+                MilestonePromoManager.shared.markSheetShown()
+                if MilestonePromoManager.shared.isFinalCountdown {
+                    MilestonePromoManager.shared.markFinalSheetShown()
+                }
+            }) {
+                PromoSheet(variant: .milestone) {
                     showSoftPaywallFullPaywall = true
                 }
             }
@@ -236,6 +247,11 @@ struct PackageTrakerApp: App {
                 }
                 // 啟動時同步訂閱層級到 Widget（確保 Widget 能讀取到正確狀態，含試用期）
                 WidgetDataService.shared.updateSubscriptionTier(subscriptionManager.isPro ? .pro : .free)
+
+                // 冷啟動（已登入）載入帳號 createdAt → 決定 launchPromo 資格
+                if Auth.auth().currentUser != nil {
+                    await LaunchPromoManager.shared.loadFromFirebaseAccount()
+                }
 
                 // 載入邀請碼資料
                 if FeatureFlags.referralEnabled {
@@ -275,6 +291,8 @@ struct PackageTrakerApp: App {
                     FirebaseSyncService.shared.clearLocalData(modelContext: sharedModelContainer.mainContext)
                     // 清除邀請碼快取
                     ReferralService.shared.clearCache()
+                    // 清除 launchPromo 快取（避免換帳號殘留）
+                    LaunchPromoManager.shared.clearOnSignOut()
                     // 清除 Widget 資料
                     WidgetDataService.shared.updateWidgetData(packages: [])
                     WidgetCenter.shared.reloadAllTimelines()
@@ -302,6 +320,9 @@ struct PackageTrakerApp: App {
                             }
                         }
 
+                        // 登入後載入帳號 createdAt → 決定 launchPromo 資格
+                        await LaunchPromoManager.shared.loadFromFirebaseAccount()
+
                         // 登入後載入邀請碼資料 + 套用待處理的邀請碼
                         if FeatureFlags.referralEnabled {
                             await ReferralService.shared.loadReferralData()
@@ -322,7 +343,12 @@ struct PackageTrakerApp: App {
     /// 先檢查 What's New，再走軟 Paywall 流程
     private func checkWhatsNewThenPaywall() {
         Task {
-            if let data = await WhatsNewService.shared.checkWhatsNew() {
+            // What's New 內部會呼叫 RemoteConfig fetchAndActivate；milestone 共用同一份 cache
+            let whatsNew = await WhatsNewService.shared.checkWhatsNew()
+            await MainActor.run {
+                MilestonePromoManager.shared.reloadFromRemoteConfig()
+            }
+            if let data = whatsNew {
                 try? await Task.sleep(for: .seconds(0.5))
                 await MainActor.run {
                     whatsNewData = data
@@ -349,6 +375,25 @@ struct PackageTrakerApp: App {
                 }
             }
             return
+        }
+
+        // 1000 用戶里程碑優惠：每位用戶只彈一次；最後 3 天若仍未買，再彈一次
+        let milestone = MilestonePromoManager.shared
+        if milestone.isPromoActive {
+            let shouldShow: Bool = {
+                if !milestone.hasShownSheet { return true }
+                if milestone.isFinalCountdown && !milestone.hasShownFinalSheet { return true }
+                return false
+            }()
+            if shouldShow {
+                Task {
+                    try? await Task.sleep(for: .seconds(2))
+                    await MainActor.run {
+                        showMilestonePromoSheet = true
+                    }
+                }
+                return
+            }
         }
 
         // 優惠不在進行中 → 走軟 Paywall 邏輯（只彈一次）

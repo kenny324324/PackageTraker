@@ -14,6 +14,7 @@ struct DeveloperOptionsView: View {
     @State private var showSoftPaywall = false
     @State private var showPaywall = false
     @State private var showPromoSheet = false
+    @State private var showMilestonePromoSheet = false
     @State private var showWhatsNew = false
     @State private var whatsNewData: WhatsNewData?
     @State private var isFetchingWhatsNew = false
@@ -22,10 +23,9 @@ struct DeveloperOptionsView: View {
     private let functions = Functions.functions(region: "asia-east1")
     @State private var serverPushStatus: String = ""
     @State private var isSendingServerPush = false
-    @State private var deadlineStatus: String = ""
-    @Query(filter: #Predicate<Package> { $0.statusRawValue == "arrivedAtStore" })
-    private var arrivedPackages: [Package]
-    private var arrivedPackagesCount: Int { arrivedPackages.count }
+    // 取件倒數測試的 @Query 隔離在 PickupDeadlineDebugSection，避免
+    // Firestore sync listener 觸發 @Query → DeveloperOptionsView body 重渲染 →
+    // NavigationLink destination 重建的循環。
 
     var body: some View {
         List {
@@ -34,7 +34,13 @@ struct DeveloperOptionsView: View {
                 NavigationLink {
                     AdminStatsView()
                 } label: {
-                    Label("資料庫統計", systemImage: "chart.bar.doc.horizontal")
+                    Label("使用者列表", systemImage: "person.2.fill")
+                }
+
+                NavigationLink {
+                    AdminAnalyticsView()
+                } label: {
+                    Label("統計分析", systemImage: "chart.bar.doc.horizontal")
                 }
 
                 NavigationLink {
@@ -158,46 +164,7 @@ struct DeveloperOptionsView: View {
                 Text("選擇狀態後自動生成物流商、名稱等資訊")
             }
 
-            // MARK: - 取件倒數測試
-            Section {
-                HStack {
-                    Text("已到店包裹數")
-                    Spacer()
-                    Text("\(arrivedPackagesCount)")
-                        .foregroundStyle(arrivedPackagesCount > 0 ? .green : .secondary)
-                }
-
-                Menu {
-                    Button { setDeadlineDays(-1) } label: { Label("已逾期 1 天 (紅)", systemImage: "exclamationmark.triangle.fill") }
-                    Button { setDeadlineDays(0) } label: { Label("今天截止 (紅)", systemImage: "exclamationmark.circle.fill") }
-                    Button { setDeadlineDays(1) } label: { Label("剩餘 1 天 (紅)", systemImage: "1.circle.fill") }
-                    Button { setDeadlineDays(2) } label: { Label("剩餘 2 天 (紅)", systemImage: "2.circle.fill") }
-                    Button { setDeadlineDays(3) } label: { Label("剩餘 3 天 (紅)", systemImage: "3.circle.fill") }
-                    Button { setDeadlineDays(4) } label: { Label("剩餘 4 天 (灰)", systemImage: "4.circle.fill") }
-                    Button { setDeadlineDays(5) } label: { Label("剩 5 天 → 顯示日期", systemImage: "5.circle.fill") }
-                    Button { setDeadlineDays(10) } label: { Label("剩 10 天 → 顯示日期", systemImage: "10.circle.fill") }
-                } label: {
-                    Label("修改全部已到店包裹截止日", systemImage: "calendar.badge.clock")
-                }
-                .disabled(arrivedPackagesCount == 0)
-
-                Button {
-                    clearAllPickupDeadlines()
-                } label: {
-                    Label("清除手動截止日（恢復自動計算）", systemImage: "arrow.counterclockwise")
-                }
-                .disabled(arrivedPackagesCount == 0)
-
-                if !deadlineStatus.isEmpty {
-                    Text(deadlineStatus)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            } header: {
-                Text("取件倒數測試")
-            } footer: {
-                Text("快速修改所有「已到店」包裹的取件截止日，方便測試卡片倒數顯示樣式（顏色、文字、日期格式）。修改的是 pickupDeadline 字串欄位，不影響真實 events。")
-            }
+            PickupDeadlineDebugSection()
 
             // MARK: - API 除錯
             Section {
@@ -452,6 +419,100 @@ struct DeveloperOptionsView: View {
                 Text("重置或模擬限時優惠的各種狀態。影響 PaywallView 和 PackageListView 的顯示。")
             }
 
+            // MARK: - 1000 用戶里程碑測試
+            Section {
+                HStack {
+                    Text("Milestone 狀態")
+                    Spacer()
+                    Text(MilestonePromoManager.shared.isPromoActive ? "進行中" : "未啟動")
+                        .foregroundStyle(MilestonePromoManager.shared.isPromoActive ? .green : .red)
+                }
+
+                HStack {
+                    Text("Remote Config 開關")
+                    Spacer()
+                    Text(MilestonePromoManager.shared.isEnabledByRemote ? "ON" : "OFF")
+                        .foregroundStyle(MilestonePromoManager.shared.isEnabledByRemote ? .green : .secondary)
+                }
+
+                if let end = MilestonePromoManager.shared.endDate {
+                    HStack {
+                        Text("結束時間")
+                        Spacer()
+                        Text(end, style: .date)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                HStack {
+                    Text("剩餘天數")
+                    Spacer()
+                    Text("\(MilestonePromoManager.shared.remainingDays) 天")
+                        .foregroundStyle(MilestonePromoManager.shared.isFinalCountdown ? .red : Color(hex: "C089FF"))
+                        .monospacedDigit()
+                }
+
+                HStack {
+                    Text("Sheet 已彈過")
+                    Spacer()
+                    Text(MilestonePromoManager.shared.hasShownSheet ? "是" : "否")
+                        .foregroundStyle(.secondary)
+                }
+
+                Button {
+                    showMilestonePromoSheet = true
+                } label: {
+                    Label("顯示 Milestone Sheet", systemImage: "party.popper.fill")
+                        .foregroundStyle(Color(hex: "C089FF"))
+                }
+
+                Button {
+                    MilestonePromoManager.shared.debugForceActivate(days: 30)
+                } label: {
+                    Label("強制啟用 30 天", systemImage: "play.fill")
+                }
+
+                Button {
+                    MilestonePromoManager.shared.debugSimulateFinalCountdown(daysLeft: 2)
+                } label: {
+                    Label("模擬最後 2 天", systemImage: "alarm.fill")
+                        .foregroundStyle(.red)
+                }
+
+                Button {
+                    MilestonePromoManager.shared.debugExpire()
+                } label: {
+                    Label("模擬已過期", systemImage: "clock.badge.xmark")
+                        .foregroundStyle(.red)
+                }
+
+                Button {
+                    MilestonePromoManager.shared.debugDeactivate()
+                } label: {
+                    Label("關閉 Milestone", systemImage: "xmark.circle")
+                }
+
+                Button {
+                    MilestonePromoManager.shared.debugResetSheetShown()
+                } label: {
+                    Label("重置 Sheet 已彈狀態", systemImage: "arrow.counterclockwise")
+                }
+
+                Button {
+                    Task {
+                        // 先 fetch RemoteConfig，再讓 manager 重新讀
+                        _ = await WhatsNewService.shared.fetchWhatsNewData()
+                        MilestonePromoManager.shared.reloadFromRemoteConfig()
+                    }
+                } label: {
+                    Label("從 Remote Config 重新讀取", systemImage: "arrow.down.circle")
+                }
+            } header: {
+                Text("1000 用戶里程碑測試")
+            } footer: {
+                Text("Remote Config keys: milestone_promo_enabled / milestone_promo_end_date_iso8601 / milestone_promo_title。launchPromo 進行中時 milestone 不顯示（被 launch 蓋過）。")
+            }
+
             // MARK: - 動畫預覽
             Section {
                 NavigationLink {
@@ -571,7 +632,12 @@ struct DeveloperOptionsView: View {
             }
         }
         .sheet(isPresented: $showPromoSheet) {
-            PromoSheet {
+            PromoSheet(variant: .launch) {
+                // Dev preview
+            }
+        }
+        .sheet(isPresented: $showMilestonePromoSheet) {
+            PromoSheet(variant: .milestone) {
                 // Dev preview
             }
         }
@@ -844,39 +910,6 @@ struct DeveloperOptionsView: View {
         }
     }
 
-    private func setDeadlineDays(_ offset: Int) {
-        guard !arrivedPackages.isEmpty else { return }
-        let calendar = Calendar.current
-        guard let target = calendar.date(byAdding: .day, value: offset, to: Date()) else { return }
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "zh_TW")
-        formatter.dateFormat = "yyyy-MM-dd"
-        let dateString = formatter.string(from: target)
-
-        for package in arrivedPackages {
-            package.pickupDeadline = dateString
-        }
-        do {
-            try modelContext.save()
-            deadlineStatus = "✅ 已將 \(arrivedPackages.count) 個包裹截止日設為 \(dateString)（\(offset >= 0 ? "+" : "")\(offset) 天）"
-        } catch {
-            deadlineStatus = "❌ 修改失敗: \(error.localizedDescription)"
-        }
-    }
-
-    private func clearAllPickupDeadlines() {
-        guard !arrivedPackages.isEmpty else { return }
-        for package in arrivedPackages {
-            package.pickupDeadline = nil
-        }
-        do {
-            try modelContext.save()
-            deadlineStatus = "✅ 已清除 \(arrivedPackages.count) 個包裹的手動截止日"
-        } catch {
-            deadlineStatus = "❌ 清除失敗: \(error.localizedDescription)"
-        }
-    }
-
     private func sendServerTestPush() async {
         isSendingServerPush = true
         serverPushStatus = ""
@@ -908,6 +941,97 @@ struct DeveloperOptionsView: View {
         }
 
         isTestingAPI = false
+    }
+}
+
+// MARK: - 取件倒數測試 Section
+//
+// 隔離在獨立 view 內，讓 @Query 的 invalidation 只影響這個 section 的
+// rebuild，不會 propagate 到 DeveloperOptionsView.body。否則 Firestore
+// sync listener 會持續觸發 @Query → DeveloperOptionsView body re-render
+// → NavigationLink destination 不斷重建，admin 子頁無法完成導航。
+
+private struct PickupDeadlineDebugSection: View {
+    @Environment(\.modelContext) private var modelContext
+    @Query(filter: #Predicate<Package> { $0.statusRawValue == "arrivedAtStore" })
+    private var arrivedPackages: [Package]
+    @State private var deadlineStatus: String = ""
+
+    private var arrivedPackagesCount: Int { arrivedPackages.count }
+
+    var body: some View {
+        Section {
+            HStack {
+                Text("已到店包裹數")
+                Spacer()
+                Text("\(arrivedPackagesCount)")
+                    .foregroundStyle(arrivedPackagesCount > 0 ? .green : .secondary)
+            }
+
+            Menu {
+                Button { setDeadlineDays(-1) } label: { Label("已逾期 1 天 (紅)", systemImage: "exclamationmark.triangle.fill") }
+                Button { setDeadlineDays(0) } label: { Label("今天截止 (紅)", systemImage: "exclamationmark.circle.fill") }
+                Button { setDeadlineDays(1) } label: { Label("剩餘 1 天 (紅)", systemImage: "1.circle.fill") }
+                Button { setDeadlineDays(2) } label: { Label("剩餘 2 天 (紅)", systemImage: "2.circle.fill") }
+                Button { setDeadlineDays(3) } label: { Label("剩餘 3 天 (紅)", systemImage: "3.circle.fill") }
+                Button { setDeadlineDays(4) } label: { Label("剩餘 4 天 (灰)", systemImage: "4.circle.fill") }
+                Button { setDeadlineDays(5) } label: { Label("剩 5 天 → 顯示日期", systemImage: "5.circle.fill") }
+                Button { setDeadlineDays(10) } label: { Label("剩 10 天 → 顯示日期", systemImage: "10.circle.fill") }
+            } label: {
+                Label("修改全部已到店包裹截止日", systemImage: "calendar.badge.clock")
+            }
+            .disabled(arrivedPackagesCount == 0)
+
+            Button {
+                clearAllPickupDeadlines()
+            } label: {
+                Label("清除手動截止日（恢復自動計算）", systemImage: "arrow.counterclockwise")
+            }
+            .disabled(arrivedPackagesCount == 0)
+
+            if !deadlineStatus.isEmpty {
+                Text(deadlineStatus)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        } header: {
+            Text("取件倒數測試")
+        } footer: {
+            Text("快速修改所有「已到店」包裹的取件截止日，方便測試卡片倒數顯示樣式（顏色、文字、日期格式）。修改的是 pickupDeadline 字串欄位，不影響真實 events。")
+        }
+    }
+
+    private func setDeadlineDays(_ offset: Int) {
+        guard !arrivedPackages.isEmpty else { return }
+        let calendar = Calendar.current
+        guard let target = calendar.date(byAdding: .day, value: offset, to: Date()) else { return }
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "zh_TW")
+        formatter.dateFormat = "yyyy-MM-dd"
+        let dateString = formatter.string(from: target)
+
+        for package in arrivedPackages {
+            package.pickupDeadline = dateString
+        }
+        do {
+            try modelContext.save()
+            deadlineStatus = "✅ 已將 \(arrivedPackages.count) 個包裹截止日設為 \(dateString)（\(offset >= 0 ? "+" : "")\(offset) 天）"
+        } catch {
+            deadlineStatus = "❌ 修改失敗: \(error.localizedDescription)"
+        }
+    }
+
+    private func clearAllPickupDeadlines() {
+        guard !arrivedPackages.isEmpty else { return }
+        for package in arrivedPackages {
+            package.pickupDeadline = nil
+        }
+        do {
+            try modelContext.save()
+            deadlineStatus = "✅ 已清除 \(arrivedPackages.count) 個包裹的手動截止日"
+        } catch {
+            deadlineStatus = "❌ 清除失敗: \(error.localizedDescription)"
+        }
     }
 }
 

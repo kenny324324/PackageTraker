@@ -7,6 +7,7 @@ struct SavedLocationsView: View {
     @Query(sort: \SavedPickupLocation.createdAt, order: .reverse) private var locations: [SavedPickupLocation]
     @ObservedObject private var subscriptionManager = SubscriptionManager.shared
     @ObservedObject private var promoManager = LaunchPromoManager.shared
+    @ObservedObject private var milestonePromo = MilestonePromoManager.shared
 
     @State private var showAddSheet = false
     @State private var showPaywall = false
@@ -76,11 +77,19 @@ struct SavedLocationsView: View {
                         }
                     }
 
-                    // 免費用戶達上限：限時優惠 banner 或升級提示
+                    // 免費用戶達上限：促銷 banner 或升級提示（launchPromo > milestone > 一般升級）
                     if !subscriptionManager.isPro && locations.count >= Self.freeLimit {
                         if promoManager.isPromoActive {
                             PromoBanner(
                                 onTap: { showPaywall = true },
+                                onDismiss: { }
+                            )
+                        } else if milestonePromo.isPromoActive {
+                            MilestonePromoBanner(
+                                onTap: {
+                                    AnalyticsService.logMilestonePromoBannerTapped()
+                                    showPaywall = true
+                                },
                                 onDismiss: { }
                             )
                         } else {
