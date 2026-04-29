@@ -1,5 +1,6 @@
 #if DEBUG
 import SwiftUI
+import Charts
 import FirebaseAuth
 
 // MARK: - Cloud Function HTTP Client
@@ -100,6 +101,27 @@ private struct AdminSummary {
     let lifetime: Int
     let appVersionDistribution: [String: Int]
     let iosVersionDistribution: [String: Int]
+    let referralsSent: Int
+    let referralsCompleted: Int
+    let referredUsersCount: Int
+}
+
+private struct ReferralLeaderboardEntry: Identifiable {
+    let id: String // uid
+    let email: String
+    let referralCode: String?
+    let referralCount: Int
+    let referralSuccessCount: Int
+}
+
+private struct AdminDailyStat: Identifiable {
+    let date: Date
+    let dau: Int
+    let newUsers: Int
+    let newPackages: Int
+    let proUsers: Int
+    let totalUsers: Int
+    var id: Date { date }
 }
 
 private struct AdminUser: Identifiable {
@@ -437,7 +459,10 @@ struct AdminStatsView: View {
                     yearly: summaryData["yearly"] as? Int ?? 0,
                     lifetime: summaryData["lifetime"] as? Int ?? 0,
                     appVersionDistribution: parseStringIntDict(summaryData["appVersionDistribution"]),
-                    iosVersionDistribution: parseStringIntDict(summaryData["iosVersionDistribution"])
+                    iosVersionDistribution: parseStringIntDict(summaryData["iosVersionDistribution"]),
+                    referralsSent: summaryData["referralsSent"] as? Int ?? 0,
+                    referralsCompleted: summaryData["referralsCompleted"] as? Int ?? 0,
+                    referredUsersCount: summaryData["referredUsersCount"] as? Int ?? 0
                 )
             }
 
@@ -477,11 +502,23 @@ struct AdminAnalyticsView: View {
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var summary: AdminSummary?
+    @State private var trends: [AdminDailyStat] = []
+    @State private var trendDays: Int = 30
+    @State private var leaderboard: [ReferralLeaderboardEntry] = []
+
+    private let dateOnlyFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        f.timeZone = TimeZone(identifier: "Asia/Taipei")
+        return f
+    }()
 
     var body: some View {
         List {
+            trendsSection
             if let summary {
                 overallSection(summary)
+                referralSection(summary)
                 subscriptionSection(summary)
             }
         }
@@ -491,7 +528,7 @@ struct AdminAnalyticsView: View {
             }
         }
         .refreshable {
-            await fetchSummary()
+            await fetchAll()
         }
         .alert("錯誤", isPresented: .init(
             get: { errorMessage != nil },
@@ -502,10 +539,141 @@ struct AdminAnalyticsView: View {
             Text(errorMessage ?? "")
         }
         .task {
-            await fetchSummary()
+            await fetchAll()
         }
         .navigationTitle("統計分析")
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    // MARK: - Trends Section
+
+    @ViewBuilder
+    private var trendsSection: some View {
+        Section {
+            Picker("區間", selection: $trendDays) {
+                Text("7 天").tag(7)
+                Text("30 天").tag(30)
+                Text("90 天").tag(90)
+            }
+            .pickerStyle(.segmented)
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
+            .onChange(of: trendDays) { _, _ in
+                Task { await fetchTrends() }
+            }
+
+            if visibleTrends.isEmpty {
+                Text(isLoading ? "載入中⋯" : "尚無資料（cron 每天 00:05 寫入，等明天才有第一筆）")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                trendCard(title: "DAU", color: .blue, values: visibleTrends.map { ($0.date, $0.dau) })
+                trendCard(title: "新註冊", color: .green, values: visibleTrends.map { ($0.date, $0.newUsers) })
+                trendCard(title: "新增包裹", color: .orange, values: visibleTrends.map { ($0.date, $0.newPackages) })
+                trendCard(title: "付費用戶數", color: .yellow, values: visibleTrends.map { ($0.date, $0.proUsers) })
+            }
+        } header: {
+            Text("趨勢")
+        } footer: {
+            if let footer = trendsFooterText {
+                Text(footer)
+            }
+        }
+    }
+
+    private var trendsFooterText: String? {
+        guard let first = visibleTrends.first?.date,
+              let last = visibleTrends.last?.date else { return nil }
+        let f = DateFormatter()
+        f.dateFormat = "M/d"
+        return "\(f.string(from: first)) – \(f.string(from: last))（共 \(visibleTrends.count) 天）"
+    }
+
+    /// 依目前選的區間切片
+    private var visibleTrends: [AdminDailyStat] {
+        Array(trends.suffix(trendDays))
+    }
+
+    @ViewBuilder
+    private func trendCard(title: String, color: Color, values: [(Date, Int)]) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(title)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                Spacer()
+                if let last = values.last {
+                    Text("\(last.1)")
+                        .font(.title3)
+                        .fontWeight(.bold)
+                        .monospacedDigit()
+                    if let delta = deltaPercent(values: values) {
+                        Text(delta)
+                            .font(.caption)
+                            .fontWeight(.medium)
+                            .foregroundStyle(delta.hasPrefix("-") ? .red : .green)
+                            .monospacedDigit()
+                    }
+                }
+            }
+
+            Chart {
+                ForEach(values, id: \.0) { date, value in
+                    LineMark(
+                        x: .value("日期", date),
+                        y: .value("數值", value)
+                    )
+                    .foregroundStyle(color)
+                    .interpolationMethod(.catmullRom)
+
+                    AreaMark(
+                        x: .value("日期", date),
+                        y: .value("數值", value)
+                    )
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [color.opacity(0.3), color.opacity(0.05)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .interpolationMethod(.catmullRom)
+                }
+            }
+            .chartXAxis {
+                AxisMarks(values: .automatic(desiredCount: 4)) { value in
+                    AxisValueLabel {
+                        if let date = value.as(Date.self) {
+                            Text(date, format: .dateTime.month(.abbreviated).day())
+                                .font(.caption2)
+                        }
+                    }
+                    AxisGridLine()
+                }
+            }
+            .chartYAxis {
+                AxisMarks(position: .leading, values: .automatic(desiredCount: 3)) { value in
+                    AxisValueLabel {
+                        if let v = value.as(Int.self) {
+                            Text("\(v)")
+                                .font(.caption2)
+                        }
+                    }
+                    AxisGridLine()
+                }
+            }
+            .frame(height: 130)
+        }
+        .padding(.vertical, 4)
+    }
+
+    /// 期間首日 → 末日的成長率字串（"+12.3%" / "-5.0%"），首日為 0 則回傳 nil
+    private func deltaPercent(values: [(Date, Int)]) -> String? {
+        guard let first = values.first?.1, let last = values.last?.1, first > 0 else { return nil }
+        let delta = Double(last - first) / Double(first) * 100
+        if abs(delta) < 0.05 { return "0%" }
+        let sign = delta >= 0 ? "+" : ""
+        return "\(sign)\(String(format: "%.1f", delta))%"
     }
 
     // MARK: - Sections
@@ -536,6 +704,52 @@ struct AdminAnalyticsView: View {
         }
     }
 
+    // MARK: - Referral
+
+    @ViewBuilder
+    private func referralSection(_ summary: AdminSummary) -> some View {
+        Section {
+            row("邀請發送總數", value: "\(summary.referralsSent)", icon: "paperplane.fill")
+            row("成功邀請數", value: "\(summary.referralsCompleted)", icon: "checkmark.seal.fill", color: .green)
+
+            if summary.referralsSent > 0 {
+                let rate = Double(summary.referralsCompleted) / Double(summary.referralsSent) * 100
+                row("邀請完成率", value: String(format: "%.1f%%", rate), icon: "percent")
+            }
+
+            if summary.totalUsers > 0 {
+                let coverage = Double(summary.referredUsersCount) / Double(summary.totalUsers) * 100
+                row(
+                    "邀請覆蓋率",
+                    value: "\(summary.referredUsersCount) / \(summary.totalUsers) (\(String(format: "%.1f%%", coverage)))",
+                    icon: "person.2.crop.square.stack.fill"
+                )
+
+                let k = Double(summary.referralsCompleted) / Double(summary.totalUsers)
+                let kColor: Color = k >= 1 ? .green : (k >= 0.3 ? .yellow : .secondary)
+                row(
+                    "病毒係數 K",
+                    value: String(format: "%.2f", k),
+                    icon: "tornado",
+                    color: kColor
+                )
+            }
+
+            if !leaderboard.isEmpty {
+                NavigationLink {
+                    ReferralLeaderboardView(entries: leaderboard)
+                } label: {
+                    Label("Top \(leaderboard.count) 邀請人", systemImage: "trophy.fill")
+                        .foregroundStyle(.yellow)
+                }
+            }
+        } header: {
+            Text("邀請")
+        } footer: {
+            Text("發送 = 被輸入過邀請碼的次數；成功 = 對方輸入後完成第一筆包裹。K < 1 不會自然成長，K ≥ 1 病毒擴散。")
+        }
+    }
+
     private func row(_ title: String, value: String, icon: String, color: Color = .secondary) -> some View {
         HStack {
             Label(title, systemImage: icon)
@@ -548,6 +762,34 @@ struct AdminAnalyticsView: View {
     }
 
     // MARK: - Fetch
+
+    private func fetchAll() async {
+        async let summaryTask: () = fetchSummary()
+        async let trendsTask: () = fetchTrends()
+        async let leaderboardTask: () = fetchLeaderboard()
+        _ = await (summaryTask, trendsTask, leaderboardTask)
+    }
+
+    private func fetchLeaderboard() async {
+        do {
+            let data = try await callCloudFunction("getReferralLeaderboard", params: ["limit": 10])
+            guard let users = data["users"] as? [[String: Any]] else {
+                leaderboard = []
+                return
+            }
+            leaderboard = users.map { dict in
+                ReferralLeaderboardEntry(
+                    id: dict["uid"] as? String ?? "",
+                    email: dict["email"] as? String ?? "(no email)",
+                    referralCode: dict["referralCode"] as? String,
+                    referralCount: dict["referralCount"] as? Int ?? 0,
+                    referralSuccessCount: dict["referralSuccessCount"] as? Int ?? 0
+                )
+            }
+        } catch {
+            print("[ReferralLeaderboard] fetch failed: \(error)")
+        }
+    }
 
     private func fetchSummary() async {
         isLoading = true
@@ -569,10 +811,106 @@ struct AdminAnalyticsView: View {
                 yearly: summaryData["yearly"] as? Int ?? 0,
                 lifetime: summaryData["lifetime"] as? Int ?? 0,
                 appVersionDistribution: parseStringIntDict(summaryData["appVersionDistribution"]),
-                iosVersionDistribution: parseStringIntDict(summaryData["iosVersionDistribution"])
+                iosVersionDistribution: parseStringIntDict(summaryData["iosVersionDistribution"]),
+                referralsSent: summaryData["referralsSent"] as? Int ?? 0,
+                referralsCompleted: summaryData["referralsCompleted"] as? Int ?? 0,
+                referredUsersCount: summaryData["referredUsersCount"] as? Int ?? 0
             )
         } catch {
             errorMessage = error.localizedDescription
+        }
+    }
+
+    private func fetchTrends() async {
+        do {
+            // 一次抓最大區間（90），前端再依 trendDays 切片
+            let data = try await callCloudFunction("getAdminTrends", params: ["days": 90])
+
+            guard let items = data["items"] as? [[String: Any]] else {
+                trends = []
+                return
+            }
+
+            trends = items.compactMap { dict -> AdminDailyStat? in
+                guard let dateStr = dict["date"] as? String,
+                      let date = dateOnlyFormatter.date(from: dateStr) else { return nil }
+                return AdminDailyStat(
+                    date: date,
+                    dau: dict["dau"] as? Int ?? 0,
+                    newUsers: dict["newUsers"] as? Int ?? 0,
+                    newPackages: dict["newPackages"] as? Int ?? 0,
+                    proUsers: dict["proUsers"] as? Int ?? 0,
+                    totalUsers: dict["totalUsers"] as? Int ?? 0
+                )
+            }
+        } catch {
+            // trends 失敗不顯示 alert（趨勢屬非關鍵資料），summary 才顯示
+            print("[AdminTrends] fetch failed: \(error)")
+        }
+    }
+}
+
+// MARK: - ReferralLeaderboardView
+
+private struct ReferralLeaderboardView: View {
+    let entries: [ReferralLeaderboardEntry]
+
+    var body: some View {
+        List {
+            Section {
+                ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
+                    HStack(spacing: 12) {
+                        Text("\(index + 1)")
+                            .font(.subheadline)
+                            .fontWeight(.bold)
+                            .foregroundStyle(rankColor(index))
+                            .frame(width: 28, alignment: .center)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(entry.email)
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .lineLimit(1)
+                            if let code = entry.referralCode {
+                                Text(code)
+                                    .font(.caption2.monospaced())
+                                    .foregroundStyle(.tertiary)
+                            }
+                        }
+
+                        Spacer()
+
+                        VStack(alignment: .trailing, spacing: 2) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "checkmark.seal.fill")
+                                    .font(.caption2)
+                                    .foregroundStyle(.green)
+                                Text("\(entry.referralSuccessCount)")
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                    .monospacedDigit()
+                            }
+                            Text("發送 \(entry.referralCount)")
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    .padding(.vertical, 2)
+                }
+            } footer: {
+                Text("依「成功邀請數」排序。前面數字 = 名次；右側 ✓ = 成功，下方 = 累計被輸入次數。")
+            }
+        }
+        .navigationTitle("邀請排行")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func rankColor(_ index: Int) -> Color {
+        switch index {
+        case 0: return .yellow      // 金
+        case 1: return Color(white: 0.75)  // 銀
+        case 2: return Color(red: 0.8, green: 0.5, blue: 0.2) // 銅
+        default: return .secondary
         }
     }
 }
@@ -1392,7 +1730,10 @@ struct AdminVersionsView: View {
                     yearly: summaryData["yearly"] as? Int ?? 0,
                     lifetime: summaryData["lifetime"] as? Int ?? 0,
                     appVersionDistribution: parseStringIntDict(summaryData["appVersionDistribution"]),
-                    iosVersionDistribution: parseStringIntDict(summaryData["iosVersionDistribution"])
+                    iosVersionDistribution: parseStringIntDict(summaryData["iosVersionDistribution"]),
+                    referralsSent: summaryData["referralsSent"] as? Int ?? 0,
+                    referralsCompleted: summaryData["referralsCompleted"] as? Int ?? 0,
+                    referredUsersCount: summaryData["referredUsersCount"] as? Int ?? 0
                 )
             }
 

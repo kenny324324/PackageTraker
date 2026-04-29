@@ -10,6 +10,11 @@
 import {onCall, HttpsError} from "firebase-functions/v2/https";
 import {getFirestore} from "firebase-admin/firestore";
 import {logger} from "firebase-functions/v2";
+import {
+  writeDailyStatsSnapshot,
+  taipeiDateString,
+  taipeiStartOfDay,
+} from "./statsAggregator";
 
 const db = getFirestore();
 
@@ -75,6 +80,11 @@ export const getAdminStats = onCall(
       const appVersionCounts: Record<string, number> = {};
       const iosVersionCounts: Record<string, number> = {};
 
+      // Referral 統計（順便算，user loop 內零成本）
+      let referralsSent = 0; // 邀請發送總數（被輸入過的次數）
+      let referralsCompleted = 0; // 完成的邀請數
+      let referredUsersCount = 0; // 自己被邀請來的用戶數
+
       for (const doc of allDocs) {
         const data = doc.data();
         const tier = data.subscriptionTier as string | undefined;
@@ -95,6 +105,16 @@ export const getAdminStats = onCall(
         const iv = (data.iosVersion as string | undefined) ?? "未知";
         appVersionCounts[av] = (appVersionCounts[av] ?? 0) + 1;
         iosVersionCounts[iv] = (iosVersionCounts[iv] ?? 0) + 1;
+
+        // Referral 累加
+        const rc = data.referralCount;
+        const rsc = data.referralSuccessCount;
+        if (typeof rc === "number") referralsSent += rc;
+        if (typeof rsc === "number") referralsCompleted += rsc;
+        const referredBy = data.referredBy;
+        if (typeof referredBy === "string" && referredBy.length > 0) {
+          referredUsersCount++;
+        }
       }
 
       // 排序：lastActive desc（無值放最後）
@@ -160,6 +180,9 @@ export const getAdminStats = onCall(
           lifetime,
           appVersionDistribution: appVersionCounts,
           iosVersionDistribution: iosVersionCounts,
+          referralsSent,
+          referralsCompleted,
+          referredUsersCount,
         },
         users,
         nextCursor,
@@ -167,6 +190,158 @@ export const getAdminStats = onCall(
     } catch (error) {
       logger.error("[AdminStats] Failed:", error);
       throw new HttpsError("internal", "Failed to fetch admin stats");
+    }
+  }
+);
+
+/**
+ * 讀最近 N 天的 dailyStats 快照（由 updateDailyStats cron 每天 00:05 寫入）
+ *
+ * 入參: { days?: number }，預設 30 天，最多 90 天
+ * 回傳: { items: [{date, dau, newUsers, newPackages, proUsers, totalUsers}, ...] }
+ *       items 依日期由舊到新排序，缺漏的日期不補（前端負責處理）
+ */
+export const getAdminTrends = onCall(
+  {
+    region: "asia-east1",
+    memory: "256MiB",
+    timeoutSeconds: 30,
+  },
+  async (request) => {
+    assertAdmin(request);
+
+    const rawDays = Number(request.data?.days ?? 30);
+    const days = Math.max(1, Math.min(90, Math.floor(rawDays) || 30));
+
+    try {
+      // 用 documentId() 排序拿最後 N 個（YYYY-MM-DD lexical sort = 時間順序）
+      const snap = await db.collection("dailyStats")
+        .orderBy("__name__", "desc")
+        .limit(days)
+        .get();
+
+      const items = snap.docs
+        .map((d) => {
+          const data = d.data();
+          return {
+            date: data.date as string,
+            dau: data.dau as number,
+            newUsers: data.newUsers as number,
+            newPackages: data.newPackages as number,
+            proUsers: data.proUsers as number,
+            totalUsers: data.totalUsers as number,
+          };
+        })
+        .sort((a, b) => a.date.localeCompare(b.date)); // 由舊到新
+
+      logger.info(`[AdminTrends] Returned ${items.length} days`);
+      return {items};
+    } catch (error) {
+      logger.error("[AdminTrends] Failed:", error);
+      throw new HttpsError("internal", "Failed to fetch trends");
+    }
+  }
+);
+
+/**
+ * Top N 邀請人 leaderboard（依 referralSuccessCount desc）
+ *
+ * 入參: { limit?: number } 預設 10，最多 50
+ * 回傳: { users: [{uid, email, referralCount, referralSuccessCount}, ...] }
+ */
+export const getReferralLeaderboard = onCall(
+  {
+    region: "asia-east1",
+    memory: "256MiB",
+    timeoutSeconds: 30,
+  },
+  async (request) => {
+    assertAdmin(request);
+
+    const rawLimit = Number(request.data?.limit ?? 10);
+    const limit = Math.max(1, Math.min(50, Math.floor(rawLimit) || 10));
+
+    try {
+      const snap = await db.collection("users")
+        .where("referralSuccessCount", ">", 0)
+        .orderBy("referralSuccessCount", "desc")
+        .limit(limit)
+        .get();
+
+      const users = snap.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          uid: doc.id,
+          email: (data.email as string | undefined) ?? null,
+          referralCode: (data.referralCode as string | undefined) ?? null,
+          referralCount: (data.referralCount as number | undefined) ?? 0,
+          referralSuccessCount: (data.referralSuccessCount as number | undefined) ?? 0,
+        };
+      });
+
+      logger.info(`[ReferralLeaderboard] Returned top ${users.length}`);
+      return {users};
+    } catch (error) {
+      logger.error("[ReferralLeaderboard] Failed:", error);
+      throw new HttpsError("internal", "Failed to fetch leaderboard");
+    }
+  }
+);
+
+/**
+ * 手動觸發 daily snapshot（DEBUG 用，admin only）
+ *
+ * 預設抓「今日 [00:00, 現在)」partial 資料，讓 admin 不必等到明天 00:05
+ * 才看到第一筆數字。隔天 cron 會把這筆覆寫成完整一天。
+ *
+ * 如果丟 `date: "YYYY-MM-DD"` 參數，會抓那天 [00:00, 24:00) 完整資料。
+ * 注意：補抓過去日期的 DAU 會偏低（lastActive 已被後續活動覆寫）。
+ */
+export const runDailyStatsManually = onCall(
+  {
+    region: "asia-east1",
+    memory: "256MiB",
+    timeoutSeconds: 60,
+  },
+  async (request) => {
+    assertAdmin(request);
+
+    const customDate = typeof request.data?.date === "string"
+      ? request.data.date as string
+      : null;
+
+    let dateStr: string;
+    let start: Date;
+    let end: Date;
+
+    if (customDate && /^\d{4}-\d{2}-\d{2}$/.test(customDate)) {
+      // 補抓指定日期完整一天
+      dateStr = customDate;
+      start = taipeiStartOfDay(customDate);
+      end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+    } else {
+      // 預設：今日 partial 資料 [今日 00:00, 現在)
+      dateStr = taipeiDateString(new Date());
+      start = taipeiStartOfDay(dateStr);
+      end = new Date();
+    }
+
+    logger.info(`[ManualDailyStats] Snapshot ${dateStr} [${start.toISOString()} ~ ${end.toISOString()})`);
+
+    try {
+      const snapshot = await writeDailyStatsSnapshot(dateStr, start, end);
+      return {
+        ok: true,
+        date: snapshot.date,
+        dau: snapshot.dau,
+        newUsers: snapshot.newUsers,
+        newPackages: snapshot.newPackages,
+        proUsers: snapshot.proUsers,
+        totalUsers: snapshot.totalUsers,
+      };
+    } catch (error) {
+      logger.error("[ManualDailyStats] Failed:", error);
+      throw new HttpsError("internal", "Failed to run daily stats");
     }
   }
 );

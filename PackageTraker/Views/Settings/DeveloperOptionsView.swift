@@ -18,6 +18,8 @@ struct DeveloperOptionsView: View {
     @State private var showWhatsNew = false
     @State private var whatsNewData: WhatsNewData?
     @State private var isFetchingWhatsNew = false
+    @State private var isRunningDailyStats = false
+    @State private var dailyStatsResult: String = ""
 
     private let debugService = DebugNotificationService.shared
     private let functions = Functions.functions(region: "asia-east1")
@@ -54,10 +56,32 @@ struct DeveloperOptionsView: View {
                 } label: {
                     Label("版本分佈", systemImage: "iphone.gen3")
                 }
+
+                Divider()
+
+                Button {
+                    Task { await triggerDailyStatsSnapshot() }
+                } label: {
+                    HStack {
+                        Label("手動寫入今日快照", systemImage: "chart.line.uptrend.xyaxis")
+                            .foregroundStyle(.blue)
+                        if isRunningDailyStats {
+                            Spacer()
+                            ProgressView()
+                        }
+                    }
+                }
+                .disabled(isRunningDailyStats)
+
+                if !dailyStatsResult.isEmpty {
+                    Text(dailyStatsResult)
+                        .font(.caption)
+                        .foregroundStyle(dailyStatsResult.contains("✅") ? .green : .red)
+                }
             } header: {
                 Text("Admin")
             } footer: {
-                Text("查看所有使用者與訂閱統計、通知發送記錄。需要網路連線，載入可能較慢。")
+                Text("查看使用者與訂閱統計、通知發送記錄。「手動寫入今日快照」會用今日 partial 資料寫一筆 dailyStats，方便立刻看到趨勢圖；隔天 00:05 會被 cron 覆寫成完整一天。")
             }
 
             // MARK: - 通知測試
@@ -908,6 +932,26 @@ struct DeveloperOptionsView: View {
         } catch {
             print("[Debug] 建立截圖資料失敗: \(error)")
         }
+    }
+
+    private func triggerDailyStatsSnapshot() async {
+        isRunningDailyStats = true
+        dailyStatsResult = ""
+        do {
+            let result = try await callCloudFunction("runDailyStatsManually")
+            if let date = result["date"] as? String,
+               let dau = result["dau"] as? Int,
+               let newUsers = result["newUsers"] as? Int,
+               let newPackages = result["newPackages"] as? Int,
+               let proUsers = result["proUsers"] as? Int {
+                dailyStatsResult = "✅ \(date): DAU=\(dau) / 新註冊=\(newUsers) / 新包裹=\(newPackages) / Pro=\(proUsers)"
+            } else {
+                dailyStatsResult = "✅ 已寫入"
+            }
+        } catch {
+            dailyStatsResult = "❌ 失敗: \(error.localizedDescription)"
+        }
+        isRunningDailyStats = false
     }
 
     private func sendServerTestPush() async {
