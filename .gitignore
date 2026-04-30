@@ -59,6 +59,9 @@ backend/.env
 # Cloud Functions
 functions/node_modules/
 functions/lib/
+functions/certs/
+functions/serviceAccount*.json
+functions/*-firebase-adminsdk-*.json
 
 # Local logs
 firebase-debug.log
