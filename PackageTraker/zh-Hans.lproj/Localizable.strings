@@ -199,7 +199,7 @@
 "settings.shippedNotification" = "发货通知";
 "settings.pickupReminder" = "取货提醒";
 "settings.notificationHint" = "开启通知以即时收到包裹状态更新";
-"settings.notification.footer" = "包裹状态约每小时自动同步一次。状态变化（已发货、到店、配送中）会即时推送；下载前已寄出的包裹首次同步后，若已到店也会收到通知。如果一直没收到，请点击下方「推送诊断」检查。";
+"settings.notification.footer" = "包裹状态约每小时自动同步一次。状态变化（已发货、到店、配送中）会即时推送；下载前已寄出的包裹首次同步后，若已到店也会收到通知。若长时间未收到推送，请至「系统设置 > 取货吧 > 通知」确认权限是否开启。";
 
 // Pickup Deadline (card / detail)
 "card.pickupDeadline.format" = "取件期限 %@";

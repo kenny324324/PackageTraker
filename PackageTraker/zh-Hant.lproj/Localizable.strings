@@ -199,7 +199,7 @@
 "settings.shippedNotification" = "出貨通知";
 "settings.pickupReminder" = "取貨提醒";
 "settings.notificationHint" = "開啟通知以即時收到包裹狀態更新";
-"settings.notification.footer" = "包裹狀態約每小時自動同步一次。狀態變化（出貨、到店、配送中）會即時推播；下載前已寄出的包裹首次同步後，若已到店也會收到通知。如果一直沒收到，請點擊下方「推播診斷」檢查。";
+"settings.notification.footer" = "包裹狀態約每小時自動同步一次。狀態變化（出貨、到店、配送中）會即時推播；下載前已寄出的包裹首次同步後，若已到店也會收到通知。若長時間未收到推播，請至「系統設定 > 取貨吧 > 通知」確認權限是否開啟。";
 
 // Pickup Deadline (card / detail)
 "card.pickupDeadline.format" = "取件期限 %@";

@@ -199,7 +199,7 @@
 "settings.shippedNotification" = "Shipped Notification";
 "settings.pickupReminder" = "Pickup Reminder";
 "settings.notificationHint" = "Enable to receive package status updates";
-"settings.notification.footer" = "Package status syncs about once an hour. Status changes (shipped, in transit, arrived) trigger an instant push. Packages already at the store on first sync will also notify you. If you're not receiving any pushes, tap Notification Diagnostic below.";
+"settings.notification.footer" = "Package status syncs about once an hour. Status changes (shipped, in transit, arrived) trigger an instant push. Packages already at the store on first sync will also notify you. If you're not receiving any pushes, please check Settings > Pickup > Notifications to confirm permissions are enabled.";
 
 // Pickup Deadline (card / detail)
 "card.pickupDeadline.format" = "Pickup by %@";
