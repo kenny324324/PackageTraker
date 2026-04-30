@@ -21,7 +21,7 @@ import {fromTrackTw} from "./utils/statusMapper";
 const trackwToken = defineSecret("TRACKW_TOKEN");
 
 /** 每個 API 請求之間的間隔（ms），避免 rate limit */
-const API_DELAY_MS = 100;
+const API_DELAY_MS = 50;
 
 /** 延遲工具函數 */
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -31,7 +31,7 @@ export const packageTrackingScheduler = onSchedule(
     schedule: "0 * * * *",
     timeZone: "Asia/Taipei",
     region: "asia-east1",
-    timeoutSeconds: 540,
+    timeoutSeconds: 900,
     memory: "256MiB",
     secrets: [trackwToken],
   },
